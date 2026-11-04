@@ -7,7 +7,7 @@ struct ArgumentPromptView: View {
     /// Called with the values, or `nil` when cancelled.
     let onFinish: ([String: String]?) -> Void
 
-    @State private var values: [String: String] = [:]
+    @ViewState private var values: [String: String] = [:]
     @FocusState private var focusedName: String?
 
     var body: some View {

@@ -3,8 +3,8 @@ import TookiKit
 
 struct SnippetsView: View {
     @Bindable var snippets: JSONDocument<[Snippet]>
-    @State private var selection: Snippet.ID?
-    @State private var filter = ""
+    @ViewState private var selection: Snippet.ID?
+    @ViewState private var filter = ""
 
     private var filtered: [Snippet] {
         guard !filter.isEmpty else { return snippets.value }

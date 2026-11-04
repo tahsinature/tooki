@@ -39,7 +39,7 @@ struct ClipboardView: View {
 struct StringListEditor: View {
     @Binding var items: [String]
     let placeholder: String
-    @State private var newItem = ""
+    @ViewState private var newItem = ""
 
     var body: some View {
         ForEach(items, id: \.self) { item in

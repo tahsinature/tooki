@@ -4,7 +4,7 @@ import SwiftUI
 
 struct GeneralView: View {
     let app: AppController
-    @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
+    @ViewState private var launchAtLogin = SMAppService.mainApp.status == .enabled
 
     var body: some View {
         Form {
