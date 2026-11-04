@@ -40,7 +40,7 @@ struct MenuBarMenu: View {
 
     var body: some View {
         Button("Search…") { app.toggleSearch(.everything) }
-        Button("Clipboard History…") { app.toggleSearch(.clipboard) }
+        Button("Clipboard History…") { app.toggleClipboard() }
         Divider()
         Text("Keep Awake: \(app.keepAwake.statusText)")
         if app.keepAwake.manualUntil != nil {

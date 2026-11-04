@@ -22,6 +22,7 @@ final class AppController {
     @ObservationIgnored private let hyperKey = HyperKeyController()
     @ObservationIgnored private let snippetInserter = SnippetInserter()
     @ObservationIgnored private let searchPanel = SearchPanelController()
+    @ObservationIgnored private lazy var clipboardPanel = ClipboardPanelController(history: clipboard)
     @ObservationIgnored private lazy var snippetExpander = SnippetExpander(snippets: snippets, inserter: snippetInserter)
     @ObservationIgnored private lazy var keyboardMonitor = KeyboardMonitor(handlers: [hyperKey, snippetExpander])
     @ObservationIgnored private lazy var mainWindow = MainWindowController(app: self)
@@ -63,7 +64,7 @@ final class AppController {
     func perform(_ action: HotkeyAction) {
         switch action {
         case .search: toggleSearch(.everything)
-        case .clipboard: toggleSearch(.clipboard)
+        case .clipboard: toggleClipboard()
         case .toggleKeepAwake: keepAwake.toggle()
         case .toggleMenuBar: menuBar.toggle()
         case .searchMenuBar: Task { await toggleMenuBarSearch() }
@@ -77,8 +78,14 @@ final class AppController {
     }
 
     func toggleSearch(_ mode: SearchPanelController.Mode) {
+        clipboardPanel.close()
         let items = SearchItems(app: self, inserter: snippetInserter)
-        searchPanel.toggle(mode, items: mode == .clipboard ? items.clipboardItems() : items.all())
+        searchPanel.toggle(mode, items: items.all())
+    }
+
+    func toggleClipboard() {
+        searchPanel.close()
+        clipboardPanel.toggle()
     }
 
     func toggleMenuBarSearch() async {

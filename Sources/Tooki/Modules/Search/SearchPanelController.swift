@@ -6,13 +6,11 @@ import TookiKit
 final class SearchPanelController {
     enum Mode {
         case everything
-        case clipboard
         case menuBar
 
         var placeholder: String {
             switch self {
             case .everything: "Search snippets, clipboard and commands"
-            case .clipboard: "Search clipboard history"
             case .menuBar: "Search menu bar items"
             }
         }

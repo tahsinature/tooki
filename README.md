@@ -6,7 +6,7 @@ Tooki ("ToolKit") is a small native macOS menu bar app that replaces several thi
 |---|---|---|
 | Hyper Key | Karabiner, Raycast | Caps Lock becomes ⌃⌥⇧⌘. A quick tap still toggles Caps Lock. Bind Hyper + key to actions. |
 | Snippets | Raycast snippets | Type a keyword (`;date`) to expand it, or pick a snippet from the search panel. Supports dynamic placeholders. |
-| Clipboard | Raycast clipboard history | Searchable history of text and images. Text inside images is searchable too. Skips password managers and concealed items. |
+| Clipboard | Raycast clipboard history | Searchable history of text, links, colours, images and files, with a preview and pinning. Text inside images is searchable too. Skips password managers and concealed items. |
 | Menu Bar | Bartender, Hidden Bar | Hides menu bar icons behind a toggle. |
 | Keep Awake | Amphetamine, KeepingYouAwake | Prevents idle sleep for a set time, while certain apps run, or only on power. |
 
@@ -37,6 +37,19 @@ Tooki reads two files from `~/.config/tooki/` (or `$TOOKI_CONFIG_DIR`):
 - `snippets.json`: your snippets
 
 To keep them in dotfiles, symlink the folder (or the individual files) into your dotfiles repository. Tooki writes through symlinks without replacing them, and edits made outside Tooki are picked up within 2 seconds. Missing keys fall back to defaults; invalid values are reported on the General page instead of being overwritten.
+
+### Clipboard history
+
+Press Hyper+V to open it. The list is on the left (Pinned first, then Most Recent) and the selected entry is previewed on the right with its source app, size and copy counts. Filter by typing, or pick a type (Text, Links, Colors, Images, Files) from the menu. Pinned entries are never removed by `maxItems`.
+
+| Key | Action |
+| --- | --- |
+| ↑ ↓ (hold to repeat), Page Up/Down, Home/End | Move through the list |
+| ↵ | Paste into the app you were using |
+| ⌘↵ | Copy to the clipboard |
+| ⌘P | Pin or unpin |
+| ⌃X | Delete |
+| ⌘K | Show all actions |
 
 Clipboard history is private data and is stored separately in `~/Library/Application Support/Tooki/` (copied images go in `clipboard-images/`). Text in images is read with Apple's Vision framework on this Mac; nothing is sent anywhere.
 
