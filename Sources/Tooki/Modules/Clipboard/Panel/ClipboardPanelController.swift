@@ -33,6 +33,9 @@ final class ClipboardPanelController {
                 onCancel: { [weak self] in self?.close() }
             )
         }
+        panel.onEscape = { [weak self, weak model] in
+            if model?.dismissMenu() != true { self?.close() }
+        }
         self.panel = panel
         panel.present()
     }
@@ -43,8 +46,12 @@ final class ClipboardPanelController {
     }
 
     private func perform(_ kind: ClipboardAction.Kind, model: ClipboardPanelModel) {
-        model.isShowingActions = false
         guard let item = model.selectedItem else { return }
+        if kind == .openWith {
+            model.showOpenWith()
+            return
+        }
+        model.isShowingActions = false
         switch kind {
         case .paste:
             close()
@@ -60,6 +67,11 @@ final class ClipboardPanelController {
             model.togglePinOfSelected()
         case .delete:
             model.deleteSelected()
+        case .open(let appURL):
+            close()
+            ClipboardOpenWith.open(item, with: appURL)
+        case .openWith:
+            break
         }
     }
 }

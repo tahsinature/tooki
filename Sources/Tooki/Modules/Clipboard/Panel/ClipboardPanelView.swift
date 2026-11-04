@@ -27,10 +27,14 @@ struct ClipboardPanelView: View {
             footer
         }
         .overlay(alignment: .bottomTrailing) {
-            if model.isShowingActions, let item = model.selectedItem {
+            if model.isShowingActions, model.selectedItem != nil {
                 ClipboardActionsMenu(
-                    actions: ClipboardAction.all(for: item, targetAppName: model.targetAppName),
+                    title: model.openWithActions == nil ? nil : "Open With",
+                    actions: model.menuActions,
                     selection: model.actionSelection,
+                    query: $model.menuQuery,
+                    searchPrompt: model.openWithActions == nil ? "Search for actions…" : "Search applications…",
+                    onKey: handleKey,
                     onRun: onAction
                 )
                 .padding(.trailing, 10)
@@ -40,6 +44,9 @@ struct ClipboardPanelView: View {
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
         .overlay(RoundedRectangle(cornerRadius: 14).stroke(.separator))
         .onAppear { isSearchFocused = true }
+        .onChange(of: model.isShowingActions) { _, isShowing in
+            if !isShowing { isSearchFocused = true }
+        }
     }
 
     private var header: some View {
@@ -88,11 +95,15 @@ struct ClipboardPanelView: View {
     }
 
     private func toggleActions() {
-        model.actionSelection = 0
-        model.isShowingActions.toggle()
+        model.toggleActions()
     }
 
     private static let pageSize = 8
+
+    private var selectedMenuAction: ClipboardAction? {
+        let actions = model.menuActions
+        return actions.indices.contains(model.actionSelection) ? actions[model.actionSelection] : nil
+    }
 
     private func handleKey(_ press: KeyPress) -> KeyPress.Result {
         if let offset = navigationOffset(for: press.key) {
@@ -104,11 +115,14 @@ struct ClipboardPanelView: View {
         let command = press.modifiers.contains(.command)
         switch press.key {
         case .escape:
-            model.isShowingActions ? (model.isShowingActions = false) : onCancel()
+            if !model.dismissMenu() { onCancel() }
+        case .leftArrow where model.openWithActions != nil && model.menuQuery.isEmpty:
+            _ = model.dismissMenu()
+        case .rightArrow where model.isShowingActions && model.menuQuery.isEmpty && selectedMenuAction?.kind == .openWith:
+            model.showOpenWith()
         case .return:
-            if model.isShowingActions, let item = model.selectedItem {
-                let actions = ClipboardAction.all(for: item, targetAppName: model.targetAppName)
-                onAction(actions[model.actionSelection].kind)
+            if model.isShowingActions {
+                if let action = selectedMenuAction { onAction(action.kind) }
             } else {
                 onAction(command ? .copy : .paste)
             }
@@ -122,6 +136,8 @@ struct ClipboardPanelView: View {
         let key = press.characters.lowercased()
         if press.modifiers.contains(.command), key == "k" {
             toggleActions()
+        } else if press.modifiers.contains(.command), key == "o" {
+            model.showOpenWith()
         } else if press.modifiers.contains(.command), key == "p" {
             onAction(.togglePin)
         } else if press.modifiers.contains(.control), key == "x" || press.characters == "\u{18}" {
@@ -147,7 +163,7 @@ struct ClipboardPanelView: View {
 
     private func moveSelection(by offset: Int) {
         if model.isShowingActions {
-            model.actionSelection = min(max(model.actionSelection + offset, 0), 3)
+            model.actionSelection = max(min(model.actionSelection + offset, model.menuActions.count - 1), 0)
         } else {
             model.moveSelection(by: offset)
         }

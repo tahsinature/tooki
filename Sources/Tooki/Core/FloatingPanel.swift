@@ -26,7 +26,14 @@ final class FloatingPanel: NSPanel {
         contentView = hosting
     }
 
+    /// Runs when Esc reaches the panel, whichever view has focus. Closes the panel by default.
+    var onEscape: (() -> Void)?
+
     override var canBecomeKey: Bool { true }
+
+    override func cancelOperation(_ sender: Any?) {
+        if let onEscape { onEscape() } else { close() }
+    }
 
     /// Clicking anywhere else dismisses the panel.
     override func resignKey() {

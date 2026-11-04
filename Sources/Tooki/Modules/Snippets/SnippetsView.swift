@@ -92,7 +92,7 @@ private struct SnippetEditor: View {
     @Binding var snippet: Snippet
     let duplicateKeyword: Bool
 
-    private let placeholders = ["{date}", "{time}", "{clipboard}", "{cursor}", "{argument:name}"]
+    @ViewState private var insertion = TextInsertion()
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -114,22 +114,12 @@ private struct SnippetEditor: View {
                     .foregroundStyle(.orange)
             }
 
-            TextEditor(text: $snippet.text)
-                .font(.body.monospaced())
-                .scrollContentBackground(.hidden)
+            SnippetTextEditor(text: $snippet.text, insertion: insertion)
                 .padding(8)
                 .background(Color(nsColor: .textBackgroundColor), in: RoundedRectangle(cornerRadius: 8))
                 .overlay(RoundedRectangle(cornerRadius: 8).stroke(.separator))
 
-            HStack(spacing: 6) {
-                Text("Insert:").font(.caption).foregroundStyle(.secondary)
-                ForEach(placeholders, id: \.self) { placeholder in
-                    Button(placeholder) { snippet.text += placeholder }
-                        .font(.caption.monospaced())
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
-                }
-            }
+            PlaceholderMenu(insert: insertion.insert)
         }
         .textFieldStyle(.roundedBorder)
         .padding(20)

@@ -73,9 +73,10 @@ Press Hyper+V to open it. The list is on the left (Pinned first, then Most Recen
 | ↑ ↓ (hold to repeat), Page Up/Down, Home/End | Move through the list |
 | ↵ | Paste into the app you were using |
 | ⌘↵ | Copy to the clipboard |
+| ⌘O | Open With: search for an app to open an image, file or link with (Esc goes back) |
 | ⌘P | Pin or unpin |
 | ⌃X | Delete |
-| ⌘K | Show all actions |
+| ⌘K | Show all actions. Type to filter them, and the list behind stays as it was |
 
 Clipboard history is private data and is stored separately in `~/Library/Application Support/Tooki/` (copied images go in `clipboard-images/`). Text in images is read with Apple's Vision framework on this Mac; nothing is sent anywhere.
 

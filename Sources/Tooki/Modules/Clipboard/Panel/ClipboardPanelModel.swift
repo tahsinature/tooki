@@ -14,7 +14,17 @@ final class ClipboardPanelModel {
         didSet { selectedID = nil }
     }
     var selectedID: ClipboardItem.ID?
-    var isShowingActions = false
+    var isShowingActions = false {
+        didSet { if !isShowingActions { openWithActions = nil } }
+    }
+    /// The apps listed while the actions menu shows "Open With…".
+    var openWithActions: [ClipboardAction]? {
+        didSet { menuQuery = "" }
+    }
+    /// Filters the actions menu. Separate from `query`, so typing in the menu never changes the list.
+    var menuQuery = "" {
+        didSet { actionSelection = 0 }
+    }
     var actionSelection = 0
 
     let history: ClipboardHistory
@@ -35,6 +45,46 @@ final class ClipboardPanelModel {
     var selectedItem: ClipboardItem? {
         let ordered = orderedResults
         return ordered.first { $0.id == selectedID } ?? ordered.first
+    }
+
+    /// The rows the actions menu shows right now, filtered by `menuQuery`.
+    var menuActions: [ClipboardAction] {
+        let words = menuQuery.lowercased().split(separator: " ")
+        return unfilteredMenuActions.filter { action in
+            words.allSatisfy { action.title.lowercased().contains($0) }
+        }
+    }
+
+    private var unfilteredMenuActions: [ClipboardAction] {
+        if let openWithActions { return openWithActions }
+        guard let item = selectedItem else { return [] }
+        return ClipboardAction.all(for: item, targetAppName: targetAppName)
+    }
+
+    func toggleActions() {
+        menuQuery = ""
+        isShowingActions.toggle()
+    }
+
+    func showOpenWith() {
+        guard let item = selectedItem, ClipboardOpenWith.canOpen(item) else { return }
+        isShowingActions = true
+        openWithActions = ClipboardOpenWith.actions(for: item)
+    }
+
+    /// Esc steps back one level: from the app list to the actions, then closes the actions.
+    /// Returns `false` when no menu was open.
+    func dismissMenu() -> Bool {
+        if openWithActions != nil {
+            openWithActions = nil
+            actionSelection = menuActions.firstIndex { $0.kind == .openWith } ?? 0
+        } else if isShowingActions {
+            menuQuery = ""
+            isShowingActions = false
+        } else {
+            return false
+        }
+        return true
     }
 
     func moveSelection(by offset: Int) {
