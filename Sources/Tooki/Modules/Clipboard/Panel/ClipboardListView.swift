@@ -10,34 +10,60 @@ struct ClipboardListView: View {
         let selectedID = model.selectedItem?.id
         ScrollViewReader { proxy in
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: 2, pinnedViews: []) {
-                    section("Pinned", items: model.pinned, selectedID: selectedID)
-                    section("Most Recent", items: model.recent, selectedID: selectedID)
+                // One ForEach for both sections, so pinning moves a row instead of leaving a stale copy behind.
+                LazyVStack(alignment: .leading, spacing: 2) {
+                    ForEach(entries) { entry in
+                        switch entry {
+                        case .header(let title):
+                            header(title)
+                        case .item(let item):
+                            row(item, isSelected: item.id == selectedID)
+                        }
+                    }
                 }
                 .padding(8)
             }
             .onChange(of: selectedID) { _, newValue in
-                proxy.scrollTo(newValue)
+                if let newValue { proxy.scrollTo(ListEntry.itemID(newValue)) }
             }
         }
     }
 
-    @ViewBuilder
-    private func section(_ title: String, items: [ClipboardItem], selectedID: ClipboardItem.ID?) -> some View {
-        if !items.isEmpty {
-            Text(title)
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
-                .padding(.horizontal, 10)
-                .padding(.top, 8)
-                .padding(.bottom, 2)
-            ForEach(items) { item in
-                ClipboardRow(item: item, isSelected: item.id == selectedID)
-                    .id(item.id)
-                    .contentShape(Rectangle())
-                    .onTapGesture(count: 2, perform: onPaste)
-                    .simultaneousGesture(TapGesture().onEnded { model.selectedID = item.id })
-            }
+    private var entries: [ListEntry] {
+        section("Pinned", model.pinned) + section("Most Recent", model.recent)
+    }
+
+    private func section(_ title: String, _ items: [ClipboardItem]) -> [ListEntry] {
+        items.isEmpty ? [] : [.header(title)] + items.map(ListEntry.item)
+    }
+
+    private func header(_ title: String) -> some View {
+        Text(title)
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(.secondary)
+            .padding(.horizontal, 10)
+            .padding(.top, 8)
+            .padding(.bottom, 2)
+    }
+
+    private func row(_ item: ClipboardItem, isSelected: Bool) -> some View {
+        ClipboardRow(item: item, isSelected: isSelected)
+            .contentShape(Rectangle())
+            .onTapGesture(count: 2, perform: onPaste)
+            .simultaneousGesture(TapGesture().onEnded { model.selectedID = item.id })
+    }
+}
+
+private enum ListEntry: Identifiable {
+    case header(String)
+    case item(ClipboardItem)
+
+    static func itemID(_ id: ClipboardItem.ID) -> String { id.uuidString }
+
+    var id: String {
+        switch self {
+        case .header(let title): "header-\(title)"
+        case .item(let item): Self.itemID(item.id)
         }
     }
 }

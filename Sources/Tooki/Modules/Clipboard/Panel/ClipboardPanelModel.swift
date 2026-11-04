@@ -6,12 +6,13 @@ import TookiKit
 @MainActor
 @Observable
 final class ClipboardPanelModel {
+    // Text fields write their value back when they lose focus, so only a real change resets the selection.
     var query = "" {
-        didSet { selectedID = nil }
+        didSet { if query != oldValue { selectedID = nil } }
     }
     /// `nil` shows all types.
     var typeFilter: ClipboardContentType? {
-        didSet { selectedID = nil }
+        didSet { if typeFilter != oldValue { selectedID = nil } }
     }
     var selectedID: ClipboardItem.ID?
     var isShowingActions = false {
