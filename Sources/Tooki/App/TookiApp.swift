@@ -8,7 +8,11 @@ struct TookiApp: App {
         MenuBarExtra {
             MenuBarMenu(app: delegate.app)
         } label: {
-            Image(systemName: delegate.app.keepAwake.isActive ? "cup.and.saucer.fill" : "command")
+            if delegate.app.keepAwake.isActive {
+                Image(systemName: "cup.and.saucer.fill")
+            } else {
+                Image(nsImage: MenuBarIcon.image)
+            }
         }
     }
 }
@@ -19,7 +23,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @MainActor
     func applicationDidFinishLaunching(_ notification: Notification) {
         TerminationSignals.install()
-        app.start()
+        Task {
+            await SingleInstance.replaceOlderCopies()
+            app.start()
+        }
     }
 
     @MainActor

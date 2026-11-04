@@ -10,28 +10,44 @@ Tooki ("ToolKit") is a small native macOS menu bar app that replaces several thi
 | Menu Bar | Bartender, Hidden Bar | Hides menu bar icons behind a toggle. |
 | Keep Awake | Amphetamine, KeepingYouAwake | Prevents idle sleep for a set time, while certain apps run, or only on power. |
 
-## Build and install
+## Install
 
-Requires macOS 14 or later and Swift 6, available with Apple's Command Line Tools (`xcode-select --install`) or full Xcode.
+Download `Tooki.dmg` from the [latest release](https://github.com/tahsinature/tooki/releases/latest), open it and drag Tooki to Applications. Or use Homebrew:
+
+```sh
+brew install --cask tahsinature/tap/tooki
+```
+
+Tooki is not notarized by Apple. When you install from the DMG, macOS blocks the first launch: open System Settings → Privacy & Security and click **Open Anyway**. The Homebrew cask removes the quarantine flag for you. After an update, you may need to grant Accessibility again.
+
+To upgrade with Homebrew, run `brew upgrade --cask --greedy tooki`, because the cask always points at the latest release.
+
+## Build from source
+
+Requires macOS 14 or later and Swift 6. Apple's Command Line Tools (`xcode-select --install`) are enough. Full Xcode is not needed.
 
 ```sh
 make test      # unit tests
 make app       # builds and signs build/Tooki.app
-make run       # builds and opens it
+make run       # builds and opens it, replacing any running copy
 make install   # copies it to /Applications
+make dmg       # builds build/Tooki.dmg
 make info      # builds the app and shows its size, version, and requirements
 ```
 
-The app is signed with your "Apple Development" certificate (override with `make app SIGN_ID="..."`). A stable signature means macOS keeps the Accessibility permission across rebuilds.
+The app is signed with your "Apple Development" certificate when you have one. A stable signature means macOS keeps the Accessibility permission across rebuilds. Without a certificate, the Makefile signs ad hoc, and you may need to grant Accessibility again after rebuilding. Override with `make app SIGN_ID="..."`.
 
-If you don't have a signing certificate, use ad hoc signing to build and run locally:
+Use `make dmg ARCHS="arm64 x86_64"` for a universal build (needs full Xcode).
+
+## Releasing
+
+Push a version tag, and GitHub Actions tests the code, builds a universal `Tooki.dmg` and attaches it to a new release:
 
 ```sh
-make run SIGN_ID="-"
-make info SIGN_ID="-"
+git tag v0.2.0 && git push origin v0.2.0
 ```
 
-With ad hoc signing, you may need to grant Accessibility permission again after rebuilding.
+Running the Release workflow manually builds the DMG as a workflow artifact without publishing anything. The Homebrew cask lives in [tahsinature/homebrew-tap](https://github.com/tahsinature/homebrew-tap) (source: `packaging/tooki.rb`) and needs no change per release.
 
 ## Permissions
 
@@ -155,6 +171,8 @@ Sources/TookiKit/     Logic without UI (config, placeholders, keyword matching).
 Sources/Tooki/Core/   Event tap, synthetic keys, pasting, storage, panels.
 Sources/Tooki/Modules One folder per module (controller + settings view).
 Sources/Tooki/App/    App entry, wiring, settings window.
+packaging/            Homebrew cask.
+.github/workflows/    Release workflow (DMG on version tags).
 ```
 
 Use `@ViewState` for view-owned state. It aliases SwiftUI's `State` property wrapper, avoiding the SwiftUI macro plugin missing from the macOS 27 Command Line Tools.

@@ -112,6 +112,8 @@ final class MainWindowController {
         if let page { navigation.page = page }
         let window = window ?? makeWindow()
         self.window = window
+        // A regular app while the window is open, so it shows in ⌘-Tab and the Dock.
+        NSApp.setActivationPolicy(.regular)
         NSApp.activate()
         window.makeKeyAndOrderFront(nil)
     }
@@ -129,6 +131,10 @@ final class MainWindowController {
         window.contentViewController = NSHostingController(rootView: MainView(app: app, navigation: navigation))
         window.center()
         window.setFrameAutosaveName("TookiMainWindow")
+        // Back to a menu bar only app once the window closes.
+        NotificationCenter.default.addObserver(forName: NSWindow.willCloseNotification, object: window, queue: .main) { _ in
+            MainActor.assumeIsolated { _ = NSApp.setActivationPolicy(.accessory) }
+        }
         return window
     }
 }

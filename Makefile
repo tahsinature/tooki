@@ -1,21 +1,27 @@
 APP_NAME := Tooki
 BUILD_DIR := build
 APP := $(BUILD_DIR)/$(APP_NAME).app
-# A stable signing identity keeps the Accessibility permission across rebuilds.
-SIGN_ID ?= Apple Development
-BIN := $(shell swift build -c release --show-bin-path)/$(APP_NAME)
+DMG := $(BUILD_DIR)/$(APP_NAME).dmg
+# Uses an Apple Development certificate when one exists, which keeps the Accessibility
+# permission across rebuilds. Otherwise signs ad hoc, so only the Command Line Tools are needed.
+SIGN_ID ?= $(shell security find-identity -v -p codesigning 2>/dev/null | grep -q "Apple Development" && echo "Apple Development" || echo "-")
+# Set ARCHS="arm64 x86_64" for a universal build.
+ARCHS ?= $(shell uname -m)
+SWIFT_BUILD := swift build -c release $(foreach arch,$(ARCHS),--arch $(arch))
+VERSION ?= $(shell /usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' Resources/Info.plist)
 
-.PHONY: build app run install info test clean
+.PHONY: build app run install dmg info test clean
 
 build:
-	swift build -c release
+	$(SWIFT_BUILD)
 
 app: build
 	rm -rf $(APP)
 	mkdir -p $(APP)/Contents/MacOS
 	mkdir -p $(APP)/Contents/Resources
-	cp $(BIN) $(APP)/Contents/MacOS/$(APP_NAME)
+	cp "$$($(SWIFT_BUILD) --show-bin-path)/$(APP_NAME)" $(APP)/Contents/MacOS/$(APP_NAME)
 	cp Resources/Info.plist $(APP)/Contents/Info.plist
+	/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $(VERSION)" $(APP)/Contents/Info.plist
 	cp Resources/AppIcon.icns $(APP)/Contents/Resources/AppIcon.icns
 	codesign --force --sign "$(SIGN_ID)" $(APP)
 
@@ -27,12 +33,21 @@ install: app
 	cp -R $(APP) /Applications/
 	@echo "Installed to /Applications/$(APP_NAME).app"
 
+dmg: app
+	rm -rf $(BUILD_DIR)/dmg $(DMG)
+	mkdir -p $(BUILD_DIR)/dmg
+	cp -R $(APP) $(BUILD_DIR)/dmg/
+	ln -s /Applications $(BUILD_DIR)/dmg/Applications
+	hdiutil create -volname $(APP_NAME) -srcfolder $(BUILD_DIR)/dmg -ov -format UDZO $(DMG)
+	rm -rf $(BUILD_DIR)/dmg
+
 info: app
 	@printf '\nApp: %s\n' "$(APP)"
 	@du -sh "$(APP)" | awk '{ print "App size on disk: " $$1 }'
 	@printf 'Executable size: %s bytes\n' "$$(stat -f %z "$(APP)/Contents/MacOS/$(APP_NAME)")"
 	@printf 'Version: %s (build %s)\n' "$$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$(APP)/Contents/Info.plist")" "$$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$(APP)/Contents/Info.plist")"
 	@printf 'Minimum macOS: %s\n' "$$(/usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' "$(APP)/Contents/Info.plist")"
+	@printf 'Signed with: %s\n' "$(SIGN_ID)"
 	@printf 'Architecture: %s\n' "$$(lipo -archs "$(APP)/Contents/MacOS/$(APP_NAME)")"
 
 test:

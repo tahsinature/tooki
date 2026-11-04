@@ -1,0 +1,36 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  # Manual runs build the DMG as a workflow artifact without publishing a release.
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Test
+        run: make test
+
+      - name: Build universal DMG
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          [[ "$GITHUB_REF_TYPE" == "tag" ]] || version="0.0.0-dev"
+          make dmg ARCHS="arm64 x86_64" SIGN_ID=- VERSION="$version"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Tooki.dmg
+          path: build/Tooki.dmg
+
+      - name: Publish release
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" build/Tooki.dmg --title "$GITHUB_REF_NAME" --generate-notes
