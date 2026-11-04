@@ -97,6 +97,10 @@ public struct MenuBarConfig: Codable, Equatable, Sendable {
     public var startCollapsed = true
     /// Hide the revealed icons again after this many seconds. 0 keeps them visible.
     public var autoHideSeconds = 0
+    /// The saved arrangement. `nil` leaves icon positions to macOS.
+    public var layout: MenuBarLayout?
+    /// Puts icons back into `layout` when apps launch, the Mac wakes or displays change.
+    public var restoreLayout = true
 
     public init() {}
 
@@ -106,6 +110,8 @@ public struct MenuBarConfig: Codable, Equatable, Sendable {
         enabled = try container.decode(.enabled, default: defaults.enabled)
         startCollapsed = try container.decode(.startCollapsed, default: defaults.startCollapsed)
         autoHideSeconds = try container.decode(.autoHideSeconds, default: defaults.autoHideSeconds)
+        layout = try container.decodeIfPresent(MenuBarLayout.self, forKey: .layout)
+        restoreLayout = try container.decode(.restoreLayout, default: defaults.restoreLayout)
     }
 }
 

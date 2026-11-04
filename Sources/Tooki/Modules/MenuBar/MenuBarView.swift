@@ -4,6 +4,7 @@ import TookiKit
 struct MenuBarView: View {
     @Bindable var config: JSONDocument<TookiConfig>
     let organizer: MenuBarOrganizer
+    let arranger: MenuBarArranger
 
     private let autoHideOptions = [0, 5, 10, 30, 60]
 
@@ -29,13 +30,11 @@ struct MenuBarView: View {
                     .foregroundStyle(.secondary)
             }
 
-            Section("How to choose which icons hide") {
-                Label("Hold ⌘ and drag an icon to the left of the │ separator to hide it.", systemImage: "1.circle")
-                Label("Drag it back to the right of the separator to keep it visible.", systemImage: "2.circle")
-                Label("Click the arrow (› or ‹) to show or hide them.", systemImage: "3.circle")
-                Text("macOS remembers icon positions itself, so the arrangement is not part of config.json.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+            MenuBarLayoutEditor(config: config, organizer: organizer, arranger: arranger)
+
+            Section("Arranging by hand") {
+                Label("Hold ⌘ and drag an icon left of the │ separator to hide it, or right of it to show it.", systemImage: "hand.draw")
+                Label("Click “Reload from Menu Bar”, then “Apply & Save” to keep that arrangement in config.json.", systemImage: "square.and.arrow.down")
             }
         }
         .formStyle(.grouped)

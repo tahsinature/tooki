@@ -23,6 +23,15 @@ final class MenuBarOrganizer {
     /// Icons left of this screen position are in the hidden section.
     var hiddenBoundaryX: CGFloat? { separatorItem?.button?.window?.frame.minX }
 
+    /// Screen frames with a top-left origin, like the frames Accessibility reports for other icons.
+    var separatorFrame: CGRect? { separatorItem.flatMap(Self.screenFrame) }
+    var toggleFrame: CGRect? { toggleItem.flatMap(Self.screenFrame) }
+
+    private static func screenFrame(of item: NSStatusItem) -> CGRect? {
+        guard let frame = item.button?.window?.frame, let primary = NSScreen.screens.first else { return nil }
+        return CGRect(x: frame.minX, y: primary.frame.maxY - frame.maxY, width: frame.width, height: frame.height)
+    }
+
     func apply(_ config: MenuBarConfig) {
         let wasInstalled = isInstalled
         self.config = config

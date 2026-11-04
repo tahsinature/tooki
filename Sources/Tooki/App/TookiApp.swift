@@ -8,11 +8,7 @@ struct TookiApp: App {
         MenuBarExtra {
             MenuBarMenu(app: delegate.app)
         } label: {
-            if delegate.app.keepAwake.isActive {
-                Image(systemName: "cup.and.saucer.fill")
-            } else {
-                Image(nsImage: MenuBarIcon.image)
-            }
+            Image(nsImage: MenuBarIcon.image)
         }
     }
 }
@@ -49,11 +45,14 @@ struct MenuBarMenu: View {
         Button("Search…") { app.toggleSearch(.everything) }
         Button("Clipboard History…") { app.toggleClipboard() }
         Divider()
-        Text("Keep Awake: \(app.keepAwake.statusText)")
         if app.keepAwake.manualUntil != nil {
-            Button("Turn Off Keep Awake") { app.keepAwake.stop() }
+            // Shows a checkmark; choosing it turns Keep Awake off.
+            Toggle("Keep Awake: \(app.keepAwake.statusText)", isOn: Binding(
+                get: { true },
+                set: { isOn in if !isOn { app.keepAwake.stop() } }
+            ))
         } else {
-            Menu("Keep Awake") {
+            Menu(app.keepAwake.isActive ? "Keep Awake: \(app.keepAwake.statusText)" : "Keep Awake") {
                 Button("Until Turned Off") { app.keepAwake.start(minutes: nil) }
                 Button("15 Minutes") { app.keepAwake.start(minutes: 15) }
                 Button("1 Hour") { app.keepAwake.start(minutes: 60) }
@@ -66,7 +65,7 @@ struct MenuBarMenu: View {
             }
         }
         Divider()
-        Button("Settings…") { app.showSettings() }
+        Button("Show Tooki") { app.showSettings() }
             .keyboardShortcut(",")
         Button("Quit Tooki") { NSApp.terminate(nil) }
             .keyboardShortcut("q")

@@ -17,6 +17,7 @@ final class AppController {
     let clipboard = ClipboardHistory()
     let keepAwake = KeepAwake()
     let menuBar = MenuBarOrganizer()
+    @ObservationIgnored lazy var menuBarArranger = MenuBarArranger(organizer: menuBar)
     private(set) var hasAccessibility = Accessibility.isTrusted
 
     @ObservationIgnored private let hyperKey = HyperKeyController()
@@ -102,6 +103,7 @@ final class AppController {
         snippetExpander.isEnabled = config.snippets.enabled && config.snippets.keywordExpansion
         clipboard.apply(config.clipboard)
         menuBar.apply(config.menuBar)
+        menuBarArranger.apply(config.menuBar)
         keepAwake.apply(config.keepAwake)
     }
 

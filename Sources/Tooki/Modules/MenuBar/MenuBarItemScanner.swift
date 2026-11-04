@@ -7,6 +7,8 @@ struct MenuBarItem: @unchecked Sendable {
     let pid: pid_t
     let appName: String
     let bundleID: String?
+    /// The accessibility identifier, e.g. "com.apple.menuextra.wifi". Mostly set by Apple's items.
+    let identifier: String?
     /// The accessibility title or description, e.g. "Wi‑Fi, connected, 3 bars". Often empty.
     let label: String
     /// Screen position, with the origin at the top left of the main screen.
@@ -72,6 +74,7 @@ enum MenuBarItemScanner {
                 pid: app.pid,
                 appName: app.name,
                 bundleID: app.bundleID,
+                identifier: attribute(element, kAXIdentifierAttribute),
                 label: title.isEmpty ? description : title,
                 frame: frame
             )

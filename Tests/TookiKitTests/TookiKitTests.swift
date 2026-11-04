@@ -142,3 +142,61 @@ struct ClipboardLogTests {
         #expect(HexColor("#FF0000")?.red == 1 && HexColor("#FF000080")?.alpha == 128.0 / 255)
     }
 }
+
+struct MenuBarLayoutPlannerTests {
+    let separator = MenuBarLayoutPlanner.separatorID
+
+    /// Applies moves the way the menu bar does until the planner is done, returning the result and move count.
+    func arrange(_ start: [String], _ layout: MenuBarLayout) -> (bar: [String], moves: Int) {
+        var bar = start
+        var moves = 0
+        while let move = MenuBarLayoutPlanner.nextMove(current: bar, layout: layout), moves < 50 {
+            bar.removeAll { $0 == move.item }
+            switch move.placement {
+            case .before(let anchor): bar.insert(move.item, at: bar.firstIndex(of: anchor)!)
+            case .after(let anchor): bar.insert(move.item, at: bar.firstIndex(of: anchor)! + 1)
+            }
+            moves += 1
+        }
+        return (bar, moves)
+    }
+
+    @Test func reachesLayoutWithFewestMoves() {
+        let layout = MenuBarLayout(shown: ["b", "c", "d"], hidden: ["a"])
+        let result = arrange(["d", "a", separator, "b", "c"], layout)
+        #expect(result.bar == ["a", separator, "b", "c", "d"])
+        #expect(result.moves == 1)
+    }
+
+    @Test func movesIconsAcrossTheSeparator() {
+        let layout = MenuBarLayout(shown: ["a"], hidden: ["b", "c"])
+        #expect(arrange(["a", "b", separator, "c"], layout).bar == ["b", "c", separator, "a"])
+    }
+
+    @Test func skipsMissingAppsAndLeavesUnknownIconsAlone() {
+        let layout = MenuBarLayout(shown: ["b", "notInstalled", "a"], hidden: [])
+        let result = arrange(["new", separator, "a", "b"], layout)
+        #expect(result.bar == ["new", separator, "b", "a"])
+        #expect(result.moves == 1)
+    }
+
+    @Test func doesNothingWhenAlreadyArranged() {
+        let layout = MenuBarLayout(shown: ["a", "b"], hidden: ["c"])
+        #expect(MenuBarLayoutPlanner.nextMove(current: ["c", separator, "a", "b"], layout: layout) == nil)
+    }
+
+    @Test func keepsTheToggleRightOfTheSeparator() {
+        let toggle = MenuBarLayoutPlanner.toggleID
+        let layout = MenuBarLayout(shown: ["b"], hidden: ["a"])
+        #expect(arrange([toggle, "a", separator, "b"], layout).bar == ["a", separator, toggle, "b"])
+    }
+
+    @Test func numbersAdditionalIconsOfTheSameApp() {
+        let ids = MenuBarLayoutPlanner.ids(for: [
+            MenuBarItemDescriptor(bundleID: "eu.exelban.Stats", identifier: nil, appName: "Stats"),
+            MenuBarItemDescriptor(bundleID: "com.apple.controlcenter", identifier: "com.apple.menuextra.wifi", appName: "Control Center"),
+            MenuBarItemDescriptor(bundleID: "eu.exelban.Stats", identifier: nil, appName: "Stats"),
+        ])
+        #expect(ids == ["eu.exelban.Stats", "com.apple.menuextra.wifi", "eu.exelban.Stats#2"])
+    }
+}

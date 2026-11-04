@@ -68,7 +68,7 @@ struct MainView: View {
         case .hyperKey: HyperKeyView(config: app.config)
         case .snippets: SnippetsView(snippets: app.snippets)
         case .clipboard: ClipboardView(config: app.config, history: app.clipboard)
-        case .menuBar: MenuBarView(config: app.config, organizer: app.menuBar)
+        case .menuBar: MenuBarView(config: app.config, organizer: app.menuBar, arranger: app.menuBarArranger)
         case .keepAwake: KeepAwakeView(config: app.config, keepAwake: app.keepAwake)
         case .general: GeneralView(app: app)
         }
