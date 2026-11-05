@@ -2,7 +2,7 @@ import AppKit
 import SwiftUI
 
 enum SettingsPage: String, CaseIterable, Identifiable {
-    case hyperKey, snippets, clipboard, menuBar, keepAwake, shortcuts, general, about
+    case hyperKey, snippets, clipboard, shelf, menuBar, keepAwake, shortcuts, general, about
 
     var id: Self { self }
 
@@ -11,6 +11,7 @@ enum SettingsPage: String, CaseIterable, Identifiable {
         case .hyperKey: "Hyper Key"
         case .snippets: "Snippets"
         case .clipboard: "Clipboard"
+        case .shelf: "Shelf"
         case .menuBar: "Menu Bar"
         case .keepAwake: "Keep Awake"
         case .shortcuts: "Shortcuts"
@@ -24,6 +25,7 @@ enum SettingsPage: String, CaseIterable, Identifiable {
         case .hyperKey: "bolt.fill"
         case .snippets: "text.cursor"
         case .clipboard: "list.clipboard.fill"
+        case .shelf: "tray.full.fill"
         case .menuBar: "menubar.rectangle"
         case .keepAwake: "cup.and.saucer.fill"
         case .shortcuts: "command"
@@ -37,6 +39,7 @@ enum SettingsPage: String, CaseIterable, Identifiable {
         case .hyperKey: .purple
         case .snippets: .blue
         case .clipboard: .orange
+        case .shelf: .indigo
         case .menuBar: .teal
         case .keepAwake: .brown
         case .shortcuts: .pink
@@ -50,6 +53,7 @@ enum SettingsPage: String, CaseIterable, Identifiable {
         case .hyperKey: "Turn Caps Lock into one extra modifier that no app uses, for shortcuts that never conflict."
         case .snippets: "Expand short keywords into text you type often, in any app."
         case .clipboard: "Keep a searchable history of everything you copy."
+        case .shelf: "A floating spot to collect files and drag them out anywhere."
         case .menuBar: "Hide the menu bar icons you rarely need and keep the rest in order."
         case .keepAwake: "Stop your Mac from sleeping while you need it."
         case .shortcuts: "Run Tooki features and open apps with a keystroke."
@@ -58,7 +62,7 @@ enum SettingsPage: String, CaseIterable, Identifiable {
         }
     }
 
-    static let modules: [SettingsPage] = [.hyperKey, .snippets, .clipboard, .menuBar, .keepAwake]
+    static let modules: [SettingsPage] = [.hyperKey, .snippets, .clipboard, .shelf, .menuBar, .keepAwake]
     static let appPages: [SettingsPage] = [.shortcuts, .general]
 }
 
@@ -144,6 +148,7 @@ struct MainView: View {
         case .hyperKey: HyperKeyView(config: app.config) { navigation.page = .shortcuts }
         case .snippets: SnippetsView(snippets: app.snippets)
         case .clipboard: ClipboardView(config: app.config, history: app.clipboard)
+        case .shelf: ShelfSettingsView(app: app, onOpenShortcuts: { navigation.page = .shortcuts }, onOpenGeneral: { navigation.page = .general })
         case .menuBar: MenuBarView(config: app.config, organizer: app.menuBar, arranger: app.menuBarArranger)
         case .keepAwake: KeepAwakeView(config: app.config, keepAwake: app.keepAwake)
         case .shortcuts: ShortcutsView(config: app.config, detective: app.detective, onRecordingChange: app.setRecordingShortcut)

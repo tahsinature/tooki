@@ -2,6 +2,7 @@
 public enum HotkeyAction: Equatable, Sendable {
     case search
     case clipboard
+    case toggleShelf
     case toggleKeepAwake
     case toggleMenuBar
     case searchMenuBar
@@ -13,6 +14,7 @@ public enum HotkeyAction: Equatable, Sendable {
         switch text {
         case "search": self = .search
         case "clipboard": self = .clipboard
+        case "shelf.toggle": self = .toggleShelf
         case "keepAwake.toggle": self = .toggleKeepAwake
         case "menuBar.toggle": self = .toggleMenuBar
         case "menuBar.search": self = .searchMenuBar
@@ -27,6 +29,6 @@ public enum HotkeyAction: Equatable, Sendable {
 
     /// Tooki's own actions, in the order the Shortcuts page lists them.
     public static let builtIns = [
-        "search", "clipboard", "menuBar.search", "menuBar.toggle", "keepAwake.toggle", "settings",
+        "search", "clipboard", "shelf.toggle", "menuBar.search", "menuBar.toggle", "keepAwake.toggle", "settings",
     ]
 }

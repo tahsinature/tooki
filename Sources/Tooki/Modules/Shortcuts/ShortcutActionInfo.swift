@@ -23,6 +23,7 @@ struct ShortcutActionInfo {
         (title, icon) = switch action {
         case "search": ("Search", .symbol("magnifyingglass", .blue))
         case "clipboard": ("Clipboard History", .symbol("list.clipboard.fill", .orange))
+        case "shelf.toggle": ("Show or Hide Shelf", .symbol("tray.full.fill", .indigo))
         case "menuBar.search": ("Search Menu Bar", .symbol("menubar.rectangle", .teal))
         case "menuBar.toggle": ("Show Hidden Menu Bar Icons", .symbol("menubar.arrow.up.rectangle", .teal))
         case "keepAwake.toggle": ("Toggle Keep Awake", .symbol("cup.and.saucer.fill", .brown))

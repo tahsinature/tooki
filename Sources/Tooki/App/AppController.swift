@@ -15,6 +15,7 @@ final class AppController {
         initialValue: Snippet.examples
     )
     let clipboard = ClipboardHistory()
+    let shelf = Shelf()
     let keepAwake = KeepAwake()
     let menuBar = MenuBarOrganizer()
     let detective = ShortcutDetective()
@@ -26,10 +27,14 @@ final class AppController {
     @ObservationIgnored private let snippetInserter = SnippetInserter()
     @ObservationIgnored private let searchPanel = SearchPanelController()
     @ObservationIgnored private lazy var clipboardPanel = ClipboardPanelController(history: clipboard)
+    @ObservationIgnored private lazy var shelfPanel = ShelfPanelController(shelf: shelf)
+    @ObservationIgnored private let shelfDragWatcher = ShelfDragWatcher()
     @ObservationIgnored private lazy var snippetExpander = SnippetExpander(snippets: snippets, inserter: snippetInserter)
     @ObservationIgnored private lazy var keyboardMonitor = KeyboardMonitor(handlers: [hyperKey, detective, shortcuts, snippetExpander])
     @ObservationIgnored private lazy var mainWindow = MainWindowController(app: self)
     @ObservationIgnored private var pollTimer: Timer?
+    /// `tooki://` links that arrived while Tooki was still starting up.
+    @ObservationIgnored private var pendingURLs: [URL]? = []
 
     var loadErrors: [String] {
         [config.loadError, snippets.loadError].compactMap { $0 }
@@ -42,6 +47,7 @@ final class AppController {
         config.onChange = { [weak self] in self?.apply($0) }
         shortcuts.onAction = { [weak self] in self?.perform($0) }
         apply(config.value)
+        startShelf()
 
         startKeyboardMonitor()
         // Checks for external config edits and for the Accessibility grant.
@@ -52,6 +58,9 @@ final class AppController {
             Accessibility.requestAccess()
             showSettings(.general)
         }
+        let urls = pendingURLs ?? []
+        pendingURLs = nil
+        urls.forEach(open)
     }
 
     func shutdown() {
@@ -68,12 +77,38 @@ final class AppController {
         switch action {
         case .search: toggleSearch(.everything)
         case .clipboard: toggleClipboard()
+        case .toggleShelf: toggleShelf()
         case .toggleKeepAwake: keepAwake.toggle()
         case .toggleMenuBar: menuBar.toggle()
         case .searchMenuBar: Task { await toggleMenuBarSearch() }
         case .settings: showSettings()
         case .open(let target): AppLauncher.open(target)
         }
+    }
+
+    /// Runs a `tooki://` link from another app or a script. Unknown links beep.
+    func open(_ url: URL) {
+        guard pendingURLs == nil else {
+            pendingURLs?.append(url)
+            return
+        }
+        switch TookiURLCommand(url) {
+        case .shelf(let command): shelfPanel.handle(command)
+        case .run(let action): perform(action)
+        case nil: NSSound.beep()
+        }
+    }
+
+    func toggleShelf() {
+        shelfPanel.toggle()
+    }
+
+    func showShelf() {
+        shelfPanel.handle(.show)
+    }
+
+    func clearShelf() {
+        shelfPanel.handle(.clear)
     }
 
     /// Stops shortcuts from firing while one is being recorded.
@@ -105,6 +140,23 @@ final class AppController {
         searchPanel.show(.menuBar, items: items)
     }
 
+    /// Brings back the saved shelf.
+    private func startShelf() {
+        shelf.load()
+        if !shelf.isEmpty, shelfPanel.isEnabled { shelfPanel.show() }
+        shelfDragWatcher.onShiftDrag = { [weak self] in self?.shelfPanel.showForDrag() }
+        shelfDragWatcher.onDragEnded = { [weak self] in self?.shelfPanel.dragEnded() }
+    }
+
+    private func applyShelf(_ config: ShelfConfig) {
+        shelfPanel.apply(config)
+        if config.enabled, config.shiftDragOpens {
+            shelfDragWatcher.start()
+        } else {
+            shelfDragWatcher.stop()
+        }
+    }
+
     private func apply(_ config: TookiConfig) {
         hyperKey.apply(config.hyperKey, isMonitoring: keyboardMonitor.isRunning)
         shortcuts.apply(config.shortcuts)
@@ -113,6 +165,7 @@ final class AppController {
         menuBar.apply(config.menuBar)
         menuBarArranger.apply(config.menuBar)
         keepAwake.apply(config.keepAwake)
+        applyShelf(config.shelf)
     }
 
     private func startKeyboardMonitor() {

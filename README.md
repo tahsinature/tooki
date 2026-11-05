@@ -16,7 +16,7 @@
 
 ---
 
-- **Hyper Key**: Caps Lock becomes ⌃⌥⇧⌘, for shortcuts that never clash.
+- **Hyper Key**: Caps Lock becomes `⌃⌥⇧⌘`, for shortcuts that never clash.
 - **Shortcuts**: Bind any key combo to Tooki features or apps, and find out which app owns a shortcut.
 - **Snippets**: Type `;date` and it expands, with placeholders for dates, the clipboard and arguments.
 - **Clipboard**: Searchable history of text, links, colors, images and files. Paste, open or drag any item.

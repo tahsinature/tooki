@@ -16,6 +16,25 @@ struct TookiApp: App {
 final class AppDelegate: NSObject, NSApplicationDelegate {
     @MainActor let app = AppController()
 
+    /// Registered before launch finishes so a `tooki://` link that launched Tooki isn't lost.
+    @MainActor
+    func applicationWillFinishLaunching(_ notification: Notification) {
+        NSAppleEventManager.shared().setEventHandler(
+            self,
+            andSelector: #selector(handleURLEvent(_:replyEvent:)),
+            forEventClass: AEEventClass(kInternetEventClass),
+            andEventID: AEEventID(kAEGetURL)
+        )
+    }
+
+    @MainActor @objc
+    private func handleURLEvent(_ event: NSAppleEventDescriptor, replyEvent: NSAppleEventDescriptor) {
+        guard let text = event.paramDescriptor(forKeyword: keyDirectObject)?.stringValue,
+              let url = URL(string: text)
+        else { return }
+        app.open(url)
+    }
+
     @MainActor
     func applicationDidFinishLaunching(_ notification: Notification) {
         TerminationSignals.install()
@@ -44,6 +63,7 @@ struct MenuBarMenu: View {
     var body: some View {
         Button("Search…") { app.toggleSearch(.everything) }
         Button("Clipboard History…") { app.toggleClipboard() }
+        Button("Shelf") { app.toggleShelf() }
         Divider()
         if app.keepAwake.manualUntil != nil {
             // Shows a checkmark; choosing it turns Keep Awake off.

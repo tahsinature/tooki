@@ -67,13 +67,18 @@ Clipboard history is private data and is stored separately in `~/Library/Applica
     "defaultDurationMinutes": 0,   // 0 = until turned off
     "onlyOnPower": false,
     "activateForApps": ["us.zoom.xos"]
+  },
+  "shelf": {
+    "enabled": true,               // false also makes tooki://shelf links beep
+    "shiftDragOpens": true,        // show the shelf while Shift-dragging
+    "removeAfterDragOut": true
   }
 }
 ```
 
 Keys for bindings are letters, digits, punctuation, or `space`, `return`, `tab`, `escape`, `left`, `right`, `up` and `down`.
 
-**Actions:** `search`, `clipboard`, `keepAwake.toggle`, `menuBar.toggle`, `menuBar.search`, `settings`, `open:<bundle id or app path>`.
+**Actions:** `search`, `clipboard`, `shelf.toggle`, `keepAwake.toggle`, `menuBar.toggle`, `menuBar.search`, `settings`, `open:<bundle id or app path>`.
 
 Hyper + any unbound key is passed on as ⌃⌥⇧⌘ + key, so it also works with shortcuts in other apps.
 
@@ -100,6 +105,83 @@ Hyper + any unbound key is passed on as ⌃⌥⇧⌘ + key, so it also works wit
 | `{clipboard}` | The current clipboard text |
 | `{cursor}` | Where the cursor ends up after insertion |
 | `{argument:name}` | Asks for a value before inserting |
+
+## Shelf
+
+The shelf is a floating spot to collect files while you move between folders and apps. Hold **Shift** while dragging anything to make it appear next to the pointer, then drop onto it. You can also open it from the menu bar menu, from search, or by binding the `shelf.toggle` action to a shortcut.
+
+It holds files and folders. Dropped or pasted text, links and images are saved as files (`.txt`, `.webloc`, `.png`) so you can drag them into any app. Items stay on the shelf after Tooki restarts.
+
+Each file on the shelf is one of two kinds, shown by a badge on its icon. One shelf can mix both, even for the same file:
+
+| | Link to original (orange arrow) | Copy (green pages) |
+| --- | --- | --- |
+| Where the file lives | Where it already is | Tooki's own copy in `~/Library/Application Support/Tooki/shelf-items`, so it survives reboots |
+| Dragging it out | Uses the real file: dropping it on a folder on the same disk **moves** it | Hands over the copy; the original never moves |
+| Removing it from the shelf | Leaves the file alone | Deletes Tooki's copy (a minute later after a drag out, so uploads can finish) |
+
+When you drag files onto the shelf, it splits in two: drop on the left half to **link to the original**, or on the right half to **make a copy**. Pasting with ⌘V adds originals. Dropped text, links and images are always copies. Big folders take a moment to copy; the row shows a green progress bar until it's ready.
+
+- Drag the stack to take every item along, or click **N Items** to see the list.
+- In the list, click to select, ⌘ or ⇧ click to select more, and drag to take the selection. Double-click opens an item.
+- Items you drag out leave the shelf (turn off `removeAfterDragOut` to keep them), and it closes when it's empty. For originals, Finder decides between copy and move: dragging to a folder on the same disk **moves** the file. Use a copy when that matters.
+
+| Key (while the shelf is focused) | Action |
+| --- | --- |
+| ⌘V | Add what's on the clipboard |
+| ⌘A | Select all |
+| Delete | Remove the selection from the shelf (the files themselves are kept) |
+| Esc | Hide the shelf |
+
+### URL commands
+
+Other apps and scripts can control Tooki with `tooki://` links. Use `open -g` to run them without bringing Tooki forward.
+
+| Link | Action |
+| --- | --- |
+| `tooki://shelf/add?path=/a&path=/b` | Add files or folders as originals and show the shelf. Paths must be percent-encoded (a space is `%20`); `~` is expanded |
+| `tooki://shelf/add?path=/a&mode=copy` | Add Tooki's own copies instead, so the originals never move |
+| `tooki://shelf/show`, `/hide`, `/toggle` | Show or hide the shelf |
+| `tooki://shelf/clear` | Empty and hide the shelf |
+| `tooki://run/<action>` | Run an action from the list above, such as `tooki://run/clipboard`. `open:` is not allowed from links |
+
+Tooki beeps when a link isn't recognized or none of the paths exist.
+
+Save this script as an executable file on your `PATH` (for example `~/.local/bin/tooki-shelf`, then `chmod +x` it) to add files from the terminal, fzf or yazi. Pass `-c` to add copies. The same script can be copied from General › URL Scheme.
+
+```sh
+#!/bin/sh
+# Adds files and folders to the Tooki shelf.
+# Usage: tooki-shelf [-c] <paths…>   (-c adds copies, so the originals never move)
+mode=original
+if [ "$1" = "-c" ]; then mode=copy; shift; fi
+query=""
+for path in "$@"; do
+  path=$(cd "$(dirname -- "$path")" && printf '%s/%s' "$PWD" "$(basename -- "$path")")
+  query="$query&path=$(printf '%s' "$path" | perl -pe 's/([^A-Za-z0-9\/._~-])/sprintf("%%%02X", ord($1))/ge')"
+done
+open -g "tooki://shelf/add?${query#&}&mode=$mode"
+```
+
+With fzf, pick files with Tab and shelve them:
+
+```sh
+fzf -m --print0 | xargs -0 tooki-shelf
+```
+
+In yazi, add keys to `keymap.toml`. `T s` adds copies (the safe choice) and `T S` adds the originals:
+
+```toml
+[[mgr.prepend_keymap]]
+on   = ["T", "s"]
+run  = 'shell -- tooki-shelf -c "$@"'
+desc = "Add a copy of the selection to the Tooki shelf"
+
+[[mgr.prepend_keymap]]
+on   = ["T", "S"]
+run  = 'shell -- tooki-shelf "$@"'
+desc = "Add the selected originals to the Tooki shelf"
+```
 
 ## Menu bar organizer
 

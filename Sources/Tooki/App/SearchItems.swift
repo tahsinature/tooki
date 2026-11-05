@@ -75,6 +75,13 @@ struct SearchItems {
                 run: { app.keepAwake.toggle() }
             ),
             SearchItem(
+                id: "cmd-shelf",
+                title: "Show or Hide Shelf",
+                kind: "Command",
+                icon: "tray.full",
+                run: { app.toggleShelf() }
+            ),
+            SearchItem(
                 id: "cmd-menu-bar",
                 title: app.menuBar.isCollapsed ? "Show Hidden Menu Bar Icons" : "Hide Menu Bar Icons",
                 kind: "Command",

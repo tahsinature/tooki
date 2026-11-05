@@ -58,6 +58,7 @@ struct ConfigTests {
         #expect(config.shortcuts == Shortcut.defaults)
         #expect(config.keepAwake.mode == .system)
         #expect(config.clipboard == ClipboardConfig())
+        #expect(config.shelf == ShelfConfig())
     }
 
     @Test func wrongTypesAreReportedAsErrors() {
@@ -283,5 +284,35 @@ struct SystemShortcutsTests {
         #expect(byName["Show Spotlight search"] == KeyCombo("opt+space"))
         #expect(byName["Show Finder search window"] == nil)
         #expect(byName["Mission Control"] == KeyCombo("ctrl+up"))
+    }
+}
+
+struct TookiURLCommandTests {
+    private func command(_ text: String) -> TookiURLCommand? {
+        URL(string: text).flatMap(TookiURLCommand.init)
+    }
+
+    @Test func addsEveryDecodedPathToTheShelf() {
+        let url = "tooki://shelf/add?path=/Users/me/My%20Report.pdf&path=~/a+b.txt&path="
+        #expect(command(url) == .shelf(.add(paths: ["/Users/me/My Report.pdf", "~/a+b.txt"], asCopies: false)))
+    }
+
+    @Test func addsCopiesOnlyWithCopyMode() {
+        #expect(command("tooki://shelf/add?path=/a&mode=copy") == .shelf(.add(paths: ["/a"], asCopies: true)))
+        #expect(command("tooki://shelf/add?path=/a&mode=original") == .shelf(.add(paths: ["/a"], asCopies: false)))
+        #expect(command("tooki://shelf/add?path=/a&mode=move") == nil)
+    }
+
+    @Test func parsesShelfVerbs() {
+        #expect(command("tooki://shelf/toggle") == .shelf(.toggle))
+        #expect(command("TOOKI://shelf/clear/") == .shelf(.clear))
+        #expect(command("tooki://shelf/add") == nil)
+        #expect(command("tooki://shelf/explode") == nil)
+    }
+
+    @Test func runsOnlyBuiltInActions() {
+        #expect(command("tooki://run/clipboard") == .run(.clipboard))
+        #expect(command("tooki://run/open:com.apple.Terminal") == nil)
+        #expect(command("https://shelf/show") == nil)
     }
 }

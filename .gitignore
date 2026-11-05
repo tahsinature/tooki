@@ -22,3 +22,6 @@ xcuserdata/
 .vscode/
 .idea/
 .claude/settings.local.json
+
+# Design mockups
+.playground/

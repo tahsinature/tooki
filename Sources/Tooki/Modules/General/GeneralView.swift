@@ -53,6 +53,8 @@ struct GeneralView: View {
                 Text("config.json and snippets.json can live in your dotfiles. Symlink the folder or set TOOKI_CONFIG_DIR. Edits made outside Tooki are picked up automatically.")
                     .foregroundStyle(.secondary)
             }
+
+            URLSchemeSection()
         }
         .formStyle(.grouped)
     }

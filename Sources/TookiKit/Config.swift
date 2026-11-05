@@ -9,6 +9,7 @@ public struct TookiConfig: Codable, Equatable, Sendable {
     public var clipboard = ClipboardConfig()
     public var menuBar = MenuBarConfig()
     public var keepAwake = KeepAwakeConfig()
+    public var shelf = ShelfConfig()
 
     public init() {}
 
@@ -23,6 +24,7 @@ public struct TookiConfig: Codable, Equatable, Sendable {
         clipboard = try container.decode(.clipboard, default: defaults.clipboard)
         menuBar = try container.decode(.menuBar, default: defaults.menuBar)
         keepAwake = try container.decode(.keepAwake, default: defaults.keepAwake)
+        shelf = try container.decode(.shelf, default: defaults.shelf)
     }
 }
 
@@ -168,6 +170,24 @@ public struct KeepAwakeConfig: Codable, Equatable, Sendable {
         defaultDurationMinutes = try container.decode(.defaultDurationMinutes, default: defaults.defaultDurationMinutes)
         onlyOnPower = try container.decode(.onlyOnPower, default: defaults.onlyOnPower)
         activateForApps = try container.decode(.activateForApps, default: defaults.activateForApps)
+    }
+}
+
+public struct ShelfConfig: Codable, Equatable, Sendable {
+    public var enabled = true
+    /// Holding Shift while dragging something shows the shelf next to the pointer.
+    public var shiftDragOpens = true
+    /// Items leave the shelf once they're dragged somewhere else.
+    public var removeAfterDragOut = true
+
+    public init() {}
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let defaults = ShelfConfig()
+        enabled = try container.decode(.enabled, default: defaults.enabled)
+        shiftDragOpens = try container.decode(.shiftDragOpens, default: defaults.shiftDragOpens)
+        removeAfterDragOut = try container.decode(.removeAfterDragOut, default: defaults.removeAfterDragOut)
     }
 }
 
