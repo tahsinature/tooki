@@ -1,12 +1,18 @@
 # Homebrew cask, published in the tahsinature/homebrew-tap repository.
+# The release workflow fills in `version` and `sha256` and pushes this file to the tap.
 cask "tooki" do
-  version :latest
-  sha256 :no_check
+  version "0.1.0"
+  sha256 "70bd53879616bcb8e3738ef690e733c806ebf087b54917299fc07c2d762b23a5"
 
-  url "https://github.com/tahsinature/tooki/releases/latest/download/Tooki.dmg"
+  url "https://github.com/tahsinature/tooki/releases/download/v#{version}/Tooki.dmg"
   name "Tooki"
   desc "Hyper Key, snippets, clipboard history, menu bar organizer and keep awake"
   homepage "https://github.com/tahsinature/tooki"
+
+  livecheck do
+    url :url
+    strategy :github_latest
+  end
 
   depends_on macos: ">= :sonoma"
 

@@ -1,36 +1,87 @@
 name: Release
 
+# Every push to master ships a new version: tag, DMG, GitHub release and Homebrew cask.
+# The commit messages decide the version (see scripts/next-version.sh).
 on:
   push:
-    tags: ["v*"]
-  # Manual runs build the DMG as a workflow artifact without publishing a release.
+    branches: [master]
   workflow_dispatch:
+    inputs:
+      bump:
+        description: Version bump
+        type: choice
+        options: [auto, patch, minor, major]
+        default: auto
 
 permissions:
   contents: write
+
+# Releases run one at a time, in push order, so two pushes never claim the same version.
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 jobs:
   release:
     runs-on: macos-26
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Pick the version
+        id: version
+        run: |
+          version="$(scripts/next-version.sh "${{ inputs.bump || 'auto' }}")"
+          if [[ -z "$version" ]]; then
+            echo "No new commits since the last release."
+          else
+            echo "Releasing $version"
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
 
       - name: Test
+        if: steps.version.outputs.version != ''
         run: make test
 
       - name: Build universal DMG
-        run: |
-          version="${GITHUB_REF_NAME#v}"
-          [[ "$GITHUB_REF_TYPE" == "tag" ]] || version="0.0.0-dev"
-          make dmg ARCHS="arm64 x86_64" SIGN_ID=- VERSION="$version"
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: Tooki.dmg
-          path: build/Tooki.dmg
+        if: steps.version.outputs.version != ''
+        run: make dmg ARCHS="arm64 x86_64" SIGN_ID=- VERSION="${{ steps.version.outputs.version }}"
 
       - name: Publish release
-        if: github.ref_type == 'tag'
+        if: steps.version.outputs.version != ''
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" build/Tooki.dmg --title "$GITHUB_REF_NAME" --generate-notes
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          previous="$(git describe --tags --abbrev=0 --match 'v[0-9]*' 2>/dev/null || true)"
+          range="${previous:+$previous..}HEAD"
+          {
+            echo "## Changes"
+            git log "$range" --no-merges --format='- %s (%h)'
+            echo
+            echo "Install or update with Homebrew: \`brew install --cask tahsinature/tap/tooki\`"
+          } > notes.md
+          gh release create "v$VERSION" build/Tooki.dmg --target "$GITHUB_SHA" --title "v$VERSION" --notes-file notes.md
+
+      - name: Update Homebrew cask
+        if: steps.version.outputs.version != ''
+        env:
+          TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          if [[ -z "$TAP_TOKEN" ]]; then
+            echo "::warning::HOMEBREW_TAP_TOKEN is not set, so the Homebrew cask was not updated."
+            exit 0
+          fi
+          sha="$(shasum -a 256 build/Tooki.dmg | cut -d ' ' -f 1)"
+          git clone --depth 1 "https://x-access-token:$TAP_TOKEN@github.com/tahsinature/homebrew-tap.git" tap
+          sed -e "s/^  version \".*\"/  version \"$VERSION\"/" \
+              -e "s/^  sha256 \".*\"/  sha256 \"$sha\"/" \
+              packaging/tooki.rb > tap/Casks/tooki.rb
+          cd tap
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Casks/tooki.rb
+          git commit -m "tooki $VERSION"
+          git push
