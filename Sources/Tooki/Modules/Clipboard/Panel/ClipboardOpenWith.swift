@@ -43,8 +43,8 @@ enum ClipboardOpenWith {
         return []
     }
 
-    /// Editing the image in another app must not change the copy saved in the history.
-    private static func temporaryCopy(of image: ClipboardImage) -> URL {
+    /// A copy with a readable name. Editing the image in another app must not change the copy saved in the history.
+    static func temporaryCopy(of image: ClipboardImage) -> URL {
         let original = ClipboardImageStore.url(for: image)
         let directory = FileManager.default.temporaryDirectory.appending(path: "Tooki")
         let stamp = Date().formatted(.iso8601.year().month().day().time(includingFractionalSeconds: false))

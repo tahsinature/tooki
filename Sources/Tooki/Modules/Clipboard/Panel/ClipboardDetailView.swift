@@ -43,6 +43,9 @@ private struct ClipboardPreview: View {
                 Text(item.text)
                     .multilineTextAlignment(.center)
                     .lineLimit(6)
+                if !item.missingFiles.isEmpty {
+                    MissingFilesNotice(item: item)
+                }
             }
             .padding(16)
         case .link, .text:
@@ -54,5 +57,26 @@ private struct ClipboardPreview: View {
                     .padding(16)
             }
         }
+    }
+}
+
+/// Explains why a file item can't be pasted, dragged or opened any more.
+private struct MissingFilesNotice: View {
+    let item: ClipboardItem
+
+    var body: some View {
+        Label(message, systemImage: "exclamationmark.triangle.fill")
+            .font(.callout)
+            .foregroundStyle(.orange)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(.orange.opacity(0.12), in: RoundedRectangle(cornerRadius: 8))
+    }
+
+    private var message: String {
+        let missing = item.missingFiles.count
+        let total = item.files?.count ?? missing
+        if total == 1 { return "This file no longer exists" }
+        return missing == total ? "These files no longer exist" : "\(missing) of \(total) files no longer exist"
     }
 }

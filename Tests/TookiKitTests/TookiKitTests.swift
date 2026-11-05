@@ -126,6 +126,17 @@ struct ClipboardLogTests {
         #expect(log.imageFileNames == ["3.png", "1.png"])
     }
 
+    @Test func reportsCopiedFilesThatNoLongerExist() throws {
+        let existing = FileManager.default.temporaryDirectory.appending(path: "tooki-\(UUID()).txt")
+        try Data().write(to: existing)
+        defer { try? FileManager.default.removeItem(at: existing) }
+        let deleted = "/tmp/tooki-deleted-\(UUID()).txt"
+
+        let item = ClipboardItem(text: "files", files: [existing.path, deleted])
+        #expect(item.missingFiles == [deleted])
+        #expect(ClipboardItem(text: "plain").missingFiles.isEmpty)
+    }
+
     @Test func storesRecognizedTextAndDecodesOldHistory() throws {
         var log = ClipboardLog()
         log.record(ClipboardItem(image: ClipboardImage(fileName: "x.png", width: 2, height: 2)), maxItems: 5, maxImages: 5)

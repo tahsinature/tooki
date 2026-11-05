@@ -58,6 +58,11 @@ public struct ClipboardItem: Codable, Equatable, Identifiable, Sendable {
         sourceApp = try container.decodeIfPresent(String.self, forKey: .sourceApp)
     }
 
+    /// Copied files that were moved or deleted since. Empty for items that aren't files.
+    public var missingFiles: [String] {
+        (files ?? []).filter { !FileManager.default.fileExists(atPath: $0) }
+    }
+
     public var title: String {
         if let image { return "Image (\(image.width)×\(image.height))" }
         if let files, files.count > 1 { return "\(files.count) files" }

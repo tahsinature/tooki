@@ -84,7 +84,14 @@ struct ClipboardPanelView: View {
             Label("Clipboard History", systemImage: "list.clipboard")
                 .foregroundStyle(.secondary)
             Spacer()
+            if let item = model.selectedItem {
+                // A finished drop works like a paste, so the panel closes.
+                ClipboardDragButton(item: item, onDropped: onCancel)
+                    .disabled(!item.canBeUsed)
+                Divider().frame(height: 14)
+            }
             FooterButton(title: "Paste to \(model.targetAppName ?? "Active App")", shortcut: "↵") { onAction(.paste) }
+                .disabled(model.selectedItem?.canBeUsed == false)
             Divider().frame(height: 14)
             FooterButton(title: "Actions", shortcut: "⌘K") { toggleActions() }
         }

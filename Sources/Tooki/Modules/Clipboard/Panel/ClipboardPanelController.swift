@@ -47,6 +47,14 @@ final class ClipboardPanelController {
 
     private func perform(_ kind: ClipboardAction.Kind, model: ClipboardPanelModel) {
         guard let item = model.selectedItem else { return }
+        let needsUsableItem = switch kind {
+        case .paste, .copy, .open, .openWith: true
+        case .togglePin, .delete: false
+        }
+        if needsUsableItem, !item.canBeUsed {
+            NSSound.beep()
+            return
+        }
         if kind == .openWith {
             model.showOpenWith()
             return

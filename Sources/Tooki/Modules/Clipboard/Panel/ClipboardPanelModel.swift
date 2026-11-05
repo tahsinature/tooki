@@ -68,7 +68,7 @@ final class ClipboardPanelModel {
     }
 
     func showOpenWith() {
-        guard let item = selectedItem, ClipboardOpenWith.canOpen(item) else { return }
+        guard let item = selectedItem, item.canBeUsed, ClipboardOpenWith.canOpen(item) else { return }
         isShowingActions = true
         openWithActions = ClipboardOpenWith.actions(for: item)
     }

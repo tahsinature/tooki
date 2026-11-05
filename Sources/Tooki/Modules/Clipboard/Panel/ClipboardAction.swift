@@ -23,11 +23,14 @@ struct ClipboardAction: Identifiable {
 
     @MainActor
     static func all(for item: ClipboardItem, targetAppName: String?) -> [ClipboardAction] {
-        var actions = [
-            ClipboardAction(kind: .paste, title: "Paste to \(targetAppName ?? "Active App")", icon: .symbol("doc.on.clipboard"), shortcut: "↵"),
-            ClipboardAction(kind: .copy, title: "Copy to Clipboard", icon: .symbol("doc.on.doc"), shortcut: "⌘↵"),
-        ]
-        if ClipboardOpenWith.canOpen(item) {
+        var actions: [ClipboardAction] = []
+        if item.canBeUsed {
+            actions += [
+                ClipboardAction(kind: .paste, title: "Paste to \(targetAppName ?? "Active App")", icon: .symbol("doc.on.clipboard"), shortcut: "↵"),
+                ClipboardAction(kind: .copy, title: "Copy to Clipboard", icon: .symbol("doc.on.doc"), shortcut: "⌘↵"),
+            ]
+        }
+        if item.canBeUsed, ClipboardOpenWith.canOpen(item) {
             actions.append(ClipboardAction(kind: .openWith, title: "Open With…", icon: .symbol("arrow.up.forward.app"), shortcut: "⌘O"))
         }
         actions += [
@@ -36,4 +39,9 @@ struct ClipboardAction: Identifiable {
         ]
         return actions
     }
+}
+
+extension ClipboardItem {
+    /// `false` when copied files were moved or deleted, so pasting, dragging or opening would fail.
+    var canBeUsed: Bool { missingFiles.isEmpty }
 }

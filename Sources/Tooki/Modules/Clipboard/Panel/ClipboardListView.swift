@@ -73,12 +73,21 @@ private struct ClipboardRow: View {
     let isSelected: Bool
 
     var body: some View {
+        let isMissing = !item.canBeUsed
         HStack(spacing: 10) {
             ClipboardIcon(item: item, size: 18)
+                .opacity(isMissing ? 0.4 : 1)
             Text(item.title)
                 .lineLimit(1)
                 .truncationMode(.tail)
+                .foregroundStyle(isMissing ? .secondary : .primary)
             Spacer(minLength: 0)
+            if isMissing {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+                    .help("The file no longer exists")
+            }
             if item.isPinned {
                 Image(systemName: "pin.fill")
                     .font(.caption2)
