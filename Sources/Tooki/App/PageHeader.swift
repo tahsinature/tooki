@@ -37,3 +37,27 @@ struct PageHeader: View {
         }
     }
 }
+
+/// A slim, left-aligned header for pages that fill the window with their own layout instead of a `Form`.
+struct InlinePageHeader: View {
+    let page: SettingsPage
+
+    var body: some View {
+        HStack(spacing: 12) {
+            IconTile(symbol: page.icon, color: page.color, size: 36)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(page.title).font(.title3.bold())
+                Text(page.summary).font(.callout).foregroundStyle(.secondary)
+            }
+        }
+    }
+}
+
+extension View {
+    /// A rounded panel matching the sections of a grouped `Form`.
+    func groupedCard() -> some View {
+        background(.fill.quinary, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).stroke(.separator.opacity(0.6)))
+            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+    }
+}

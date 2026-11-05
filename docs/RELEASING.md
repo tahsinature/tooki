@@ -71,5 +71,6 @@ If the token is revoked or leaked:
 
 - **The app is not notarized.** It is signed ad hoc (`SIGN_ID=-`). The cask removes the quarantine flag after install so the app opens. People who download the DMG directly have to right-click → Open the first time.
 - **Local builds show the version from `Resources/Info.plist`.** Only release builds get the real version number. You do not need to edit `Info.plist` when releasing.
+- **Dev or release is shown at the bottom of the sidebar.** `make app` marks builds as `dev` with the git commit (the Tooki card shows an orange `Dev · abc1234`, with `•` for uncommitted changes). The workflow passes `CHANNEL=release`, so releases show `Version X.Y.Z` instead.
 - **Do not create `v*` tags by hand.** The workflow treats the latest tag as the last release, so a manual tag changes the next version number.
 - **A broken release** can be removed with `gh release delete vX.Y.Z --cleanup-tag`. Then push a fix. If the cask was already updated, the next successful release overwrites it.

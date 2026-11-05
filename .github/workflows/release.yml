@@ -46,7 +46,7 @@ jobs:
 
       - name: Build universal DMG
         if: steps.version.outputs.version != ''
-        run: make dmg ARCHS="arm64 x86_64" SIGN_ID=- VERSION="${{ steps.version.outputs.version }}"
+        run: make dmg ARCHS="arm64 x86_64" SIGN_ID=- CHANNEL=release VERSION="${{ steps.version.outputs.version }}"
 
       - name: Publish release
         if: steps.version.outputs.version != ''

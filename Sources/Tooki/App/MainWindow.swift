@@ -2,7 +2,7 @@ import AppKit
 import SwiftUI
 
 enum SettingsPage: String, CaseIterable, Identifiable {
-    case hyperKey, snippets, clipboard, menuBar, keepAwake, shortcuts, general
+    case hyperKey, snippets, clipboard, menuBar, keepAwake, shortcuts, general, about
 
     var id: Self { self }
 
@@ -15,6 +15,7 @@ enum SettingsPage: String, CaseIterable, Identifiable {
         case .keepAwake: "Keep Awake"
         case .shortcuts: "Shortcuts"
         case .general: "General"
+        case .about: "About Tooki"
         }
     }
 
@@ -27,6 +28,7 @@ enum SettingsPage: String, CaseIterable, Identifiable {
         case .keepAwake: "cup.and.saucer.fill"
         case .shortcuts: "command"
         case .general: "gearshape.fill"
+        case .about: "info.circle.fill"
         }
     }
 
@@ -39,6 +41,7 @@ enum SettingsPage: String, CaseIterable, Identifiable {
         case .keepAwake: .brown
         case .shortcuts: .pink
         case .general: .gray
+        case .about: .gray
         }
     }
 
@@ -51,6 +54,7 @@ enum SettingsPage: String, CaseIterable, Identifiable {
         case .keepAwake: "Stop your Mac from sleeping while you need it."
         case .shortcuts: "Run Tooki features and open apps with a keystroke."
         case .general: "Permissions, startup and where your configuration lives."
+        case .about: "A toolkit for your Mac's keyboard, clipboard and menu bar."
         }
     }
 
@@ -97,6 +101,8 @@ final class SettingsNavigation {
 
 /// Laid out like System Settings: a fixed sidebar of colored icons and grouped pages.
 struct MainView: View {
+    static let sidebarWidth: CGFloat = 220
+
     let app: AppController
     @Bindable var navigation: SettingsNavigation
 
@@ -110,10 +116,11 @@ struct MainView: View {
                     ForEach(SettingsPage.appPages, content: SidebarRow.init)
                 }
             }
-            .safeAreaInset(edge: .top) { SidebarBrand() }
-            // A fixed width so the sidebar can't be dragged closed.
-            .frame(width: 220)
-            .navigationSplitViewColumnWidth(min: 220, ideal: 220, max: 220)
+            .safeAreaInset(edge: .bottom) {
+                SidebarAppCard(isSelected: navigation.page == .about) { navigation.page = .about }
+                    .padding(10)
+            }
+            .navigationSplitViewColumnWidth(Self.sidebarWidth)
             .toolbar(removing: .sidebarToggle)
         } detail: {
             detail
@@ -141,6 +148,7 @@ struct MainView: View {
         case .keepAwake: KeepAwakeView(config: app.config, keepAwake: app.keepAwake)
         case .shortcuts: ShortcutsView(config: app.config, detective: app.detective, onRecordingChange: app.setRecordingShortcut)
         case .general: GeneralView(app: app)
+        case .about: AboutView()
         }
     }
 }
@@ -157,28 +165,36 @@ private struct SidebarRow: View {
     }
 }
 
-/// The app icon and name, where System Settings has its search field.
-private struct SidebarBrand: View {
-    private var version: String? {
-        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
-    }
+/// The app's own card at the bottom of the sidebar, like the account row in System Settings.
+/// Its subtitle tells dev and release builds apart. Opens About.
+private struct SidebarAppCard: View {
+    let isSelected: Bool
+    let action: () -> Void
+    @State private var isHovered = false
 
     var body: some View {
-        HStack(spacing: 10) {
-            Image(nsImage: NSApp.applicationIconImage)
-                .resizable()
-                .frame(width: 36, height: 36)
-            VStack(alignment: .leading, spacing: 1) {
-                Text("Tooki").font(.headline)
-                if let version {
-                    Text("Version \(version)").font(.caption).foregroundStyle(.secondary)
+        Button(action: action) {
+            HStack(spacing: 10) {
+                Image(nsImage: NSApp.applicationIconImage)
+                    .resizable()
+                    .frame(width: 32, height: 32)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("Tooki").font(.headline)
+                    BuildLabel()
                 }
+                Spacer(minLength: 0)
             }
-            Spacer()
+            .padding(8)
+            .contentShape(.rect)
+            .background(background, in: .rect(cornerRadius: 8))
         }
-        .padding(.horizontal, 18)
-        .padding(.top, 4)
-        .padding(.bottom, 8)
+        .buttonStyle(.plain)
+        .onHover { isHovered = $0 }
+    }
+
+    private var background: Color {
+        if isSelected { return .primary.opacity(0.1) }
+        return isHovered ? .primary.opacity(0.05) : .clear
     }
 }
 
@@ -188,6 +204,7 @@ final class MainWindowController {
     private let app: AppController
     private let navigation = SettingsNavigation()
     private var window: NSWindow?
+    private var sidebarLock: SidebarWidthLock?
 
     init(app: AppController) {
         self.app = app
@@ -201,6 +218,10 @@ final class MainWindowController {
         NSApp.setActivationPolicy(.regular)
         NSApp.activate()
         window.makeKeyAndOrderFront(nil)
+        // SwiftUI's column width limits are ignored on macOS 26, so lock the sidebar once it exists.
+        DispatchQueue.main.async { [self] in
+            if sidebarLock == nil { sidebarLock = SidebarWidthLock(window: window, width: MainView.sidebarWidth) }
+        }
     }
 
     private func makeWindow() -> NSWindow {
@@ -225,3 +246,4 @@ final class MainWindowController {
         return window
     }
 }
+

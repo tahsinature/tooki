@@ -24,6 +24,10 @@
 	<string>Copyright © 2026 Mohammad Tahsin. Licensed under GPL-3.0.</string>
 	<key>CFBundleVersion</key>
 	<string>1</string>
+	<key>TookiBuildChannel</key>
+	<string>dev</string>
+	<key>TookiCommit</key>
+	<string></string>
 	<key>LSMinimumSystemVersion</key>
 	<string>14.0</string>
 	<key>LSUIElement</key>

@@ -9,6 +9,9 @@ SIGN_ID ?= $(shell security find-identity -v -p codesigning 2>/dev/null | grep -
 ARCHS ?= $(shell uname -m)
 SWIFT_BUILD := swift build -c release $(foreach arch,$(ARCHS),--arch $(arch))
 VERSION ?= $(shell /usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' Resources/Info.plist)
+# "dev" for local builds; the release workflow passes CHANNEL=release. Shown at the bottom of the sidebar.
+CHANNEL ?= dev
+COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null)$(shell git diff --quiet HEAD 2>/dev/null || echo "-dirty")
 MIN_MACOS := $(shell /usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' Resources/Info.plist)
 SDK_VERSION := $(shell xcrun --sdk macosx --show-sdk-version)
 
@@ -24,6 +27,7 @@ app: build
 	cp "$$($(SWIFT_BUILD) --show-bin-path)/$(APP_NAME)" $(APP)/Contents/MacOS/$(APP_NAME)
 	cp Resources/Info.plist $(APP)/Contents/Info.plist
 	/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $(VERSION)" $(APP)/Contents/Info.plist
+	/usr/libexec/PlistBuddy -c "Set :TookiBuildChannel $(CHANNEL)" -c "Set :TookiCommit $(COMMIT)" $(APP)/Contents/Info.plist
 	cp Resources/AppIcon.icns $(APP)/Contents/Resources/AppIcon.icns
 	# SwiftPM records the deployment target as the SDK version, which makes macOS fall back
 	# to the old look. Record the real SDK so Tooki gets the current system design.
