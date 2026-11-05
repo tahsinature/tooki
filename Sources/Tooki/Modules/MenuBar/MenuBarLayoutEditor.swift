@@ -21,6 +21,7 @@ struct MenuBarLayoutEditor: View {
                 }
             }
             .frame(height: listHeight)
+            .task(id: organizer.isInstalled) { await load() }
 
             HStack {
                 Button("Reload from Menu Bar") { Task { await load(fromMenuBar: true) } }
@@ -38,7 +39,6 @@ struct MenuBarLayoutEditor: View {
         } footer: {
             footer
         }
-        .task(id: organizer.isInstalled) { await load() }
     }
 
     private var listHeight: CGFloat {
