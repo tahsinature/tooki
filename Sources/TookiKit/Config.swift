@@ -56,7 +56,8 @@ public struct Shortcut: Codable, Equatable, Hashable, Sendable {
 }
 
 public struct HyperKeyConfig: Codable, Equatable, Sendable {
-    public var enabled = true
+    /// Off until the user turns it on, so a fresh install leaves Caps Lock alone.
+    public var enabled = false
 
     public init() {}
 
