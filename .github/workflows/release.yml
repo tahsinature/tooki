@@ -60,7 +60,9 @@ jobs:
             echo "## Changes"
             git log "$range" --no-merges --format='- %s (%h)'
             echo
-            echo "Install or update with Homebrew: \`brew install --cask tahsinature/tap/tooki\`"
+            echo "Install with Homebrew: \`brew tap tahsinature/tap && brew trust tahsinature/tap && brew install --cask tooki\`"
+            echo
+            echo "Update with \`brew upgrade --cask tooki\`."
           } > notes.md
           gh release create "v$VERSION" build/Tooki.dmg --target "$GITHUB_SHA" --title "v$VERSION" --notes-file notes.md
 

@@ -50,7 +50,9 @@ To release without a new commit, or to force a bump type, open **Actions → Rel
 Users install with:
 
 ```sh
-brew install --cask tahsinature/tap/tooki
+brew tap tahsinature/tap
+brew trust tahsinature/tap    # Homebrew 7+ refuses casks from taps you have not trusted
+brew install --cask tooki
 ```
 
 The cask lives in [tahsinature/homebrew-tap](https://github.com/tahsinature/homebrew-tap) at `Casks/tooki.rb`. Its source of truth is `packaging/tooki.rb` in this repository. Edit that file, not the tap, because the workflow overwrites the tap copy on every release. The `version` and `sha256` lines in `packaging/tooki.rb` are replaced by the workflow on each release.
