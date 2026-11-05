@@ -17,15 +17,17 @@ final class AppController {
     let clipboard = ClipboardHistory()
     let keepAwake = KeepAwake()
     let menuBar = MenuBarOrganizer()
+    let detective = ShortcutDetective()
     @ObservationIgnored lazy var menuBarArranger = MenuBarArranger(organizer: menuBar)
     private(set) var hasAccessibility = Accessibility.isTrusted
 
     @ObservationIgnored private let hyperKey = HyperKeyController()
+    @ObservationIgnored private let shortcuts = ShortcutController()
     @ObservationIgnored private let snippetInserter = SnippetInserter()
     @ObservationIgnored private let searchPanel = SearchPanelController()
     @ObservationIgnored private lazy var clipboardPanel = ClipboardPanelController(history: clipboard)
     @ObservationIgnored private lazy var snippetExpander = SnippetExpander(snippets: snippets, inserter: snippetInserter)
-    @ObservationIgnored private lazy var keyboardMonitor = KeyboardMonitor(handlers: [hyperKey, snippetExpander])
+    @ObservationIgnored private lazy var keyboardMonitor = KeyboardMonitor(handlers: [hyperKey, detective, shortcuts, snippetExpander])
     @ObservationIgnored private lazy var mainWindow = MainWindowController(app: self)
     @ObservationIgnored private var pollTimer: Timer?
 
@@ -38,7 +40,7 @@ final class AppController {
         snippets.load()
         clipboard.load()
         config.onChange = { [weak self] in self?.apply($0) }
-        hyperKey.onAction = { [weak self] in self?.perform($0) }
+        shortcuts.onAction = { [weak self] in self?.perform($0) }
         apply(config.value)
 
         startKeyboardMonitor()
@@ -74,6 +76,11 @@ final class AppController {
         }
     }
 
+    /// Stops shortcuts from firing while one is being recorded.
+    func setRecordingShortcut(_ isRecording: Bool) {
+        shortcuts.isPaused = isRecording
+    }
+
     func showSettings(_ page: SettingsPage? = nil) {
         mainWindow.show(page: page)
     }
@@ -100,6 +107,7 @@ final class AppController {
 
     private func apply(_ config: TookiConfig) {
         hyperKey.apply(config.hyperKey, isMonitoring: keyboardMonitor.isRunning)
+        shortcuts.apply(config.shortcuts)
         snippetExpander.isEnabled = config.snippets.enabled && config.snippets.keywordExpansion
         clipboard.apply(config.clipboard)
         menuBar.apply(config.menuBar)
@@ -129,14 +137,17 @@ final class AppController {
 enum AppLauncher {
     @MainActor
     static func open(_ target: String) {
-        let workspace = NSWorkspace.shared
-        let url = target.hasPrefix("/")
-            ? URL(fileURLWithPath: (target as NSString).expandingTildeInPath)
-            : workspace.urlForApplication(withBundleIdentifier: target)
-        guard let url else {
+        guard let url = url(for: target) else {
             NSSound.beep()
             return
         }
-        workspace.openApplication(at: url, configuration: NSWorkspace.OpenConfiguration())
+        NSWorkspace.shared.openApplication(at: url, configuration: NSWorkspace.OpenConfiguration())
+    }
+
+    /// Resolves a bundle identifier (`com.apple.mail`) or path (`/Applications/Safari.app`).
+    static func url(for target: String) -> URL? {
+        target.hasPrefix("/")
+            ? URL(fileURLWithPath: (target as NSString).expandingTildeInPath)
+            : NSWorkspace.shared.urlForApplication(withBundleIdentifier: target)
     }
 }

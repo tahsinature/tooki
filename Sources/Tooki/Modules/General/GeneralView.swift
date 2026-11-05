@@ -8,6 +8,8 @@ struct GeneralView: View {
 
     var body: some View {
         Form {
+            PageHeader(page: .general)
+
             Section("Permissions") {
                 LabeledContent {
                     if app.hasAccessibility {

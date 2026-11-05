@@ -10,6 +10,8 @@ struct KeepAwakeView: View {
 
     var body: some View {
         Form {
+            PageHeader(page: .keepAwake)
+
             Section {
                 HStack(spacing: 14) {
                     Image(systemName: keepAwake.isActive ? "cup.and.saucer.fill" : "cup.and.saucer")

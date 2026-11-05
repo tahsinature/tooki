@@ -10,6 +10,8 @@ struct MenuBarView: View {
 
     var body: some View {
         Form {
+            PageHeader(page: .menuBar)
+
             Section {
                 Toggle("Organize menu bar icons", isOn: $config.value.menuBar.enabled)
                 Toggle("Hide icons when Tooki starts", isOn: $config.value.menuBar.startCollapsed)

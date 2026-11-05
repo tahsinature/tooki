@@ -55,7 +55,7 @@ struct ConfigTests {
         let json = #"{ "hyperKey": { "enabled": false }, "keepAwake": { "mode": "system" } }"#
         let config = try JSONDecoder().decode(TookiConfig.self, from: Data(json.utf8))
         #expect(!config.hyperKey.enabled)
-        #expect(config.hyperKey.bindings == HyperKeyConfig().bindings)
+        #expect(config.shortcuts == Shortcut.defaults)
         #expect(config.keepAwake.mode == .system)
         #expect(config.clipboard == ClipboardConfig())
     }
@@ -72,6 +72,33 @@ struct ConfigTests {
         #expect(HotkeyAction("keepAwake.toggle") == .toggleKeepAwake)
         #expect(HotkeyAction("open:") == nil)
         #expect(HotkeyAction("explode") == nil)
+    }
+
+    @Test func movesOldHyperKeyBindingsToShortcuts() throws {
+        let json = #"{ "hyperKey": { "bindings": [{ "key": "m", "action": "open:com.apple.mail" }] } }"#
+        let config = try JSONDecoder().decode(TookiConfig.self, from: Data(json.utf8))
+        #expect(config.shortcuts == [Shortcut(action: "open:com.apple.mail", keys: "hyper+m")])
+    }
+}
+
+struct KeyComboTests {
+    @Test func parsesAndWritesConfigText() {
+        #expect(KeyCombo("hyper+s")?.modifiers == .hyper)
+        #expect(KeyCombo("Cmd+Option+K")?.description == "opt+cmd+k")
+        #expect(KeyCombo("ctrl+opt+shift+cmd+,")?.description == "hyper+,")
+        #expect(KeyCombo("hyper+,")?.symbols == ["⌃", "⌥", "⇧", "⌘", ","])
+    }
+
+    @Test func rejectsUnknownKeysAndBareKeys() {
+        #expect(KeyCombo("hyper+") == nil)
+        #expect(KeyCombo("meta+s") == nil)
+        #expect(KeyCombo("s") == nil)
+        #expect(KeyCombo("f5")?.key == "f5")
+    }
+
+    @Test func flagsCommonSystemShortcuts() {
+        #expect(KeyCombo("cmd+c")?.isReservedBySystem == true)
+        #expect(KeyCombo("hyper+c")?.isReservedBySystem == false)
     }
 }
 
@@ -198,5 +225,45 @@ struct MenuBarLayoutPlannerTests {
             MenuBarItemDescriptor(bundleID: "eu.exelban.Stats", identifier: nil, appName: "Stats"),
         ])
         #expect(ids == ["eu.exelban.Stats", "com.apple.menuextra.wifi", "eu.exelban.Stats#2"])
+    }
+}
+
+struct SkhdConfigTests {
+    @Test func readsModifiersHexKeysAndCommands() {
+        let bindings = SkhdConfig.parse("""
+        # comment
+        alt + shift - t : hs -c 'toggle("Alacritty")'
+        shift + cmd - 0x12 : open shottr://grab
+        hyper - k : echo hi
+        """)
+        #expect(bindings == [
+            SkhdConfig.Binding(combo: KeyCombo("opt+shift+t")!, command: "hs -c 'toggle(\"Alacritty\")'"),
+            SkhdConfig.Binding(combo: KeyCombo("shift+cmd+1")!, command: "open shottr://grab"),
+            SkhdConfig.Binding(combo: KeyCombo("hyper+k")!, command: "echo hi"),
+        ])
+    }
+
+    @Test func skipsContinuationLinesAndUnsupportedHotkeys() {
+        let bindings = SkhdConfig.parse("""
+        alt - a : echo one \\
+            && echo two: still the same command
+        fn - b : echo fn
+        alt - c : echo three
+        """)
+        #expect(bindings.map(\.combo) == [KeyCombo("opt+a")!, KeyCombo("opt+c")!])
+    }
+}
+
+struct SystemShortcutsTests {
+    @Test func usesDefaultsUnlessChangedOrDisabled() {
+        let entries = SystemShortcuts.parse([
+            // Spotlight moved to ⌥Space; Finder search turned off.
+            "64": ["enabled": true, "value": ["parameters": [32, 49, 524288]]],
+            "65": ["enabled": false],
+        ])
+        let byName = Dictionary(entries.map { ($0.name, $0.combo) }, uniquingKeysWith: { first, _ in first })
+        #expect(byName["Show Spotlight search"] == KeyCombo("opt+space"))
+        #expect(byName["Show Finder search window"] == nil)
+        #expect(byName["Mission Control"] == KeyCombo("ctrl+up"))
     }
 }

@@ -1,4 +1,4 @@
-/// Actions that can be bound to Hyper + key in `config.json`.
+/// Actions that `shortcuts` in `config.json` can run.
 public enum HotkeyAction: Equatable, Sendable {
     case search
     case clipboard
@@ -25,13 +25,8 @@ public enum HotkeyAction: Equatable, Sendable {
         }
     }
 
-    public static let documentation = [
-        "search": "Open the search panel",
-        "clipboard": "Open clipboard history",
-        "keepAwake.toggle": "Turn Keep Awake on or off",
-        "menuBar.toggle": "Show or hide hidden menu bar icons",
-        "menuBar.search": "Search and click menu bar items, hidden or shown",
-        "settings": "Open Tooki settings",
-        "open:<bundle id or path>": "Open an app, e.g. open:com.apple.mail",
+    /// Tooki's own actions, in the order the Shortcuts page lists them.
+    public static let builtIns = [
+        "search", "clipboard", "menuBar.search", "menuBar.toggle", "keepAwake.toggle", "settings",
     ]
 }

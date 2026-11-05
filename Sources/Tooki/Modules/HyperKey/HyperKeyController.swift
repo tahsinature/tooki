@@ -3,16 +3,13 @@ import Foundation
 import TookiKit
 
 /// Turns Caps Lock (remapped to F18) into ⌃⌥⇧⌘ while held,
-/// runs Tooki's own Hyper shortcuts, and toggles Caps Lock when tapped alone.
+/// and toggles Caps Lock when tapped alone. `ShortcutController` runs the shortcuts.
 @MainActor
 final class HyperKeyController: KeyEventHandler {
-    var onAction: (HotkeyAction) -> Void = { _ in }
-
     private static let hyperFlags: CGEventFlags = [.maskCommand, .maskControl, .maskAlternate, .maskShift]
     private static let tapThreshold: TimeInterval = 0.3
 
     private var config = HyperKeyConfig()
-    private var actionsByKeyCode: [Int64: HotkeyAction] = [:]
     // Starts as true so the first apply clears a mapping left over from a crash.
     private var isRemapped = true
     private var isHeld = false
@@ -22,12 +19,6 @@ final class HyperKeyController: KeyEventHandler {
     /// The remap is only turned on while the event tap runs; otherwise Caps Lock would do nothing.
     func apply(_ config: HyperKeyConfig, isMonitoring: Bool) {
         self.config = config
-        actionsByKeyCode = [:]
-        for binding in config.bindings {
-            if let keyCode = KeyCode.forKey(binding.key), let action = HotkeyAction(binding.action) {
-                actionsByKeyCode[Int64(keyCode)] = action
-            }
-        }
         setRemapped(config.enabled && isMonitoring)
     }
 
@@ -46,11 +37,6 @@ final class HyperKeyController: KeyEventHandler {
         }
         guard isHeld else { return false }
         wasUsedAsModifier = true
-
-        if let action = actionsByKeyCode[keyCode] {
-            if type == .keyDown, !isRepeat { onAction(action) }
-            return true
-        }
         event.flags.formUnion(Self.hyperFlags)
         return false
     }

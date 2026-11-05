@@ -7,6 +7,8 @@ struct ClipboardView: View {
 
     var body: some View {
         Form {
+            PageHeader(page: .clipboard)
+
             Section {
                 Toggle("Record clipboard history", isOn: $config.value.clipboard.enabled)
                 Stepper(value: $config.value.clipboard.maxItems, in: 10...2000, step: 10) {

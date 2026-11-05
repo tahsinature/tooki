@@ -14,6 +14,17 @@ struct SnippetsView: View {
     }
 
     var body: some View {
+        VStack(spacing: 0) {
+            Form { PageHeader(page: .snippets) }
+                .formStyle(.grouped)
+                .scrollDisabled(true)
+                .fixedSize(horizontal: false, vertical: true)
+            Divider()
+            editor
+        }
+    }
+
+    private var editor: some View {
         HSplitView {
             snippetList
                 .frame(minWidth: 220, idealWidth: 260, maxWidth: 340)

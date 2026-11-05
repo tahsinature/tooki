@@ -4,6 +4,7 @@ import Foundation
 /// Every field is optional in the file; missing fields fall back to defaults.
 public struct TookiConfig: Codable, Equatable, Sendable {
     public var hyperKey = HyperKeyConfig()
+    public var shortcuts = Shortcut.defaults
     public var snippets = SnippetsConfig()
     public var clipboard = ClipboardConfig()
     public var menuBar = MenuBarConfig()
@@ -15,6 +16,9 @@ public struct TookiConfig: Codable, Equatable, Sendable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let defaults = TookiConfig()
         hyperKey = try container.decode(.hyperKey, default: defaults.hyperKey)
+        shortcuts = try container.decodeIfPresent([Shortcut].self, forKey: .shortcuts)
+            ?? container.decodeIfPresent(LegacyHyperKeyConfig.self, forKey: .hyperKey)?.shortcuts
+            ?? defaults.shortcuts
         snippets = try container.decode(.snippets, default: defaults.snippets)
         clipboard = try container.decode(.clipboard, default: defaults.clipboard)
         menuBar = try container.decode(.menuBar, default: defaults.menuBar)
@@ -22,33 +26,57 @@ public struct TookiConfig: Codable, Equatable, Sendable {
     }
 }
 
-public struct HotkeyBinding: Codable, Equatable, Hashable, Sendable {
-    public var key: String
+/// A global keyboard shortcut that runs a `HotkeyAction`.
+public struct Shortcut: Codable, Equatable, Hashable, Sendable {
     public var action: String
+    /// A `KeyCombo` like `hyper+s`. Empty when no hotkey is recorded yet.
+    public var keys: String
+    public var enabled: Bool
 
-    public init(key: String, action: String) {
-        self.key = key
+    public init(action: String, keys: String = "", enabled: Bool = true) {
         self.action = action
+        self.keys = keys
+        self.enabled = enabled
     }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        action = try container.decode(String.self, forKey: .action)
+        keys = try container.decode(.keys, default: "")
+        enabled = try container.decode(.enabled, default: true)
+    }
+
+    public static let defaults = [
+        Shortcut(action: "search", keys: "hyper+s"),
+        Shortcut(action: "clipboard", keys: "hyper+v"),
+        Shortcut(action: "keepAwake.toggle", keys: "hyper+a"),
+        Shortcut(action: "menuBar.search", keys: "hyper+m"),
+        Shortcut(action: "settings", keys: "hyper+,"),
+    ]
 }
 
 public struct HyperKeyConfig: Codable, Equatable, Sendable {
     public var enabled = true
-    public var bindings: [HotkeyBinding] = [
-        HotkeyBinding(key: "s", action: "search"),
-        HotkeyBinding(key: "v", action: "clipboard"),
-        HotkeyBinding(key: "a", action: "keepAwake.toggle"),
-        HotkeyBinding(key: "m", action: "menuBar.search"),
-        HotkeyBinding(key: ",", action: "settings"),
-    ]
 
     public init() {}
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        let defaults = HyperKeyConfig()
-        enabled = try container.decode(.enabled, default: defaults.enabled)
-        bindings = try container.decode(.bindings, default: defaults.bindings)
+        enabled = try container.decode(.enabled, default: HyperKeyConfig().enabled)
+    }
+}
+
+/// Before `shortcuts` existed, bindings lived in `hyperKey` and always used Hyper.
+private struct LegacyHyperKeyConfig: Decodable {
+    struct Binding: Decodable {
+        var key: String
+        var action: String
+    }
+
+    var bindings: [Binding]?
+
+    var shortcuts: [Shortcut]? {
+        bindings?.map { Shortcut(action: $0.action, keys: "hyper+\($0.key)") }
     }
 }
 

@@ -12,6 +12,16 @@ public enum KeyCode {
     public static let upArrow: UInt16 = 126
     public static let v: UInt16 = 9
 
+    private static let functionKeys: [String: UInt16] = [
+        "f1": 122, "f2": 120, "f3": 99, "f4": 118, "f5": 96, "f6": 97,
+        "f7": 98, "f8": 100, "f9": 101, "f10": 109, "f11": 103, "f12": 111,
+    ]
+
+    private static let named: [String: UInt16] = [
+        "space": space, "return": returnKey, "tab": tab, "escape": escape,
+        "left": leftArrow, "right": rightArrow, "up": upArrow, "down": downArrow,
+    ]
+
     private static let byCharacter: [Character: UInt16] = [
         "a": 0, "s": 1, "d": 2, "f": 3, "h": 4, "g": 5, "z": 6, "x": 7, "c": 8, "v": 9,
         "b": 11, "q": 12, "w": 13, "e": 14, "r": 15, "y": 16, "t": 17,
@@ -31,7 +41,18 @@ public enum KeyCode {
         case "right": rightArrow
         case "up": upArrow
         case "down": downArrow
-        default: key.count == 1 ? byCharacter[Character(key.lowercased())] : nil
+        default: functionKeys[key.lowercased()] ?? (key.count == 1 ? byCharacter[Character(key.lowercased())] : nil)
         }
+    }
+
+    /// The name `forKey` accepts for a key code, or `nil` for keys Tooki does not support.
+    public static func name(for keyCode: UInt16) -> String? {
+        let all = named.merging(functionKeys) { first, _ in first }
+            .merging(byCharacter.map { (String($0.key), $0.value) }) { first, _ in first }
+        return all.first { $0.value == keyCode }?.key
+    }
+
+    public static func isFunctionKey(_ keyCode: UInt16) -> Bool {
+        functionKeys.values.contains(keyCode)
     }
 }

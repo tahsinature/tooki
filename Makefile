@@ -9,6 +9,8 @@ SIGN_ID ?= $(shell security find-identity -v -p codesigning 2>/dev/null | grep -
 ARCHS ?= $(shell uname -m)
 SWIFT_BUILD := swift build -c release $(foreach arch,$(ARCHS),--arch $(arch))
 VERSION ?= $(shell /usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' Resources/Info.plist)
+MIN_MACOS := $(shell /usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' Resources/Info.plist)
+SDK_VERSION := $(shell xcrun --sdk macosx --show-sdk-version)
 
 .PHONY: build app run install dmg info test clean
 
@@ -23,6 +25,10 @@ app: build
 	cp Resources/Info.plist $(APP)/Contents/Info.plist
 	/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $(VERSION)" $(APP)/Contents/Info.plist
 	cp Resources/AppIcon.icns $(APP)/Contents/Resources/AppIcon.icns
+	# SwiftPM records the deployment target as the SDK version, which makes macOS fall back
+	# to the old look. Record the real SDK so Tooki gets the current system design.
+	vtool -set-build-version macos $(MIN_MACOS) $(SDK_VERSION) -replace \
+		-output $(APP)/Contents/MacOS/$(APP_NAME) $(APP)/Contents/MacOS/$(APP_NAME)
 	codesign --force --sign "$(SIGN_ID)" $(APP)
 
 run: app

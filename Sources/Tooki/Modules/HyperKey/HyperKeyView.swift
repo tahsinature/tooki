@@ -3,34 +3,35 @@ import TookiKit
 
 struct HyperKeyView: View {
     @Bindable var config: JSONDocument<TookiConfig>
+    let onOpenShortcuts: () -> Void
 
     var body: some View {
         Form {
+            PageHeader(page: .hyperKey)
+
             Section {
+                HyperKeyboardIllustration(isEnabled: config.value.hyperKey.enabled)
                 Toggle("Use Caps Lock as Hyper key", isOn: $config.value.hyperKey.enabled)
-            } footer: {
-                Text("While held, Caps Lock acts as Control + Option + Shift + Command (⌃⌥⇧⌘), so other apps can use it in their shortcuts too. A quick tap still turns Caps Lock on or off.")
-                    .foregroundStyle(.secondary)
             }
 
-            Section("Tooki shortcuts") {
-                ForEach($config.value.hyperKey.bindings.indices, id: \.self) { index in
-                    BindingRow(binding: $config.value.hyperKey.bindings[index]) {
-                        config.value.hyperKey.bindings.remove(at: index)
-                    }
+            Section("How it works") {
+                InfoRow(symbol: "hand.raised.fill", color: .purple, title: "Hold Caps Lock") {
+                    Text("It acts as Control + Option + Shift + Command (⌃⌥⇧⌘). No app uses that combination, so your shortcuts never clash.")
                 }
-                Button("Add Shortcut", systemImage: "plus") {
-                    config.value.hyperKey.bindings.append(HotkeyBinding(key: "", action: "open:com.apple.mail"))
+                InfoRow(symbol: "capslock.fill", color: .blue, title: "Tap Caps Lock") {
+                    Text("A quick tap still turns Caps Lock on or off.")
+                }
+                InfoRow(symbol: "app.connected.to.app.below.fill", color: .green, title: "Works in every app") {
+                    Text("Other apps see ⌃⌥⇧⌘, so you can use Hyper in their shortcuts too.")
                 }
             }
 
-            Section("Available actions") {
-                ForEach(HotkeyAction.documentation.sorted(by: { $0.key < $1.key }), id: \.key) { action, description in
-                    LabeledContent {
-                        Text(description).foregroundStyle(.secondary)
-                    } label: {
-                        Text(action).font(.body.monospaced())
-                    }
+            Section {
+                LabeledContent {
+                    Button("Open Shortcuts", action: onOpenShortcuts)
+                } label: {
+                    Text("Shortcuts")
+                    Text("Assign Hyper combos to Tooki features and apps.")
                 }
             }
         }
@@ -38,32 +39,22 @@ struct HyperKeyView: View {
     }
 }
 
-private struct BindingRow: View {
-    @Binding var binding: HotkeyBinding
-    let onDelete: () -> Void
-
-    private var isValid: Bool {
-        KeyCode.forKey(binding.key) != nil && HotkeyAction(binding.action) != nil
-    }
+private struct InfoRow<Detail: View>: View {
+    let symbol: String
+    let color: Color
+    let title: String
+    @ViewBuilder let detail: Detail
 
     var body: some View {
-        HStack {
-            Text("Hyper +").foregroundStyle(.secondary)
-            TextField("key", text: $binding.key)
-                .frame(width: 60)
-                .font(.body.monospaced())
-            Image(systemName: "arrow.right").foregroundStyle(.secondary)
-            TextField("action", text: $binding.action)
-                .font(.body.monospaced())
-            if !isValid {
-                Image(systemName: "exclamationmark.triangle.fill")
-                    .foregroundStyle(.orange)
-                    .help("Unknown key or action")
+        HStack(alignment: .top, spacing: 10) {
+            IconTile(symbol: symbol, color: color, size: 24)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                detail
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
             }
-            Button("Remove", systemImage: "minus.circle", action: onDelete)
-                .labelStyle(.iconOnly)
-                .buttonStyle(.borderless)
         }
-        .textFieldStyle(.roundedBorder)
+        .padding(.vertical, 2)
     }
 }
