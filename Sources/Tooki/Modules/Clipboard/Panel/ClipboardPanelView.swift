@@ -12,10 +12,10 @@ struct ClipboardPanelView: View {
     var body: some View {
         VStack(spacing: 0) {
             header
-            HStack(spacing: 0) {
-                ClipboardListView(model: model, onCopy: { onAction(.copy) })
-                    .frame(width: 320)
-                if let item = model.selectedItem {
+            if let item = model.selectedItem {
+                HStack(spacing: 0) {
+                    ClipboardListView(model: model, onCopy: { onAction(.copy) })
+                        .frame(width: 320)
                     ClipboardDetailView(
                         item: item,
                         targetAppName: model.targetAppName,
@@ -23,9 +23,9 @@ struct ClipboardPanelView: View {
                         onShowActions: toggleActions,
                         onDropped: onCancel
                     )
-                } else {
-                    emptyState
                 }
+            } else {
+                emptyState
             }
         }
         .overlay(alignment: .bottomTrailing) {
@@ -75,10 +75,22 @@ struct ClipboardPanelView: View {
         .padding(.vertical, 12)
     }
 
+    /// Fills the whole panel, so the message sits in the middle instead of beside an empty list.
+    @ViewBuilder
     private var emptyState: some View {
-        Text(model.query.isEmpty && model.typeFilter == nil ? "Nothing copied yet" : "No matching entries")
-            .foregroundStyle(.secondary)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        if model.history.items.isEmpty {
+            ContentUnavailableView(
+                "Nothing Copied Yet",
+                systemImage: "doc.on.clipboard",
+                description: Text("Copy text, links, colors, images or files and they'll appear here.")
+            )
+        } else {
+            ContentUnavailableView(
+                "No Matching Entries",
+                systemImage: "magnifyingglass",
+                description: Text("Try a different search or type.")
+            )
+        }
     }
 
     private func toggleActions() {
