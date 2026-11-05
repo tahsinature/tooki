@@ -44,9 +44,40 @@ jobs:
         if: steps.version.outputs.version != ''
         run: make test
 
+      # Signing every release with the same certificate makes macOS see updates as the same app,
+      # so they keep the Accessibility permission. Ad hoc signatures change with every build.
+      - name: Load the signing certificate
+        id: signing
+        if: steps.version.outputs.version != ''
+        env:
+          CERT_P12: ${{ secrets.SIGNING_CERT_P12 }}
+          CERT_PASSWORD: ${{ secrets.SIGNING_CERT_PASSWORD }}
+        run: |
+          if [[ -z "$CERT_P12" ]]; then
+            echo "::warning::SIGNING_CERT_P12 is not set, so this release is signed ad hoc and updates will ask for Accessibility again."
+            echo "identity=-" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          keychain="$RUNNER_TEMP/signing.keychain-db"
+          keychain_password="$(openssl rand -base64 24)"
+          echo "$CERT_P12" | base64 --decode > "$RUNNER_TEMP/signing.p12"
+          security create-keychain -p "$keychain_password" "$keychain"
+          security set-keychain-settings -lut 3600 "$keychain"
+          security unlock-keychain -p "$keychain_password" "$keychain"
+          security import "$RUNNER_TEMP/signing.p12" -k "$keychain" -P "$CERT_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$keychain_password" "$keychain" > /dev/null
+          # codesign only finds the self-signed identity when its keychain is in the search list.
+          security list-keychains -d user -s "$keychain" $(security list-keychains -d user | tr -d '"')
+          rm "$RUNNER_TEMP/signing.p12"
+          echo "identity=Tooki Release Signing" >> "$GITHUB_OUTPUT"
+
       - name: Build universal DMG
         if: steps.version.outputs.version != ''
-        run: make dmg ARCHS="arm64 x86_64" SIGN_ID=- CHANNEL=release VERSION="${{ steps.version.outputs.version }}"
+        run: make dmg ARCHS="arm64 x86_64" SIGN_ID="${{ steps.signing.outputs.identity }}" CHANNEL=release VERSION="${{ steps.version.outputs.version }}"
+
+      - name: Check the signature
+        if: steps.version.outputs.version != ''
+        run: codesign -d -r- build/Tooki.app
 
       - name: Publish release
         if: steps.version.outputs.version != ''

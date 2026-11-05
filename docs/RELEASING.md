@@ -69,7 +69,8 @@ If the token is revoked or leaked:
 
 ## Things to know
 
-- **The app is not notarized.** It is signed ad hoc (`SIGN_ID=-`). The cask removes the quarantine flag after install so the app opens. People who download the DMG directly have to right-click → Open the first time.
+- **The app is not notarized.** It is signed with a self-signed certificate, "Tooki Release Signing". The cask removes the quarantine flag after install so the app opens. People who download the DMG directly have to right-click → Open the first time.
+- **The signing certificate keeps Accessibility across updates.** macOS remembers the permission for the certificate, not for one build. It lives in the `SIGNING_CERT_P12` (base64 .p12) and `SIGNING_CERT_PASSWORD` secrets. Keep a backup: a new certificate makes every user grant Accessibility once more. Without the secrets, the workflow falls back to ad hoc signing and warns.
 - **Local builds show the version from `Resources/Info.plist`.** Only release builds get the real version number. You do not need to edit `Info.plist` when releasing.
 - **Dev or release is shown at the bottom of the sidebar.** `make app` marks builds as `dev` with the git commit (the Tooki card shows an orange `Dev · abc1234`, with `•` for uncommitted changes). The workflow passes `CHANNEL=release`, so releases show `Version X.Y.Z` instead.
 - **Do not create `v*` tags by hand.** The workflow treats the latest tag as the last release, so a manual tag changes the next version number.
