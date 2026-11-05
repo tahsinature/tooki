@@ -4,7 +4,7 @@ import TookiKit
 /// The left column: a Pinned section and a Most Recent section.
 struct ClipboardListView: View {
     let model: ClipboardPanelModel
-    let onPaste: () -> Void
+    let onCopy: () -> Void
 
     var body: some View {
         let selectedID = model.selectedItem?.id
@@ -49,7 +49,7 @@ struct ClipboardListView: View {
     private func row(_ item: ClipboardItem, isSelected: Bool) -> some View {
         ClipboardRow(item: item, isSelected: isSelected)
             .contentShape(Rectangle())
-            .onTapGesture(count: 2, perform: onPaste)
+            .onTapGesture(count: 2, perform: onCopy)
             .simultaneousGesture(TapGesture().onEnded { model.selectedID = item.id })
     }
 }

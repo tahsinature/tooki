@@ -38,6 +38,30 @@ public struct HexColor: Equatable, Sendable {
         blue = Double((value >> 8) & 0xFF) / 255
         alpha = Double(value & 0xFF) / 255
     }
+
+    /// For example "rgb(255, 99, 99)".
+    public var rgbDescription: String {
+        "rgb(\(Int((red * 255).rounded())), \(Int((green * 255).rounded())), \(Int((blue * 255).rounded())))"
+    }
+
+    /// For example "hsl(0, 100%, 69%)".
+    public var hslDescription: String {
+        let high = max(red, green, blue), low = min(red, green, blue)
+        let lightness = (high + low) / 2
+        let delta = high - low
+        var hue = 0.0, saturation = 0.0
+        if delta > 0 {
+            saturation = delta / (1 - abs(2 * lightness - 1))
+            hue = switch high {
+            case red: (green - blue) / delta
+            case green: (blue - red) / delta + 2
+            default: (red - green) / delta + 4
+            }
+            hue = (hue * 60).truncatingRemainder(dividingBy: 360)
+            if hue < 0 { hue += 360 }
+        }
+        return "hsl(\(Int(hue.rounded())), \(Int((saturation * 100).rounded()))%, \(Int((lightness * 100).rounded()))%)"
+    }
 }
 
 extension ClipboardItem {

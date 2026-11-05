@@ -1,7 +1,7 @@
 import SwiftUI
 import TookiKit
 
-/// Raycast-style clipboard history: list on the left, preview and information on the right.
+/// Raycast-style clipboard history: list on the left, preview, stats and actions on the right.
 struct ClipboardPanelView: View {
     @Bindable var model: ClipboardPanelModel
     let onAction: (ClipboardAction.Kind) -> Void
@@ -12,19 +12,21 @@ struct ClipboardPanelView: View {
     var body: some View {
         VStack(spacing: 0) {
             header
-            Divider()
             HStack(spacing: 0) {
-                ClipboardListView(model: model, onPaste: { onAction(.paste) })
+                ClipboardListView(model: model, onCopy: { onAction(.copy) })
                     .frame(width: 320)
-                Divider()
                 if let item = model.selectedItem {
-                    ClipboardDetailView(item: item)
+                    ClipboardDetailView(
+                        item: item,
+                        targetAppName: model.targetAppName,
+                        onAction: onAction,
+                        onShowActions: toggleActions,
+                        onDropped: onCancel
+                    )
                 } else {
                     emptyState
                 }
             }
-            Divider()
-            footer
         }
         .overlay(alignment: .bottomTrailing) {
             if model.isShowingActions, model.selectedItem != nil {
@@ -37,11 +39,11 @@ struct ClipboardPanelView: View {
                     onKey: handleKey,
                     onRun: onAction
                 )
-                .padding(.trailing, 10)
-                .padding(.bottom, 44)
+                .padding(.trailing, 18)
+                .padding(.bottom, 56)
             }
         }
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
+        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 14))
         .overlay(RoundedRectangle(cornerRadius: 14).stroke(.separator))
         .onAppear { isSearchFocused = true }
         .onChange(of: model.isShowingActions) { _, isShowing in
@@ -79,28 +81,6 @@ struct ClipboardPanelView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    private var footer: some View {
-        HStack(spacing: 10) {
-            Label("Clipboard History", systemImage: "list.clipboard")
-                .foregroundStyle(.secondary)
-            Spacer()
-            if let item = model.selectedItem {
-                // A finished drop works like a paste, so the panel closes.
-                ClipboardDragButton(item: item, onDropped: onCancel)
-                    .disabled(!item.canBeUsed)
-                Divider().frame(height: 14)
-            }
-            FooterButton(title: "Paste to \(model.targetAppName ?? "Active App")", shortcut: "↵") { onAction(.paste) }
-                .disabled(model.selectedItem?.canBeUsed == false)
-            Divider().frame(height: 14)
-            FooterButton(title: "Actions", shortcut: "⌘K") { toggleActions() }
-        }
-        .font(.callout)
-        .padding(.horizontal, 14)
-        .padding(.vertical, 8)
-        .disabled(model.selectedItem == nil)
-    }
-
     private func toggleActions() {
         model.toggleActions()
     }
@@ -131,7 +111,7 @@ struct ClipboardPanelView: View {
             if model.isShowingActions {
                 if let action = selectedMenuAction { onAction(action.kind) }
             } else {
-                onAction(command ? .copy : .paste)
+                onAction(command ? .paste : .copy)
             }
         default:
             return handleShortcut(press)
@@ -174,26 +154,6 @@ struct ClipboardPanelView: View {
         } else {
             model.moveSelection(by: offset)
         }
-    }
-}
-
-private struct FooterButton: View {
-    let title: String
-    let shortcut: String
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: 6) {
-                Text(title)
-                Text(shortcut)
-                    .font(.caption)
-                    .padding(.horizontal, 5)
-                    .padding(.vertical, 2)
-                    .background(.quaternary, in: RoundedRectangle(cornerRadius: 4))
-            }
-        }
-        .buttonStyle(.plain)
     }
 }
 

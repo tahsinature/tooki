@@ -26,8 +26,8 @@ struct ClipboardAction: Identifiable {
         var actions: [ClipboardAction] = []
         if item.canBeUsed {
             actions += [
-                ClipboardAction(kind: .paste, title: "Paste to \(targetAppName ?? "Active App")", icon: .symbol("doc.on.clipboard"), shortcut: "↵"),
-                ClipboardAction(kind: .copy, title: "Copy to Clipboard", icon: .symbol("doc.on.doc"), shortcut: "⌘↵"),
+                ClipboardAction(kind: .copy, title: "Copy to Clipboard", icon: .symbol("doc.on.doc"), shortcut: "↵"),
+                ClipboardAction(kind: .paste, title: "Paste to \(targetAppName ?? "Active App")", icon: .symbol("arrow.up.forward.app"), shortcut: "⌘↵"),
             ]
         }
         if item.canBeUsed, ClipboardOpenWith.canOpen(item) {

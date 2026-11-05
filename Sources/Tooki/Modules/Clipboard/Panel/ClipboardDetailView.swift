@@ -1,17 +1,30 @@
 import SwiftUI
 import TookiKit
 
-/// The right column: a large preview above an Information section.
+/// The right column: a preview, stat tiles and the item's actions.
 struct ClipboardDetailView: View {
     let item: ClipboardItem
+    let targetAppName: String?
+    let onAction: (ClipboardAction.Kind) -> Void
+    let onShowActions: () -> Void
+    let onDropped: () -> Void
 
     var body: some View {
-        VStack(spacing: 0) {
+        VStack(alignment: .leading, spacing: 14) {
             ClipboardPreview(item: item)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            Divider()
-            ClipboardInfoView(item: item)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+            ClipboardStatsView(item: item)
+            ClipboardActionBar(
+                item: item,
+                targetAppName: targetAppName,
+                onAction: onAction,
+                onShowActions: onShowActions,
+                onDropped: onDropped
+            )
         }
+        .padding(.horizontal, 18)
+        .padding(.top, 4)
+        .padding(.bottom, 16)
     }
 }
 
@@ -25,38 +38,73 @@ private struct ClipboardPreview: View {
                 Image(nsImage: nsImage)
                     .resizable()
                     .scaledToFit()
-                    .padding(16)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         case .color:
-            VStack(spacing: 12) {
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(HexColor(item.text).map(Color.init) ?? .clear)
-                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(.separator))
-                    .frame(width: 140, height: 140)
-                Text(item.text.trimmingCharacters(in: .whitespacesAndNewlines).uppercased())
-                    .font(.title3.monospaced())
-                    .textSelection(.enabled)
-            }
+            ColorPreview(text: item.text)
         case .file:
-            VStack(spacing: 10) {
-                ClipboardIcon(item: item, size: 96)
-                Text(item.text)
-                    .multilineTextAlignment(.center)
-                    .lineLimit(6)
-                if !item.missingFiles.isEmpty {
-                    MissingFilesNotice(item: item)
-                }
-            }
-            .padding(16)
+            FilePreview(item: item)
         case .link, .text:
             ScrollView {
                 Text(item.text)
                     .font(.body.monospaced())
                     .textSelection(.enabled)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(16)
+                    .padding(14)
+            }
+            .background(Color.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 10))
+            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.primary.opacity(0.06)))
+        }
+    }
+}
+
+private struct ColorPreview: View {
+    let text: String
+
+    var body: some View {
+        let color = HexColor(text)
+        VStack(alignment: .leading, spacing: 14) {
+            RoundedRectangle(cornerRadius: 14)
+                .fill(color.map(Color.init) ?? .clear)
+                .overlay(RoundedRectangle(cornerRadius: 14).stroke(.separator))
+                .frame(width: 72, height: 72)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(text.trimmingCharacters(in: .whitespacesAndNewlines).uppercased())
+                    .font(.system(size: 24, weight: .semibold))
+                if let color {
+                    Text("\(color.rgbDescription) · \(color.hslDescription)")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .textSelection(.enabled)
+        }
+        .frame(maxHeight: .infinity)
+    }
+}
+
+private struct FilePreview: View {
+    let item: ClipboardItem
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            ClipboardIcon(item: item, size: 72)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(item.title)
+                    .font(.system(size: 20, weight: .semibold))
+                    .lineLimit(2)
+                Text((item.files ?? []).joined(separator: "\n"))
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(3)
+                    .truncationMode(.middle)
+            }
+            if !item.missingFiles.isEmpty {
+                MissingFilesNotice(item: item)
             }
         }
+        .frame(maxHeight: .infinity)
     }
 }
 

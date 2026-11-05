@@ -17,13 +17,13 @@ To keep them in dotfiles, symlink the folder (or the individual files) into your
 
 ### Clipboard history
 
-Press Hyper+V to open it. The list is on the left (Pinned first, then Most Recent) and the selected entry is previewed on the right with its source app, size and copy counts. Filter by typing, or pick a type (Text, Links, Colors, Images, Files) from the menu. Pinned entries are never removed by `maxItems`.
+Press Hyper+V to open it. The list is on the left (Pinned first, then Most Recent) and the selected entry is previewed on the right with its source app, size and copy counts, above the Copy, Paste, Drag and More buttons. Filter by typing, or pick a type (Text, Links, Colors, Images, Files) from the menu. Pinned entries are never removed by `maxItems`.
 
 | Key | Action |
 | --- | --- |
 | ↑ ↓ (hold to repeat), Page Up/Down, Home/End | Move through the list |
-| ↵ | Paste into the app you were using |
-| ⌘↵ | Copy to the clipboard |
+| ↵ (or double-click) | Copy to the clipboard |
+| ⌘↵ | Paste into the app you were using |
 | ⌘O | Open With: search for an app to open an image, file or link with (Esc goes back) |
 | ⌘P | Pin or unpin |
 | ⌃X | Delete |

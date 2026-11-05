@@ -2,7 +2,7 @@ import AppKit
 import SwiftUI
 import TookiKit
 
-/// The footer's "Drag" action: drag the item into another app, for places that can't paste.
+/// The action bar's Drag button: drag the item into another app, for places that can't paste.
 struct ClipboardDragButton: View {
     let item: ClipboardItem
     /// Runs after the item was dropped somewhere. Not called when the drag is cancelled.
@@ -11,8 +11,10 @@ struct ClipboardDragButton: View {
     @Environment(\.isEnabled) private var isEnabled
 
     var body: some View {
-        Label("Drag", systemImage: "hand.draw")
+        Image(systemName: "hand.draw")
+            .font(.system(size: 14))
             .foregroundStyle(isEnabled ? .primary : .tertiary)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
             .overlay(DragSource(item: item, isEnabled: isEnabled, onDropped: onDropped))
             .help(isEnabled ? "Drag this item into another app" : "The file no longer exists")
     }

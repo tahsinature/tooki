@@ -179,6 +179,13 @@ struct ClipboardLogTests {
         #expect(ClipboardItem(text: "a.txt", files: ["/tmp/a.txt"]).contentType == .file)
         #expect(HexColor("#FF0000")?.red == 1 && HexColor("#FF000080")?.alpha == 128.0 / 255)
     }
+
+    @Test func describesColors() {
+        #expect(HexColor("#3F3F3F")?.rgbDescription == "rgb(63, 63, 63)")
+        #expect(HexColor("#3F3F3F")?.hslDescription == "hsl(0, 0%, 25%)")
+        #expect(HexColor("#FF6363")?.hslDescription == "hsl(0, 100%, 69%)")
+        #expect(HexColor("#0A84FF")?.hslDescription == "hsl(210, 100%, 52%)")
+    }
 }
 
 struct MenuBarLayoutPlannerTests {
