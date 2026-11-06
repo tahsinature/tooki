@@ -11,53 +11,45 @@ struct IconTile: View {
             .font(.system(size: size * 0.52, weight: .semibold))
             .foregroundStyle(.white)
             .frame(width: size, height: size)
-            .background(color.gradient, in: RoundedRectangle(cornerRadius: size * 0.24, style: .continuous))
+            .background(color.gradient, in: .rect(cornerRadius: size * 0.24))
     }
 }
 
-/// The card at the top of every settings page: big icon, title and a one-line summary.
-/// Place it as the first section of a grouped `Form`.
+/// A shared feature hero for the grouped settings pages.
 struct PageHeader: View {
     let page: SettingsPage
 
     var body: some View {
         Section {
-            VStack(spacing: 6) {
-                IconTile(symbol: page.icon, color: page.color, size: 52)
-                    .padding(.bottom, 4)
-                Text(page.title)
-                    .font(.title2.bold())
-                Text(page.summary)
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 10)
+            FeatureHeader(page: page)
         }
+        .listRowInsets(EdgeInsets())
+        .listRowBackground(Color.clear)
     }
 }
 
-/// A slim, left-aligned header for pages that fill the window with their own layout instead of a `Form`.
+/// A compact header leaves space for tools with list and editor columns.
 struct InlinePageHeader: View {
     let page: SettingsPage
 
     var body: some View {
-        HStack(spacing: 12) {
-            IconTile(symbol: page.icon, color: page.color, size: 36)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(page.title).font(.title3.bold())
-                Text(page.summary).font(.callout).foregroundStyle(.secondary)
+        HStack(spacing: 16) {
+            IconTile(symbol: page.icon, color: SettingsTheme.accent, size: 44)
+            VStack(alignment: .leading, spacing: 5) {
+                Text(page.title).font(.title2.bold())
+                Text(page.summary)
+                    .font(.callout)
+                    .foregroundStyle(SettingsTheme.secondaryText)
             }
         }
+        .padding(.vertical, 8)
     }
 }
 
 extension View {
-    /// A rounded panel matching the sections of a grouped `Form`.
     func groupedCard() -> some View {
-        background(.fill.quinary, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).stroke(.separator.opacity(0.6)))
-            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+        background(SettingsTheme.surface, in: .rect(cornerRadius: 12))
+            .overlay(RoundedRectangle(cornerRadius: 12).stroke(SettingsTheme.border))
+            .clipShape(.rect(cornerRadius: 12))
     }
 }

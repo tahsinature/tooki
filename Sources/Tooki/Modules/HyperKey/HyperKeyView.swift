@@ -6,55 +6,61 @@ struct HyperKeyView: View {
     let onOpenShortcuts: () -> Void
 
     var body: some View {
-        Form {
-            PageHeader(page: .hyperKey)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 28) {
+                FeatureHeader(page: .hyperKey)
 
-            Section {
-                HyperKeyboardIllustration(isEnabled: config.value.hyperKey.enabled)
-                Toggle("Use Caps Lock as Hyper key", isOn: $config.value.hyperKey.enabled)
-            }
+                Toggle(isOn: $config.value.hyperKey.enabled) {
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text("Use Caps Lock as Hyper key").font(.headline)
+                        Text("Hold for Hyper. Tap to toggle Caps Lock.")
+                            .font(.callout)
+                            .foregroundStyle(SettingsTheme.secondaryText)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .toggleStyle(.switch)
+                .padding(20)
+                .groupedCard()
 
-            Section("How it works") {
-                InfoRow(symbol: "hand.raised.fill", color: .purple, title: "Hold Caps Lock") {
-                    Text("It acts as Control + Option + Shift + Command (⌃⌥⇧⌘). No app uses that combination, so your shortcuts never clash.")
+                VStack(alignment: .leading, spacing: 20) {
+                    Text("How it works")
+                        .font(.headline)
+                        .foregroundStyle(SettingsTheme.secondaryText)
+                    HyperKeyInstructions()
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                InfoRow(symbol: "capslock.fill", color: .blue, title: "Tap Caps Lock") {
-                    Text("A quick tap still turns Caps Lock on or off.")
-                }
-                InfoRow(symbol: "app.connected.to.app.below.fill", color: .green, title: "Works in every app") {
-                    Text("Other apps see ⌃⌥⇧⌘, so you can use Hyper in their shortcuts too.")
-                }
-            }
+                .padding(20)
+                .groupedCard()
 
-            Section {
-                LabeledContent {
-                    Button("Open Shortcuts", action: onOpenShortcuts)
-                } label: {
-                    Text("Shortcuts")
-                    Text("Assign Hyper combos to Tooki features and apps.")
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 20) {
+                        shortcutDescription
+                        Spacer(minLength: 0)
+                        shortcutButton
+                    }
+                    VStack(alignment: .leading, spacing: 14) {
+                        shortcutDescription
+                        shortcutButton
+                    }
                 }
             }
+            .padding(28)
+            .frame(maxWidth: 1000)
+            .frame(maxWidth: .infinity)
         }
-        .formStyle(.grouped)
     }
-}
 
-private struct InfoRow<Detail: View>: View {
-    let symbol: String
-    let color: Color
-    let title: String
-    @ViewBuilder let detail: Detail
+    private var shortcutDescription: some View {
+        Text("Assign Hyper combos to Tooki features and apps.")
+            .font(.callout)
+            .foregroundStyle(SettingsTheme.secondaryText)
+    }
 
-    var body: some View {
-        HStack(alignment: .top, spacing: 10) {
-            IconTile(symbol: symbol, color: color, size: 24)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                detail
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-            }
-        }
-        .padding(.vertical, 2)
+    private var shortcutButton: some View {
+        Button("Open Shortcuts", systemImage: "arrow.right", action: onOpenShortcuts)
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
     }
 }

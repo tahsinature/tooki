@@ -103,7 +103,7 @@ final class SettingsNavigation {
     }
 }
 
-/// Laid out like System Settings: a fixed sidebar of colored icons and grouped pages.
+/// The settings shell keeps navigation stable while each tool supplies its own content.
 struct MainView: View {
     static let sidebarWidth: CGFloat = 220
 
@@ -112,25 +112,18 @@ struct MainView: View {
 
     var body: some View {
         NavigationSplitView(columnVisibility: .constant(.all)) {
-            List(selection: $navigation.page) {
-                Section {
-                    ForEach(SettingsPage.modules, content: SidebarRow.init)
-                }
-                Section {
-                    ForEach(SettingsPage.appPages, content: SidebarRow.init)
-                }
-            }
-            .safeAreaInset(edge: .bottom) {
-                SidebarAppCard(updater: app.updater, isSelected: navigation.page == .about) { navigation.page = .about }
-                    .padding(10)
-            }
-            .navigationSplitViewColumnWidth(Self.sidebarWidth)
-            .toolbar(removing: .sidebarToggle)
+            SettingsSidebar(app: app, selection: $navigation.page)
+                .navigationSplitViewColumnWidth(Self.sidebarWidth)
+                .toolbar(removing: .sidebarToggle)
         } detail: {
             detail
+                .scrollContentBackground(.hidden)
+                .background(SettingsTheme.background)
                 .navigationTitle(navigation.page?.title ?? "Tooki")
                 .toolbar { historyButtons }
         }
+        .tint(SettingsTheme.accent)
+        .preferredColorScheme(.dark)
     }
 
     private var historyButtons: some ToolbarContent {
@@ -155,67 +148,6 @@ struct MainView: View {
         case .general: GeneralView(app: app)
         case .about: AboutView(updater: app.updater, config: app.config)
         }
-    }
-}
-
-private struct SidebarRow: View {
-    let page: SettingsPage
-
-    var body: some View {
-        HStack(spacing: 7) {
-            IconTile(symbol: page.icon, color: page.color)
-            Text(page.title)
-        }
-        .tag(page)
-    }
-}
-
-/// The app's own card at the bottom of the sidebar, like the account row in System Settings.
-/// Its subtitle tells dev and release builds apart. Opens About.
-private struct SidebarAppCard: View {
-    let updater: Updater
-    let isSelected: Bool
-    let action: () -> Void
-    @State private var isHovered = false
-
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: 10) {
-                Image(nsImage: NSApp.applicationIconImage)
-                    .resizable()
-                    .frame(width: 32, height: 32)
-                VStack(alignment: .leading, spacing: 1) {
-                    Text("Tooki").font(.headline)
-                    if case .installing = updater.state {
-                        Text("Installing… Tooki will restart")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    } else {
-                        BuildLabel()
-                    }
-                }
-                Spacer(minLength: 0)
-                if updater.shouldPrompt {
-                    Text("Update")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 9)
-                        .padding(.vertical, 3)
-                        .background(.blue, in: .capsule)
-                        .help("A new version of Tooki is available")
-                }
-            }
-            .padding(8)
-            .contentShape(.rect)
-            .background(background, in: .rect(cornerRadius: 8))
-        }
-        .buttonStyle(.plain)
-        .onHover { isHovered = $0 }
-    }
-
-    private var background: Color {
-        if isSelected { return .primary.opacity(0.1) }
-        return isHovered ? .primary.opacity(0.05) : .clear
     }
 }
 
@@ -249,12 +181,14 @@ final class MainWindowController {
 
     private func makeWindow() -> NSWindow {
         let window = NSWindow(
-            contentRect: CGRect(x: 0, y: 0, width: 1000, height: 640),
+            contentRect: CGRect(x: 0, y: 0, width: 1120, height: 760),
             styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
             backing: .buffered,
             defer: false
         )
         window.title = "Tooki"
+        window.appearance = NSAppearance(named: .darkAqua)
+        window.backgroundColor = NSColor(SettingsTheme.background)
         // Each page shows its own title in its header card, like System Settings.
         window.titleVisibility = .hidden
         window.isReleasedWhenClosed = false
