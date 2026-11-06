@@ -32,7 +32,7 @@ final class Updater {
     @ObservationIgnored private var checksAutomatically = false
 
     private static let checkInterval: TimeInterval = 24 * 60 * 60
-    /// `defaults write com.mohammadtahsin.tooki updateFeedURL <url>` points Tooki at another release, for testing.
+    /// `defaults write us.tahsin.tooki updateFeedURL <url>` points Tooki at another release, for testing.
     private static var feedURL: URL {
         UserDefaults.standard.string(forKey: DefaultsKey.feedURL).flatMap(URL.init(string:))
             ?? URL(string: "https://api.github.com/repos/tahsinature/tooki/releases/latest")!

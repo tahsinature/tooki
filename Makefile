@@ -1,7 +1,7 @@
 APP_NAME := Tooki
 CHANNEL ?= dev
 DISPLAY_NAME := $(if $(filter release,$(CHANNEL)),Tooki,Tooki Dev)
-BUNDLE_ID := com.mohammadtahsin.tooki$(if $(filter release,$(CHANNEL)),,.dev)
+BUNDLE_ID := us.tahsin.tooki$(if $(filter release,$(CHANNEL)),,.dev)
 BUILD_DIR := build
 APP := $(BUILD_DIR)/$(DISPLAY_NAME).app
 DMG := $(BUILD_DIR)/$(DISPLAY_NAME).dmg

@@ -25,5 +25,5 @@ cask "tooki" do
     system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{appdir}/Tooki.app"]
   end
 
-  uninstall quit: "com.mohammadtahsin.tooki"
+  uninstall quit: "us.tahsin.tooki"
 end

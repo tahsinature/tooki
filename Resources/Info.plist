@@ -9,7 +9,7 @@
 	<key>CFBundleIconFile</key>
 	<string>AppIcon.icns</string>
 	<key>CFBundleIdentifier</key>
-	<string>com.mohammadtahsin.tooki</string>
+	<string>us.tahsin.tooki</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
@@ -26,7 +26,7 @@
 	<array>
 		<dict>
 			<key>CFBundleURLName</key>
-			<string>com.mohammadtahsin.tooki</string>
+			<string>us.tahsin.tooki</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>tooki</string>
