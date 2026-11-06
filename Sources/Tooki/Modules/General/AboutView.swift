@@ -1,8 +1,11 @@
 import AppKit
 import SwiftUI
+import TookiKit
 
 /// The app's version and where to find its source, releases and issues.
 struct AboutView: View {
+    let updater: Updater
+    @Bindable var config: JSONDocument<TookiConfig>
     private static let repository = URL(string: "https://github.com/tahsinature/tooki")!
     private static let installCommand = "brew install --cask tahsinature/tap/tooki"
 
@@ -27,6 +30,8 @@ struct AboutView: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 10)
             }
+
+            UpdatesSection(updater: updater, config: config)
 
             Section("Links") {
                 link("Source Code", symbol: "chevron.left.forwardslash.chevron.right", path: "")

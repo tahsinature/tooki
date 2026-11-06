@@ -72,6 +72,9 @@ Clipboard history is private data and is stored separately in `~/Library/Applica
     "enabled": true,               // false also makes tooki://shelf links beep
     "shiftDragOpens": true,        // show the shelf while Shift-dragging
     "removeAfterDragOut": true
+  },
+  "updates": {
+    "checkAutomatically": true     // check GitHub on launch and once a day
   }
 }
 ```
@@ -320,6 +323,10 @@ desc = "Add the selected originals to a Tooki shelf"
 Tooki adds a toggle icon and a thin separator to the menu bar. Hold ⌘ and drag icons to the **left of the separator** to hide them. Click the toggle to show them. macOS remembers icon positions itself, so the arrangement is not part of `config.json`.
 
 Press **Hyper + M** to search every menu bar item, shown or hidden, including Apple's (Clock, Wi‑Fi, Battery). Press Return to click the selected item. If it is hidden, Tooki reveals the hidden icons, clicks it, and hides them again once its menu closes. A few apps ignore clicks made through Accessibility; Tooki beeps when an item refuses.
+
+## Updates
+
+Release builds check GitHub for a new version when Tooki starts and once a day. When one is found, an **Update** badge appears on the Tooki card at the bottom of the sidebar. Open **About** to install it, skip that version, or check by hand. Installing downloads the DMG, makes sure it is signed with the same certificate as the running app, replaces Tooki and restarts it. Skipping only hides the badge; the update stays available in About. Dev builds never check.
 
 ## Known limitations
 

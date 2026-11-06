@@ -21,8 +21,11 @@ struct ClipboardListView: View {
                         }
                     }
                 }
-                .padding(8)
+                .padding(.horizontal, 8)
             }
+            // Margins, not padding, so scrolling to the last row keeps space below it.
+            .contentMargins(.top, 8, for: .scrollContent)
+            .contentMargins(.bottom, 12, for: .scrollContent)
             .onChange(of: selectedID) { _, newValue in
                 if let newValue { proxy.scrollTo(ListEntry.itemID(newValue)) }
             }

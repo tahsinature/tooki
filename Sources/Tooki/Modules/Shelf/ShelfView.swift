@@ -200,17 +200,21 @@ private struct ShelfStack: View {
     private static let namesShown = 3
 
     var body: some View {
-        HStack(spacing: 12) {
+        // Centered as a group; the space around them moves the window.
+        HStack(spacing: 18) {
             pile
             names
         }
+        .frame(maxWidth: .infinity)
+        .contentShape(Rectangle())
+        .shelfWindowDragArea()
         .padding(.horizontal, 14)
-        .padding(.bottom, 10)
+        .padding(.bottom, 14)
     }
 
     private var pile: some View {
         ShelfPile(items: shelf.items.suffix(Self.namesShown), namespace: namespace, isFanned: isHovered)
-            .frame(width: 78, height: 76)
+            .frame(width: 78, height: 68)
             .overlay(
                 ShelfDragArea(
                     items: { shelf.items },
@@ -254,9 +258,6 @@ private struct ShelfStack: View {
                     .padding(.leading, 12)
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-        .contentShape(Rectangle())
-        .shelfWindowDragArea()
     }
 }
 
@@ -317,6 +318,12 @@ private struct ShelfPile: View {
                     .shadow(color: .black.opacity(0.25), radius: 3, y: 2)
             }
         }
+        // The back items lean down and left; shift the whole pile back so it's centered.
+        .offset(x: backDepth * 3, y: backDepth * -2)
+    }
+
+    private var backDepth: Double {
+        Double(max(items.count - 1, 0)) * (isFanned ? 1.8 : 1)
     }
 }
 

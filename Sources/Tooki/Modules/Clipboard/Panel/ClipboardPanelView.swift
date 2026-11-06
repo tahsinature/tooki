@@ -9,6 +9,9 @@ struct ClipboardPanelView: View {
 
     @FocusState private var isSearchFocused: Bool
 
+    /// Fixed, so the panel doesn't shrink around "No Matching Entries" and stay small afterwards.
+    static let size = CGSize(width: 780, height: 480)
+
     var body: some View {
         VStack(spacing: 0) {
             header
@@ -26,6 +29,7 @@ struct ClipboardPanelView: View {
                 }
             } else {
                 emptyState
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
         .overlay(alignment: .bottomTrailing) {
@@ -43,9 +47,11 @@ struct ClipboardPanelView: View {
                 .padding(.bottom, 56)
             }
         }
+        .frame(width: Self.size.width, height: Self.size.height)
         .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 14))
         .overlay(RoundedRectangle(cornerRadius: 14).stroke(.separator))
-        .onAppear { isSearchFocused = true }
+        // The panel isn't key yet when this appears, so focus once it is.
+        .onAppear { Task { isSearchFocused = true } }
         .onChange(of: model.isShowingActions) { _, isShowing in
             if !isShowing { isSearchFocused = true }
         }

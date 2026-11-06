@@ -121,7 +121,7 @@ struct MainView: View {
                 }
             }
             .safeAreaInset(edge: .bottom) {
-                SidebarAppCard(isSelected: navigation.page == .about) { navigation.page = .about }
+                SidebarAppCard(updater: app.updater, isSelected: navigation.page == .about) { navigation.page = .about }
                     .padding(10)
             }
             .navigationSplitViewColumnWidth(Self.sidebarWidth)
@@ -153,7 +153,7 @@ struct MainView: View {
         case .keepAwake: KeepAwakeView(config: app.config, keepAwake: app.keepAwake)
         case .shortcuts: ShortcutsView(config: app.config, detective: app.detective, onRecordingChange: app.setRecordingShortcut)
         case .general: GeneralView(app: app)
-        case .about: AboutView()
+        case .about: AboutView(updater: app.updater, config: app.config)
         }
     }
 }
@@ -173,6 +173,7 @@ private struct SidebarRow: View {
 /// The app's own card at the bottom of the sidebar, like the account row in System Settings.
 /// Its subtitle tells dev and release builds apart. Opens About.
 private struct SidebarAppCard: View {
+    let updater: Updater
     let isSelected: Bool
     let action: () -> Void
     @State private var isHovered = false
@@ -185,9 +186,24 @@ private struct SidebarAppCard: View {
                     .frame(width: 32, height: 32)
                 VStack(alignment: .leading, spacing: 1) {
                     Text("Tooki").font(.headline)
-                    BuildLabel()
+                    if case .installing = updater.state {
+                        Text("Installing… Tooki will restart")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        BuildLabel()
+                    }
                 }
                 Spacer(minLength: 0)
+                if updater.shouldPrompt {
+                    Text("Update")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 9)
+                        .padding(.vertical, 3)
+                        .background(.blue, in: .capsule)
+                        .help("A new version of Tooki is available")
+                }
             }
             .padding(8)
             .contentShape(.rect)

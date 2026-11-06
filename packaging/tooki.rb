@@ -15,6 +15,8 @@ cask "tooki" do
   end
 
   depends_on macos: :sonoma
+  # Tooki updates itself, so Homebrew leaves it alone unless asked with --greedy.
+  auto_updates true
 
   app "Tooki.app"
 

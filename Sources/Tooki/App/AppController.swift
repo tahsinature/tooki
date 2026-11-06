@@ -19,6 +19,7 @@ final class AppController {
     let keepAwake = KeepAwake()
     let menuBar = MenuBarOrganizer()
     let detective = ShortcutDetective()
+    let updater = Updater()
     @ObservationIgnored lazy var menuBarArranger = MenuBarArranger(organizer: menuBar)
     private(set) var hasAccessibility = Accessibility.isTrusted
 
@@ -156,6 +157,7 @@ final class AppController {
         menuBarArranger.apply(config.menuBar)
         keepAwake.apply(config.keepAwake)
         applyShelf(config.shelf)
+        updater.setChecksAutomatically(config.updates.checkAutomatically)
     }
 
     private func startKeyboardMonitor() {

@@ -324,3 +324,13 @@ struct TookiURLCommandTests {
         #expect(command("https://shelf/show") == nil)
     }
 }
+
+struct AppVersionTests {
+    @Test func comparesNumberByNumber() {
+        #expect(AppVersion.isNewer("v0.10.0", than: "0.9.5"))
+        #expect(AppVersion.isNewer("1.0", than: "0.99.99"))
+        #expect(!AppVersion.isNewer("v0.6.0", than: "0.6.0"))
+        #expect(!AppVersion.isNewer("0.6", than: "0.6.0"))
+        #expect(!AppVersion.isNewer("0.5.9", than: "0.6.0"))
+    }
+}

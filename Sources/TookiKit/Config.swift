@@ -10,6 +10,7 @@ public struct TookiConfig: Codable, Equatable, Sendable {
     public var menuBar = MenuBarConfig()
     public var keepAwake = KeepAwakeConfig()
     public var shelf = ShelfConfig()
+    public var updates = UpdatesConfig()
 
     public init() {}
 
@@ -25,6 +26,7 @@ public struct TookiConfig: Codable, Equatable, Sendable {
         menuBar = try container.decode(.menuBar, default: defaults.menuBar)
         keepAwake = try container.decode(.keepAwake, default: defaults.keepAwake)
         shelf = try container.decode(.shelf, default: defaults.shelf)
+        updates = try container.decode(.updates, default: defaults.updates)
     }
 }
 
@@ -170,6 +172,18 @@ public struct KeepAwakeConfig: Codable, Equatable, Sendable {
         defaultDurationMinutes = try container.decode(.defaultDurationMinutes, default: defaults.defaultDurationMinutes)
         onlyOnPower = try container.decode(.onlyOnPower, default: defaults.onlyOnPower)
         activateForApps = try container.decode(.activateForApps, default: defaults.activateForApps)
+    }
+}
+
+public struct UpdatesConfig: Codable, Equatable, Sendable {
+    /// Checks GitHub for a new release when Tooki starts and once a day.
+    public var checkAutomatically = true
+
+    public init() {}
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        checkAutomatically = try container.decode(.checkAutomatically, default: UpdatesConfig().checkAutomatically)
     }
 }
 

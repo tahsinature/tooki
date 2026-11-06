@@ -23,7 +23,7 @@ final class ClipboardPanelController {
             history: history,
             targetAppName: NSWorkspace.shared.frontmostApplication?.localizedName
         )
-        let panel = FloatingPanel(size: CGSize(width: 780, height: 480)) {
+        let panel = FloatingPanel(size: ClipboardPanelView.size) {
             ClipboardPanelView(
                 model: model,
                 onAction: { [weak self, weak model] kind in
