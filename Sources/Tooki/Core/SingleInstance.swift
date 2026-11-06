@@ -3,9 +3,14 @@ import AppKit
 /// Keeps one Tooki running across production and development builds, which share storage and shortcuts.
 @MainActor
 enum SingleInstance {
+    // Older installed builds used the previous bundle IDs and can still own menu bar items.
+    private static let bundleIDs = [
+        "us.tahsin.tooki", "us.tahsin.tooki.dev",
+        "com.mohammadtahsin.tooki", "com.mohammadtahsin.tooki.dev",
+    ]
+
     static func replaceOlderCopies() async {
         let current = NSRunningApplication.current
-        let bundleIDs = ["us.tahsin.tooki", "us.tahsin.tooki.dev"]
         let olderCopies = bundleIDs.flatMap { NSRunningApplication.runningApplications(withBundleIdentifier: $0) }
             .filter { $0.processIdentifier != current.processIdentifier }
         guard !olderCopies.isEmpty else { return }

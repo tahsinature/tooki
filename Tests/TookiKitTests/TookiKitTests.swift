@@ -231,10 +231,9 @@ struct MenuBarLayoutPlannerTests {
         #expect(MenuBarLayoutPlanner.nextMove(current: ["c", separator, "a", "b"], layout: layout) == nil)
     }
 
-    @Test func keepsTheToggleRightOfTheSeparator() {
-        let toggle = MenuBarLayoutPlanner.toggleID
+    @Test func arrangesWithOnlyASeparator() {
         let layout = MenuBarLayout(shown: ["b"], hidden: ["a"])
-        #expect(arrange([toggle, "a", separator, "b"], layout).bar == ["a", separator, toggle, "b"])
+        #expect(arrange([separator, "b", "a"], layout).bar == ["a", separator, "b"])
     }
 
     @Test func numbersAdditionalIconsOfTheSameApp() {

@@ -36,8 +36,6 @@ public struct MenuBarItemDescriptor: Sendable {
 public enum MenuBarLayoutPlanner {
     /// Tooki's separator: icons left of it are hidden.
     public static let separatorID = "tooki.separator"
-    /// Tooki's show/hide arrow, which must stay right of the separator or hiding would hide it too.
-    public static let toggleID = "tooki.toggle"
 
     public enum Placement: Equatable, Sendable {
         case before(String)
@@ -66,11 +64,11 @@ public enum MenuBarLayoutPlanner {
     }
 
     /// The next icon to move, or `nil` when the bar already matches the layout.
-    /// `current` lists the IDs in the menu bar left to right, including `separatorID` and `toggleID`.
+    /// `current` lists the IDs in the menu bar left to right, including `separatorID`.
     /// Icons missing from the layout are left alone.
     public static func nextMove(current: [String], layout: MenuBarLayout) -> Move? {
         let present = Set(current)
-        let target = unique(layout.hidden + [separatorID, toggleID] + layout.shown).filter(present.contains)
+        let target = unique(layout.hidden + [separatorID] + layout.shown).filter(present.contains)
         let targetIndex = Dictionary(uniqueKeysWithValues: target.enumerated().map { ($1, $0) })
         let ranks = current.compactMap { targetIndex[$0] }
         let inPlace = Set(longestIncreasingSubsequence(ranks).map { target[$0] })

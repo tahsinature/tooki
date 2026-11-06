@@ -32,9 +32,9 @@ final class MenuBarArranger {
     }
 
     func apply(_ config: MenuBarConfig) {
-        let layoutChanged = config.layout != self.config.layout
+        let configurationChanged = config != self.config
         self.config = config
-        if layoutChanged { scheduleRestore(after: 2) }
+        if configurationChanged { scheduleRestore(after: 2) }
     }
 
     /// Another menu bar organizer that would fight over icon positions, if one is running.
@@ -47,8 +47,15 @@ final class MenuBarArranger {
         isArranging = true
         defer { isArranging = false }
         let wasCollapsed = organizer.isCollapsed
+        // Measure the actual icon positions, without auto-hide interrupting a drag.
+        organizer.expand(autoHide: false)
+        await pause(400)
         status = await moveIcons(into: layout)
-        if wasCollapsed, !organizer.isCollapsed { organizer.collapse() }
+        if wasCollapsed {
+            organizer.collapse()
+        } else {
+            organizer.expand()
+        }
     }
 
     private func moveIcons(into layout: MenuBarLayout) async -> String? {
@@ -56,15 +63,10 @@ final class MenuBarArranger {
         for _ in 0..<Self.maxMoves {
             // Never take the mouse away from someone using it.
             guard NSEvent.pressedMouseButtons == 0 else { return "Stopped because the mouse was in use." }
-            let snapshot = await MenuBarSnapshot.capture(separatorFrame: organizer.separatorFrame, toggleFrame: organizer.toggleFrame)
+            guard !Task.isCancelled, organizer.isInstalled else { return "Arranging stopped." }
+            let snapshot = await MenuBarSnapshot.capture(separatorFrame: organizer.separatorFrame)
             guard let move = MenuBarLayoutPlanner.nextMove(current: snapshot.order, layout: layout) else {
                 return notchWarning(snapshot)
-            }
-            if organizer.isCollapsed {
-                // Hidden icons are off-screen until expanded.
-                organizer.expand()
-                await pause(400)
-                continue
             }
             let title = snapshot.icons.first { $0.id == move.item }?.title ?? move.item
             guard move != previousMove else { return "Couldn't move \(title). Try ⌘-dragging it by hand." }

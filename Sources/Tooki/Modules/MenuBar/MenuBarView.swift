@@ -28,14 +28,14 @@ struct MenuBarView: View {
                         .disabled(!organizer.isInstalled)
                 }
             } footer: {
-                Text("Shortcut: Hyper + M")
+                Text("Show or hide icons from Tooki’s menu or with Hyper + M. No extra menu bar button is added.")
                     .foregroundStyle(.secondary)
             }
 
             MenuBarLayoutEditor(config: config, organizer: organizer, arranger: arranger)
 
             Section("Arranging by hand") {
-                Label("Hold ⌘ and drag an icon left of the │ separator to hide it, or right of it to show it.", systemImage: "hand.draw")
+                Label("Show hidden icons first. Hold ⌘ and drag an icon left of the │ separator to hide it, or right of it to show it.", systemImage: "hand.draw")
                 Label("Click “Reload from Menu Bar”, then “Apply & Save” to keep that arrangement in config.json.", systemImage: "square.and.arrow.down")
             }
         }

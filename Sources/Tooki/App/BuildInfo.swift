@@ -11,6 +11,12 @@ enum BuildInfo {
     /// Packaging time, shared by every build indicator.
     static let builtAt = value("TookiBuiltAt").flatMap { ISO8601DateFormatter().date(from: $0) }
 
+    static var details: String {
+        let timestamp = builtAt?.formatted(date: .complete, time: .standard) ?? "Time unavailable"
+        let revision = isRelease || commit.isEmpty ? "" : " · \(commit)"
+        return "\(isRelease ? "Release" : "Dev")\(revision) · \(timestamp)"
+    }
+
     static func buildTimeLabel(relativeTo date: Date) -> String {
         guard let builtAt else { return "Time unavailable" }
         guard date.timeIntervalSince(builtAt) >= 60 else { return "just now" }

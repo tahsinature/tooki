@@ -13,12 +13,18 @@ struct ClipboardListView: View {
                 // One ForEach for both sections, so pinning moves a row instead of leaving a stale copy behind.
                 LazyVStack(alignment: .leading, spacing: 2) {
                     ForEach(entries) { entry in
-                        switch entry {
-                        case .header(let title):
-                            header(title)
-                        case .item(let item):
-                            row(item, isSelected: item.id == selectedID)
+                        // Keep one layout container per entry, including section headers.
+                        // Explicit heights keep lazy scroll measurements stable as entries unload.
+                        VStack(alignment: .leading, spacing: 0) {
+                            switch entry {
+                            case .header(let title):
+                                header(title)
+                            case .item(let item):
+                                row(item, isSelected: item.id == selectedID)
+                            }
                         }
+                        .frame(height: entry.height)
+                        .id(entry.id)
                     }
                 }
                 .padding(.horizontal, 8)
@@ -62,6 +68,13 @@ private enum ListEntry: Identifiable {
     case item(ClipboardItem)
 
     static func itemID(_ id: ClipboardItem.ID) -> String { id.uuidString }
+
+    var height: CGFloat {
+        switch self {
+        case .header: 24
+        case .item: 34
+        }
+    }
 
     var id: String {
         switch self {

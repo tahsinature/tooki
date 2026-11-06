@@ -13,7 +13,8 @@ struct MenuBarMenu: View {
         Section {
             controls
         } header: {
-            BuildTimestamp(prefix: "Controls · \(BuildInfo.isRelease ? "Release" : "Dev")")
+            Text("Controls · \(BuildInfo.isRelease ? "Release" : "Dev") · \(app.buildClock.label)")
+                .help(BuildInfo.details)
         }
         Section {
             Button("Show \(BuildInfo.appName)") { app.showSettings() }

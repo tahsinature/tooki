@@ -20,6 +20,7 @@ final class AppController {
     let menuBar = MenuBarOrganizer()
     let detective = ShortcutDetective()
     let updater = Updater()
+    let buildClock = BuildClock()
     @ObservationIgnored lazy var menuBarArranger = MenuBarArranger(organizer: menuBar)
     private(set) var hasAccessibility = Accessibility.isTrusted
 
@@ -42,6 +43,7 @@ final class AppController {
     }
 
     func start() {
+        buildClock.start()
         config.load()
         snippets.load()
         clipboard.load()
@@ -65,6 +67,7 @@ final class AppController {
     }
 
     func shutdown() {
+        buildClock.stop()
         hyperKey.shutdown()
         keepAwake.shutdown()
     }

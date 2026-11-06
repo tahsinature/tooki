@@ -8,12 +8,6 @@ struct BuildTimestamp: View {
         TimelineView(.periodic(from: .now, by: 60)) { context in
             Text("\(prefix) · \(BuildInfo.buildTimeLabel(relativeTo: context.date))")
         }
-        .help(details)
-    }
-
-    private var details: String {
-        let timestamp = BuildInfo.builtAt?.formatted(date: .complete, time: .standard) ?? "Time unavailable"
-        let commit = BuildInfo.isRelease || BuildInfo.commit.isEmpty ? "" : " · \(BuildInfo.commit)"
-        return "\(BuildInfo.isRelease ? "Release" : "Dev")\(commit) · \(timestamp)"
+        .help(BuildInfo.details)
     }
 }
