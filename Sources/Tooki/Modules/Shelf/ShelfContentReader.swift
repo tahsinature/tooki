@@ -50,10 +50,17 @@ enum ShelfContentReader {
         return (try? PropertyListSerialization.data(fromPropertyList: plist, format: .xml, options: 0)) ?? Data()
     }
 
-    /// The first words of the text, so the file has a readable name.
+    /// The first words of the text, keeping only letters and digits, like "onChange of shelf cursor".
     private static func title(for text: String) -> String {
-        let firstLine = text.split(whereSeparator: \.isNewline).first.map(String.init) ?? "Text"
-        let words = firstLine.trimmingCharacters(in: .whitespaces).prefix(40)
-        return words.isEmpty ? "Text" : String(words)
+        let maxLength = 30
+        var title = ""
+        for word in text.split(whereSeparator: { !$0.isLetter && !$0.isNumber }) {
+            guard title.count + word.count + 1 <= maxLength else {
+                if title.isEmpty { title = String(word.prefix(maxLength)) }
+                break
+            }
+            title += title.isEmpty ? String(word) : " " + word
+        }
+        return title.isEmpty ? "Text" : title
     }
 }

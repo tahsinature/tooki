@@ -1,35 +1,123 @@
 import AppKit
 import Observation
 
-/// The items on the shelf, and which are selected. Saved in Application Support so the
-/// shelf comes back after Tooki restarts.
+/// One shelf: its items, and which are selected. `ShelfLibrary` keeps every shelf and saves them.
 @MainActor
 @Observable
-final class Shelf {
-    private(set) var items: [ShelfItem] = []
+final class Shelf: Identifiable {
+    let id: UUID
+    private(set) var name: String
+    /// When something was last added. Links and scripts add to the most recently used shelf.
+    private(set) var lastUsed: Date
+    private(set) var items: [ShelfItem]
     var selection: Set<ShelfItem.ID> = []
-    var isExpanded = false
+    var isExpanded = false {
+        didSet { if !isExpanded { isShowingDetail = false } }
+    }
+    /// The list has slid over to the details of the item at the cursor.
+    var isShowingDetail = false
+    /// The shelf's panel has keyboard focus.
+    var isFocused = false
+    /// Esc is being held down; the shelf is deleted if it's held long enough.
+    var isHoldingToDelete = false
+    /// The shelf is on its way off screen.
+    var leaving: ShelfLeaving?
+    /// Clear or Delete was asked for and is waiting for a second click, since it deletes copies.
+    private(set) var armed: ShelfAction?
+    @ObservationIgnored private var disarming: Task<Void, Never>?
     /// Something is being dragged over the shelf.
     var dropTarget: ShelfDropTarget?
     /// Copies still being made. They show as "Copying…" and can't be dragged out yet.
     private(set) var copyingIDs: Set<ShelfItem.ID> = []
     @ObservationIgnored var removeAfterDragOut = true
+    /// The item the arrow keys move from: the last one clicked or reached with an arrow.
+    private(set) var cursor: ShelfItem.ID?
 
     /// Runs after items were removed and the shelf became empty.
     @ObservationIgnored var onEmptied: () -> Void = {}
-    @ObservationIgnored private let fileURL = StoragePaths.dataDirectory.appending(path: "shelf.json")
+    /// Opens Quick Look for these files. Set by the shelf's panel, which owns the preview.
+    @ObservationIgnored var onQuickLook: ([URL]) -> Void = { _ in }
+    /// Runs whenever something worth saving changed.
+    @ObservationIgnored var onChange: () -> Void = {}
+
+    init(name: String) {
+        id = UUID()
+        self.name = name
+        lastUsed = Date()
+        items = []
+    }
+
+    /// Files that were moved or deleted while Tooki wasn't running are left out.
+    init(saved: SavedShelf) {
+        id = saved.id
+        name = saved.name
+        lastUsed = saved.lastUsed
+        items = saved.items.filter(\.exists)
+    }
 
     var isEmpty: Bool { items.isEmpty }
     var selectedItems: [ShelfItem] { items.filter { selection.contains($0.id) } }
     var totalBytes: Int64 { items.compactMap(\.byteSize).reduce(0, +) }
+    /// Tooki's copies are deleted along with the shelf, so removing them is worth a question.
+    var hasCopies: Bool { items.contains(where: \.isCopy) }
 
-    /// Files that were moved or deleted while Tooki wasn't running are left out.
-    func load() {
-        if let data = JSONFile.read(fileURL),
-           let saved = try? JSONFile.decoder.decode([ShelfItem].self, from: data) {
-            items = saved.filter(\.exists)
+    /// Waits a few seconds for the action to be confirmed, then lets it go.
+    func arm(_ action: ShelfAction) {
+        armed = action
+        disarming?.cancel()
+        disarming = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(4))
+            guard !Task.isCancelled else { return }
+            self?.disarm()
         }
-        ShelfStorage.deleteUnused(keeping: items.filter(\.ownsFile).map(\.url))
+    }
+
+    func disarm() {
+        disarming?.cancel()
+        disarming = nil
+        armed = nil
+    }
+    /// The item whose details are showing, if any.
+    var detailItem: ShelfItem? {
+        guard isExpanded, isShowingDetail else { return nil }
+        return cursorItem
+    }
+    var cursorItem: ShelfItem? { items.first { $0.id == cursor } }
+    /// Files that are ready to be used: copies still being made are left out.
+    var readyURLs: [URL] {
+        items.filter { !copyingIDs.contains($0.id) }.map(\.url)
+    }
+
+    /// Copies still being made aren't saved; if Tooki quits mid-copy they're simply gone.
+    var saved: SavedShelf {
+        SavedShelf(id: id, name: name, lastUsed: lastUsed, items: items.filter { !copyingIDs.contains($0.id) })
+    }
+
+    func rename(to newName: String) {
+        let trimmed = newName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, trimmed != name else { return }
+        name = trimmed
+        save()
+    }
+
+    /// Renames the item's file on disk: the real file for an original, Tooki's file for a copy.
+    func rename(_ item: ShelfItem, to newName: String) throws {
+        let name = newName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty, !name.contains("/"), name != item.url.lastPathComponent,
+              let index = items.firstIndex(where: { $0.id == item.id })
+        else { return }
+        let destination = item.url.deletingLastPathComponent().appending(path: name)
+        try FileManager.default.moveItem(at: item.url, to: destination)
+        items[index].relocate(to: destination)
+        save()
+    }
+
+    /// The items a right-click acts on: the selection if the clicked item is in it, otherwise
+    /// just that item, which becomes the selection, like Finder.
+    func itemsForMenu(clickedOn item: ShelfItem) -> [ShelfItem] {
+        if selection.contains(item.id) { return selectedItems }
+        selection = [item.id]
+        return [item]
     }
 
     /// Adds files or folders, either as links to the originals or as Tooki's own copies.
@@ -46,6 +134,7 @@ final class Shelf {
         let fresh = newItems.filter { !known.contains($0.dedupeKey) }
         guard !fresh.isEmpty else { return }
         items += fresh
+        lastUsed = Date()
         save()
     }
 
@@ -68,6 +157,7 @@ final class Shelf {
         let item = ShelfItem(copyOf: original, at: copyURL)
         guard !items.contains(where: { $0.dedupeKey == item.dedupeKey }) else { return }
         items.append(item)
+        lastUsed = Date()
         copyingIDs.insert(item.id)
         Task {
             let copied = await ShelfStorage.copy(original, to: copyURL)
@@ -86,7 +176,8 @@ final class Shelf {
 
     /// Tooki's own files are deleted with their items. `deleteAfter` gives an app the item was
     /// dropped into time to read the file, like a web upload field that sends it a bit later.
-    func remove(_ ids: Set<ShelfItem.ID>, deleteAfter delay: Duration = .zero) {
+    /// `staysOpen` keeps the shelf around even when this empties it.
+    func remove(_ ids: Set<ShelfItem.ID>, deleteAfter delay: Duration = .zero, staysOpen: Bool = false) {
         let removed = items.filter { ids.contains($0.id) }
         guard !removed.isEmpty else { return }
         items.removeAll { ids.contains($0.id) }
@@ -95,7 +186,7 @@ final class Shelf {
         deleteOwnedFiles(of: removed.filter { $0.ownsFile && !copyingIDs.contains($0.id) }, after: delay)
         if items.isEmpty {
             isExpanded = false
-            onEmptied()
+            if !staysOpen { onEmptied() }
         }
     }
 
@@ -113,16 +204,43 @@ final class Shelf {
         }
     }
 
+    /// Empties the shelf on purpose, so it stays open for new items.
     func clear() {
-        remove(Set(items.map(\.id)))
+        remove(Set(items.map(\.id)), staysOpen: true)
     }
 
     /// A plain click selects one item; ⌘ or ⇧ adds it to or removes it from the selection.
     func click(_ item: ShelfItem, modifiers: NSEvent.ModifierFlags) {
+        cursor = item.id
         if modifiers.contains(.command) || modifiers.contains(.shift) {
             if selection.remove(item.id) == nil { selection.insert(item.id) }
         } else {
             selection = [item.id]
+        }
+    }
+
+    /// Slides the list over to this item's details, and selects it.
+    func showDetail(of item: ShelfItem) {
+        cursor = item.id
+        selection = [item.id]
+        isShowingDetail = true
+    }
+
+    /// ↑ and ↓ select the next row up or down; with ⇧ that row is added to the selection.
+    /// With nothing selected yet, ↓ starts at the top and ↑ at the bottom.
+    func moveSelection(by offset: Int, extending: Bool) {
+        guard !items.isEmpty else { return }
+        let next: Int
+        if let current = cursor.flatMap({ id in items.firstIndex { $0.id == id } }), !selection.isEmpty {
+            next = min(max(current + offset, 0), items.count - 1)
+        } else {
+            next = offset > 0 ? 0 : items.count - 1
+        }
+        cursor = items[next].id
+        if extending {
+            selection.insert(items[next].id)
+        } else {
+            selection = [items[next].id]
         }
     }
 
@@ -132,11 +250,8 @@ final class Shelf {
         return dragged.filter { !copyingIDs.contains($0.id) }
     }
 
-    /// Copies still being made aren't saved; if Tooki quits mid-copy they're simply gone.
     private func save() {
-        let finished = items.filter { !copyingIDs.contains($0.id) }
-        guard let data = try? JSONFile.encoder.encode(finished) else { return }
-        try? JSONFile.write(data, to: fileURL)
+        onChange()
     }
 }
 
@@ -146,4 +261,14 @@ enum ShelfAddMode {
     case original
     /// Tooki's own copy; the original never moves.
     case copy
+}
+
+/// How a shelf goes away: hidden shelves can come back, closed ones are gone.
+enum ShelfLeaving {
+    case hiding, closing
+}
+
+/// What a shelf's buttons do to all of its items.
+enum ShelfAction {
+    case clear, delete
 }

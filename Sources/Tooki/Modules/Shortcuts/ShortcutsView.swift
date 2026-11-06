@@ -41,7 +41,7 @@ struct ShortcutsView: View {
             } header: {
                 Text("Apps")
             } footer: {
-                Text("Open an app, or switch to it if it's already running.")
+                Text("Open an app, or hide it if it's already in front.")
                     .foregroundStyle(.secondary)
             }
         }

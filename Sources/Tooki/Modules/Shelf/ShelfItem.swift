@@ -16,8 +16,13 @@ struct ShelfItem: Codable, Identifiable, Equatable {
     var ownsFile = false
     /// For copies of dropped files: where the original is.
     var originalPath: String?
-    /// `nil` for folders, whose size would take too long to add up.
-    var byteSize: Int64?
+    /// Read from disk each time, because some apps (like Firefox) drop an empty file and fill it
+    /// in a moment later. `nil` for folders, whose size would take too long to add up.
+    var byteSize: Int64? {
+        let file = exists ? url : originalPath.map(URL.init(fileURLWithPath:)) ?? url
+        let values = try? file.resourceValues(forKeys: [.isDirectoryKey, .fileSizeKey])
+        return values?.isDirectory == true ? nil : Int64(values?.fileSize ?? 0)
+    }
 
     var url: URL { URL(fileURLWithPath: path) }
     var isCopy: Bool { ownsFile }
@@ -31,6 +36,12 @@ struct ShelfItem: Codable, Identifiable, Equatable {
         guard let byteSize else { return folderDetail }
         let size = byteSize.formatted(.byteCount(style: .file))
         return text == nil ? size : "Text · \(size)"
+    }
+
+    /// The short label at the end of a row: the size, or what it is when it has none.
+    var shortDetail: String {
+        if isLink { return "Link" }
+        return byteSize?.formatted(.byteCount(style: .file)) ?? "Folder"
     }
 
     /// Counts only the top level, like Finder, so it stays instant for big folders.
@@ -48,22 +59,40 @@ struct ShelfItem: Codable, Identifiable, Equatable {
         return Self.abbreviated(URL(fileURLWithPath: sourcePath).deletingLastPathComponent().path)
     }
 
-    /// Says what the item is and where it came from, shown when hovering over it.
+    /// What the Original or Copy badge means, shown when hovering over it.
     var tooltip: String {
-        if let originalPath { return "Copy of \(Self.abbreviated(originalPath)). The original never moves." }
-        if isLink { return "Saved link: \(text ?? path)" }
+        if originalPath != nil { return "Copy: Tooki's own file. The original never moves." }
+        if isLink { return "Saved link" }
+        if ownsFile { return "Copy: saved by Tooki from a drop or paste" }
+        return "Original: dragging it out uses the real file"
+    }
+
+    /// What kind of item this is, for its details.
+    var mode: String {
+        if originalPath != nil { return "Copy. The original never moves." }
         if ownsFile { return "Saved by Tooki from a drop or paste" }
-        return "Original: \(Self.abbreviated(path)). Dragging it out can move it."
+        return "Link to the original. Dragging it out can move it."
+    }
+
+    /// Where the file is now, like `~/Downloads/a.pdf`.
+    var displayPath: String { Self.abbreviated(path) }
+    /// Where it came from: the original for a copy, the file itself for an original.
+    var displayOriginalPath: String? {
+        if let originalPath { return Self.abbreviated(originalPath) }
+        return ownsFile ? nil : displayPath
     }
 
     private static func abbreviated(_ path: String) -> String {
         (path as NSString).abbreviatingWithTildeInPath
     }
 
+    /// After the file was renamed.
+    mutating func relocate(to url: URL) {
+        path = url.path
+    }
+
     init(fileURL: URL) {
         path = fileURL.path
-        let values = try? fileURL.resourceValues(forKeys: [.isDirectoryKey, .fileSizeKey])
-        byteSize = values?.isDirectory == true ? nil : Int64(values?.fileSize ?? 0)
     }
 
     /// A copy of `original` that will live at `copyURL` once copying finishes.

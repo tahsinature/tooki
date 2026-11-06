@@ -8,30 +8,14 @@ struct ShelfSettingsView: View {
     let onOpenGeneral: () -> Void
 
     private var config: JSONDocument<TookiConfig> { app.config }
-    private var shelf: Shelf { app.shelf }
 
     var body: some View {
         @Bindable var config = config
         Form {
             PageHeader(page: .shelf)
 
-            Section {
-                HStack(spacing: 14) {
-                    Image(systemName: shelf.isEmpty ? "tray" : "tray.full.fill")
-                        .font(.largeTitle)
-                        .foregroundStyle(shelf.isEmpty ? Color.secondary : Color.accentColor)
-                    VStack(alignment: .leading) {
-                        Text(shelf.isEmpty ? "The shelf is empty" : "\(ShelfText.itemCount(shelf.items.count).lowercased()) on the shelf")
-                            .font(.headline)
-                        Text(shelf.isEmpty ? "Hold Shift while dragging anything to drop it here." : sizeText)
-                            .foregroundStyle(.secondary)
-                    }
-                    Spacer()
-                    Button("Show") { app.showShelf() }
-                    Button("Clear") { app.clearShelf() }.disabled(shelf.isEmpty)
-                }
+            ShelfListSection(app: app)
                 .disabled(!config.value.shelf.enabled)
-            }
 
             ShelfHowItWorksSection()
 
@@ -44,7 +28,11 @@ struct ShelfSettingsView: View {
                     }
                     Toggle(isOn: $config.value.shelf.removeAfterDragOut) {
                         Text("Remove items after dragging them out")
-                        Text("The shelf closes once it's empty.")
+                        Text("Turn off to keep items, so you can drag them out again.")
+                    }
+                    Toggle(isOn: $config.value.shelf.closeWhenEmpty) {
+                        Text("Close a shelf when it's empty")
+                        Text("Turn off to keep an empty shelf open, ready for the next drop.")
                     }
                 }
                 .disabled(!config.value.shelf.enabled)
@@ -71,15 +59,11 @@ struct ShelfSettingsView: View {
         .formStyle(.grouped)
     }
 
-    private var sizeText: String {
-        ByteCountFormatter.string(fromByteCount: shelf.totalBytes, countStyle: .file)
-    }
-
     private var shortcutText: String {
         let shortcut = config.value.shortcuts.first { HotkeyAction($0.action) == .toggleShelf && $0.enabled }
         guard let keys = shortcut?.keys, let combo = KeyCombo(keys) else {
             return "No shortcut yet. Bind “Show or Hide Shelf” to open the shelf from the keyboard."
         }
-        return "Press \(combo.symbols.joined()) to show or hide the shelf."
+        return "Press \(combo.symbols.joined()) to show or hide every shelf, or open a new one when there are none."
     }
 }

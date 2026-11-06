@@ -10,6 +10,9 @@ final class ShelfDragWatcher {
     var onDragEnded: () -> Void = {}
 
     private var monitor: Any?
+    private var localMonitor: Any?
+    /// Drags that start in Tooki (moving a shelf, dragging an item out) never open a shelf.
+    private var dragStartedInTooki = false
     private var dragPasteboardCount = 0
     private var didFire = false
 
@@ -21,12 +24,19 @@ final class ShelfDragWatcher {
             // Global monitors run on the main thread.
             MainActor.assumeIsolated { self?.handle(event) }
         }
+        // Global monitors don't see Tooki's own clicks, so watch those here.
+        localMonitor = NSEvent.addLocalMonitorForEvents(matching: .leftMouseDown) { [weak self] event in
+            self?.dragStartedInTooki = true
+            return event
+        }
     }
 
     func stop() {
         guard let monitor else { return }
         NSEvent.removeMonitor(monitor)
+        localMonitor.map(NSEvent.removeMonitor)
         self.monitor = nil
+        localMonitor = nil
         didFire = false
     }
 
@@ -34,12 +44,13 @@ final class ShelfDragWatcher {
         switch event.type {
         case .leftMouseDown:
             dragPasteboardCount = NSPasteboard(name: .drag).changeCount
+            dragStartedInTooki = false
             didFire = false
         case .leftMouseUp:
             if didFire { onDragEnded() }
             didFire = false
         default:
-            guard !didFire,
+            guard !didFire, !dragStartedInTooki,
                   event.modifierFlags.contains(.shift),
                   NSEvent.pressedMouseButtons & 1 != 0,
                   NSPasteboard(name: .drag).changeCount != dragPasteboardCount

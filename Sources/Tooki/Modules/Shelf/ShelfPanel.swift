@@ -1,4 +1,5 @@
 import AppKit
+import Quartz
 import SwiftUI
 
 /// The floating shelf window. Unlike `FloatingPanel` it stays open when you click elsewhere,
@@ -6,7 +7,10 @@ import SwiftUI
 final class ShelfPanel: NSPanel {
     /// Handles a key press while the shelf is focused. Returns `false` to let it through.
     var onKey: (NSEvent) -> Bool = { _ in false }
-    var onEscape: () -> Void = {}
+    /// Esc going down and coming back up, so a tap and a hold can do different things.
+    var onEscapeKey: (NSEvent) -> Void = { _ in }
+    var onFocusChange: (Bool) -> Void = { _ in }
+    let quickLook = ShelfQuickLook()
 
     init(shelf: Shelf, content: some View) {
         super.init(
@@ -34,8 +38,24 @@ final class ShelfPanel: NSPanel {
 
     override var canBecomeKey: Bool { true }
 
-    override func cancelOperation(_ sender: Any?) {
-        onEscape()
+    /// Esc is caught here, before SwiftUI turns it into a cancel, unless a text field is being edited.
+    override func sendEvent(_ event: NSEvent) {
+        let isEscape = (event.type == .keyDown || event.type == .keyUp) && event.keyCode == 53
+        if isEscape, !(firstResponder is NSText) {
+            onEscapeKey(event)
+        } else {
+            super.sendEvent(event)
+        }
+    }
+
+    override func becomeKey() {
+        super.becomeKey()
+        onFocusChange(true)
+    }
+
+    override func resignKey() {
+        super.resignKey()
+        onFocusChange(false)
     }
 
     override func keyDown(with event: NSEvent) {
@@ -44,6 +64,16 @@ final class ShelfPanel: NSPanel {
 
     override func performKeyEquivalent(with event: NSEvent) -> Bool {
         onKey(event) || super.performKeyEquivalent(with: event)
+    }
+
+    override func acceptsPreviewPanelControl(_ panel: QLPreviewPanel!) -> Bool { true }
+
+    override func beginPreviewPanelControl(_ panel: QLPreviewPanel!) {
+        MainActor.assumeIsolated { quickLook.takeControl(of: panel) }
+    }
+
+    override func endPreviewPanelControl(_ panel: QLPreviewPanel!) {
+        MainActor.assumeIsolated { quickLook.releaseControl(of: panel) }
     }
 }
 
@@ -103,3 +133,4 @@ private final class ShelfDropView: NSView {
         return .files(x < bounds.midX ? .original : .copy)
     }
 }
+

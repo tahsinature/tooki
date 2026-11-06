@@ -294,20 +294,28 @@ struct TookiURLCommandTests {
 
     @Test func addsEveryDecodedPathToTheShelf() {
         let url = "tooki://shelf/add?path=/Users/me/My%20Report.pdf&path=~/a+b.txt&path="
-        #expect(command(url) == .shelf(.add(paths: ["/Users/me/My Report.pdf", "~/a+b.txt"], asCopies: false)))
+        #expect(command(url) == .shelf(.add(paths: ["/Users/me/My Report.pdf", "~/a+b.txt"], asCopies: false, shelf: nil)))
     }
 
     @Test func addsCopiesOnlyWithCopyMode() {
-        #expect(command("tooki://shelf/add?path=/a&mode=copy") == .shelf(.add(paths: ["/a"], asCopies: true)))
-        #expect(command("tooki://shelf/add?path=/a&mode=original") == .shelf(.add(paths: ["/a"], asCopies: false)))
+        #expect(command("tooki://shelf/add?path=/a&mode=copy") == .shelf(.add(paths: ["/a"], asCopies: true, shelf: nil)))
+        #expect(command("tooki://shelf/add?path=/a&mode=original") == .shelf(.add(paths: ["/a"], asCopies: false, shelf: nil)))
         #expect(command("tooki://shelf/add?path=/a&mode=move") == nil)
     }
 
     @Test func parsesShelfVerbs() {
-        #expect(command("tooki://shelf/toggle") == .shelf(.toggle))
-        #expect(command("TOOKI://shelf/clear/") == .shelf(.clear))
+        #expect(command("tooki://shelf/toggle") == .shelf(.toggle(shelf: nil)))
+        #expect(command("TOOKI://shelf/clear/") == .shelf(.clear(shelf: nil)))
+        #expect(command("tooki://shelf/new") == .shelf(.new))
         #expect(command("tooki://shelf/add") == nil)
         #expect(command("tooki://shelf/explode") == nil)
+    }
+
+    @Test func picksAShelfByNameOrNew() {
+        #expect(command("tooki://shelf/add?path=/a&shelf=Work%20stuff") == .shelf(.add(paths: ["/a"], asCopies: false, shelf: "Work stuff")))
+        #expect(command("tooki://shelf/add?path=/a&shelf=new&mode=copy") == .shelf(.add(paths: ["/a"], asCopies: true, shelf: "new")))
+        #expect(command("tooki://shelf/clear?shelf=") == .shelf(.clear(shelf: nil)))
+        #expect(command("tooki://shelf/show?shelf=Shelf%202") == .shelf(.show(shelf: "Shelf 2")))
     }
 
     @Test func runsOnlyBuiltInActions() {

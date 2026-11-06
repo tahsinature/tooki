@@ -15,7 +15,7 @@ final class AppController {
         initialValue: Snippet.examples
     )
     let clipboard = ClipboardHistory()
-    let shelf = Shelf()
+    let shelves = ShelfLibrary()
     let keepAwake = KeepAwake()
     let menuBar = MenuBarOrganizer()
     let detective = ShortcutDetective()
@@ -27,7 +27,7 @@ final class AppController {
     @ObservationIgnored private let snippetInserter = SnippetInserter()
     @ObservationIgnored private let searchPanel = SearchPanelController()
     @ObservationIgnored private lazy var clipboardPanel = ClipboardPanelController(history: clipboard)
-    @ObservationIgnored private lazy var shelfPanel = ShelfPanelController(shelf: shelf)
+    @ObservationIgnored private(set) lazy var shelfWindows = ShelfWindows(library: shelves)
     @ObservationIgnored private let shelfDragWatcher = ShelfDragWatcher()
     @ObservationIgnored private lazy var snippetExpander = SnippetExpander(snippets: snippets, inserter: snippetInserter)
     @ObservationIgnored private lazy var keyboardMonitor = KeyboardMonitor(handlers: [hyperKey, detective, shortcuts, snippetExpander])
@@ -93,22 +93,14 @@ final class AppController {
             return
         }
         switch TookiURLCommand(url) {
-        case .shelf(let command): shelfPanel.handle(command)
+        case .shelf(let command): shelfWindows.handle(command)
         case .run(let action): perform(action)
         case nil: NSSound.beep()
         }
     }
 
     func toggleShelf() {
-        shelfPanel.toggle()
-    }
-
-    func showShelf() {
-        shelfPanel.handle(.show)
-    }
-
-    func clearShelf() {
-        shelfPanel.handle(.clear)
+        shelfWindows.toggleAll()
     }
 
     /// Stops shortcuts from firing while one is being recorded.
@@ -140,16 +132,14 @@ final class AppController {
         searchPanel.show(.menuBar, items: items)
     }
 
-    /// Brings back the saved shelf.
     private func startShelf() {
-        shelf.load()
-        if !shelf.isEmpty, shelfPanel.isEnabled { shelfPanel.show() }
-        shelfDragWatcher.onShiftDrag = { [weak self] in self?.shelfPanel.showForDrag() }
-        shelfDragWatcher.onDragEnded = { [weak self] in self?.shelfPanel.dragEnded() }
+        shelfWindows.start()
+        shelfDragWatcher.onShiftDrag = { [weak self] in self?.shelfWindows.showForDrag() }
+        shelfDragWatcher.onDragEnded = { [weak self] in self?.shelfWindows.dragEnded() }
     }
 
     private func applyShelf(_ config: ShelfConfig) {
-        shelfPanel.apply(config)
+        shelfWindows.apply(config)
         if config.enabled, config.shiftDragOpens {
             shelfDragWatcher.start()
         } else {
@@ -188,10 +178,16 @@ final class AppController {
 }
 
 enum AppLauncher {
+    /// Opens the app, or hides it when it's already in front, so one shortcut toggles it.
     @MainActor
     static func open(_ target: String) {
         guard let url = url(for: target) else {
             NSSound.beep()
+            return
+        }
+        if let front = NSWorkspace.shared.frontmostApplication,
+           front.bundleURL?.standardizedFileURL == url.standardizedFileURL {
+            front.hide()
             return
         }
         NSWorkspace.shared.openApplication(at: url, configuration: NSWorkspace.OpenConfiguration())

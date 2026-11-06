@@ -10,7 +10,7 @@ enum ShelfDropTarget: Equatable {
 /// Covers the shelf while something is dragged over it. The empty shelf has the same size,
 /// so the box doesn't jump when a drag arrives.
 struct ShelfDropZone: View {
-    static let size = CGSize(width: 340, height: 150)
+    static let size = CGSize(width: ShelfMotion.width, height: 150)
 
     let target: ShelfDropTarget
 
