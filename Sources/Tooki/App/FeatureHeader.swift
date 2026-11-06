@@ -10,21 +10,36 @@ struct FeatureHeader: View {
                 heading
                     .frame(minWidth: 260, maxWidth: .infinity, alignment: .leading)
             }
-            HStack(spacing: 20) {
-                artwork(size: 92)
-                heading
-                    .frame(minWidth: 220, maxWidth: .infinity, alignment: .leading)
-            }
-            VStack(alignment: .leading, spacing: 20) {
-                artwork(size: 72)
-                heading
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
+            .frame(minWidth: 600, idealWidth: 600)
+            .padding(28)
+
+            compactHeader
+                .padding(16)
         }
-        .padding(28)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(SettingsTheme.heroGradient, in: .rect(cornerRadius: 20))
         .overlay(RoundedRectangle(cornerRadius: 20).stroke(SettingsTheme.accent.opacity(0.18)))
+    }
+
+    private var compactHeader: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 12) {
+                artwork(size: 48)
+                Text(page.title)
+                    .font(.title2.weight(.medium))
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityAddTraits(.isHeader)
+            }
+            Text(page.summary)
+                .font(.callout)
+                .foregroundStyle(SettingsTheme.secondaryText)
+                .fixedSize(horizontal: false, vertical: true)
+            if page == .hyperKey {
+                KeyCaps(symbols: ["⌃", "⌥", "⇧", "⌘"])
+                    .accessibilityLabel("Control, Option, Shift, and Command")
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var heading: some View {
