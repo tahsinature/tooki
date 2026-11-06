@@ -166,6 +166,7 @@ final class AppController {
     }
 
     private func poll() {
+        SingleInstance.quitIfProductionIsRunning()
         reloadFromDisk()
         let trusted = Accessibility.isTrusted
         guard trusted != hasAccessibility else { return }

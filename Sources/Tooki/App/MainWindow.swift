@@ -16,7 +16,7 @@ enum SettingsPage: String, CaseIterable, Identifiable {
         case .keepAwake: "Keep Awake"
         case .shortcuts: "Shortcuts"
         case .general: "General"
-        case .about: "About Tooki"
+        case .about: "About \(BuildInfo.appName)"
         }
     }
 
@@ -119,7 +119,7 @@ struct MainView: View {
             detail
                 .scrollContentBackground(.hidden)
                 .background(SettingsTheme.background)
-                .navigationTitle(navigation.page?.title ?? "Tooki")
+                .navigationTitle(navigation.page?.title ?? BuildInfo.appName)
                 .toolbar { historyButtons }
         }
         .tint(SettingsTheme.accent)
@@ -186,16 +186,31 @@ final class MainWindowController {
             backing: .buffered,
             defer: false
         )
-        window.title = "Tooki"
+        window.title = BuildInfo.appName
         window.appearance = NSAppearance(named: .darkAqua)
         window.backgroundColor = NSColor(SettingsTheme.background)
         // Each page shows its own title in its header card, like System Settings.
         window.titleVisibility = .hidden
         window.isReleasedWhenClosed = false
-        window.contentMinSize = CGSize(width: 820, height: 520)
-        window.contentViewController = NSHostingController(rootView: MainView(app: app, navigation: navigation))
+        let hostingController = NSHostingController(rootView: MainView(app: app, navigation: navigation))
+        // Keep page fitting sizes from changing the window's resizing limits.
+        hostingController.sizingOptions = []
+        window.contentViewController = hostingController
+        let minimumSize = CGSize(width: 820, height: 520)
+        // NSWindow.contentMinSize is ignored with Auto Layout. Constrain the hosted view instead.
+        NSLayoutConstraint.activate([
+            hostingController.view.widthAnchor.constraint(greaterThanOrEqualToConstant: minimumSize.width),
+            hostingController.view.heightAnchor.constraint(greaterThanOrEqualToConstant: minimumSize.height),
+        ])
         window.center()
         window.setFrameAutosaveName("TookiMainWindow")
+        let contentSize = window.contentLayoutRect.size
+        if contentSize.width < minimumSize.width || contentSize.height < minimumSize.height {
+            window.setContentSize(CGSize(
+                width: max(contentSize.width, minimumSize.width),
+                height: max(contentSize.height, minimumSize.height)
+            ))
+        }
         // Back to a menu bar only app once the window closes.
         NotificationCenter.default.addObserver(forName: NSWindow.willCloseNotification, object: window, queue: .main) { _ in
             MainActor.assumeIsolated { _ = NSApp.setActivationPolicy(.accessory) }

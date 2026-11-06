@@ -13,6 +13,12 @@ struct FeatureHeader: View {
             HStack(spacing: 20) {
                 artwork(size: 92)
                 heading
+                    .frame(minWidth: 220, maxWidth: .infinity, alignment: .leading)
+            }
+            VStack(alignment: .leading, spacing: 20) {
+                artwork(size: 72)
+                heading
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
         .padding(28)

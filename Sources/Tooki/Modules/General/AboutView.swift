@@ -10,7 +10,7 @@ struct AboutView: View {
     private static let installCommand = "brew install --cask tahsinature/tap/tooki"
 
     private var version: String {
-        let channel = BuildInfo.isRelease ? "" : " · Dev build \(BuildInfo.commit)"
+        let channel = BuildInfo.isRelease ? "" : " · Dev \(BuildInfo.commit)"
         return "Version \(BuildInfo.version) (\(BuildInfo.build))\(channel)"
     }
 
@@ -21,8 +21,10 @@ struct AboutView: View {
                     Image(nsImage: NSApp.applicationIconImage)
                         .resizable()
                         .frame(width: 72, height: 72)
-                    Text("Tooki").font(.title2.bold())
-                    Text(version)
+                    Text(BuildInfo.appName).font(.title2.bold())
+                    BuildTimestamp(prefix: version)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
                         .font(.callout)
                         .foregroundStyle(.secondary)
                         .textSelection(.enabled)

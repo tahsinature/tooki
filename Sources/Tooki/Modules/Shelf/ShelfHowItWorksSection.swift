@@ -5,25 +5,18 @@ import SwiftUI
 struct ShelfHowItWorksSection: View {
     var body: some View {
         Section {
-            HStack(alignment: .top, spacing: 12) {
-                ShelfKindCard(
-                    symbol: "arrow.up.right", color: .orange, title: "Link to original",
-                    facts: [
-                        ("folder", "Stays where it is. The shelf only points to it."),
-                        ("hand.draw", "Dragging it out uses the real file, so dropping it on a folder moves it."),
-                        ("xmark.circle", "Removing it from the shelf leaves the file alone."),
-                    ],
-                    bestFor: "Moving files into place, or anything too big to copy."
-                )
-                ShelfKindCard(
-                    symbol: "doc.on.doc.fill", color: .green, title: "Copy",
-                    facts: [
-                        ("externaldrive", "Tooki keeps its own copy, so the shelf survives restarts and reboots."),
-                        ("hand.draw", "Dragging it out hands over the copy. Your original never moves."),
-                        ("trash", "Removing it deletes Tooki's copy. Dragged-out copies are kept a minute so uploads can finish."),
-                    ],
-                    bestFor: "Sharing, uploading or attaching without touching the original."
-                )
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .top, spacing: 12) {
+                    linkCard
+                    copyCard
+                }
+                // Two 260-point cards with a 12-point gap.
+                .frame(minWidth: 532, idealWidth: 532)
+
+                VStack(spacing: 12) {
+                    linkCard
+                    copyCard
+                }
             }
             .padding(.vertical, 4)
         } header: {
@@ -47,6 +40,30 @@ struct ShelfHowItWorksSection: View {
                 Text("Press `T s` to add a copy of the selection, or `T S` to add the originals.")
             }
         }
+    }
+
+    private var linkCard: some View {
+        ShelfKindCard(
+            symbol: "arrow.up.right", color: .orange, title: "Link to original",
+            facts: [
+                ("folder", "Stays where it is. The shelf only points to it."),
+                ("hand.draw", "Dragging it out uses the real file, so dropping it on a folder moves it."),
+                ("xmark.circle", "Removing it from the shelf leaves the file alone."),
+            ],
+            bestFor: "Moving files into place, or anything too big to copy."
+        )
+    }
+
+    private var copyCard: some View {
+        ShelfKindCard(
+            symbol: "doc.on.doc.fill", color: .green, title: "Copy",
+            facts: [
+                ("externaldrive", "Tooki keeps its own copy, so the shelf survives restarts and reboots."),
+                ("hand.draw", "Dragging it out hands over the copy. Your original never moves."),
+                ("trash", "Removing it deletes Tooki's copy. Dragged-out copies are kept a minute so uploads can finish."),
+            ],
+            bestFor: "Sharing, uploading or attaching without touching the original."
+        )
     }
 }
 
@@ -77,7 +94,7 @@ private struct ShelfKindCard: View {
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(12)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .frame(maxWidth: .infinity, alignment: .topLeading)
         .background(color.opacity(0.08), in: .rect(cornerRadius: 10))
         .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(color.opacity(0.3)))
     }

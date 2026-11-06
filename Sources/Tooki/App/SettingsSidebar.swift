@@ -8,8 +8,10 @@ struct SettingsSidebar: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
             HStack(spacing: 12) {
-                IconTile(symbol: "bolt.fill", color: SettingsTheme.accent, size: 32)
-                Text("Tooki").font(.title2.bold())
+                Image(nsImage: NSApp.applicationIconImage)
+                    .resizable()
+                    .frame(width: 32, height: 32)
+                Text(BuildInfo.appName).font(.title2.bold())
             }
             .padding(.horizontal, 22)
             .padding(.top, 18)
@@ -17,16 +19,16 @@ struct SettingsSidebar: View {
             List(selection: $selection) {
                 Section {
                     ForEach(SettingsPage.modules) { page in
-                        SidebarRow(page: page, isSelected: selection == page)
+                        SidebarRow(page: page)
                     }
                 }
                 Section {
                     ForEach(SettingsPage.appPages) { page in
-                        SidebarRow(page: page, isSelected: selection == page)
+                        SidebarRow(page: page)
                     }
                 }
             }
-            .listStyle(.plain)
+            .listStyle(.sidebar)
             .scrollContentBackground(.hidden)
 
             SidebarAppCard(updater: app.updater, isSelected: selection == .about) { selection = .about }
@@ -38,7 +40,6 @@ struct SettingsSidebar: View {
 
 private struct SidebarRow: View {
     let page: SettingsPage
-    let isSelected: Bool
 
     var body: some View {
         HStack(spacing: 12) {
@@ -52,13 +53,6 @@ private struct SidebarRow: View {
         .padding(.vertical, 7)
         .tag(page)
         .listRowSeparator(.hidden)
-        .listRowBackground(
-            RoundedRectangle(cornerRadius: 8)
-                .fill(isSelected ? SettingsTheme.accent.opacity(0.2) : .clear)
-                .overlay(RoundedRectangle(cornerRadius: 8)
-                    .stroke(isSelected ? SettingsTheme.accent.opacity(0.25) : .clear))
-                .padding(.horizontal, 10)
-        )
     }
 }
 
@@ -77,7 +71,7 @@ private struct SidebarAppCard: View {
                     .resizable()
                     .frame(width: 32, height: 32)
                 VStack(alignment: .leading, spacing: 1) {
-                    Text("Tooki").font(.headline)
+                    Text(BuildInfo.appName).font(.headline)
                     if case .installing = updater.state {
                         Text("Installing… Tooki will restart")
                             .font(.caption)

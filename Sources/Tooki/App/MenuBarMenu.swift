@@ -10,11 +10,15 @@ struct MenuBarMenu: View {
         if hasActiveItems {
             Section("Active") { activeItems }
         }
-        Section("Controls") { controls }
         Section {
-            Button("Show Tooki") { app.showSettings() }
+            controls
+        } header: {
+            BuildTimestamp(prefix: "Controls · \(BuildInfo.isRelease ? "Release" : "Dev")")
+        }
+        Section {
+            Button("Show \(BuildInfo.appName)") { app.showSettings() }
                 .keyboardShortcut(",")
-            Button("Quit Tooki") { NSApp.terminate(nil) }
+            Button("Quit \(BuildInfo.appName)") { NSApp.terminate(nil) }
                 .keyboardShortcut("q")
         }
     }

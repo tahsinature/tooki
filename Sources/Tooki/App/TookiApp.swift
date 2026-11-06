@@ -7,7 +7,7 @@ struct TookiApp: App {
         MenuBarExtra {
             MenuBarMenu(app: delegate.app)
         } label: {
-            Image(nsImage: MenuBarIcon.image)
+            MenuBarLabel()
         }
     }
 }

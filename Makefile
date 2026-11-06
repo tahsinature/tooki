@@ -1,19 +1,27 @@
 APP_NAME := Tooki
+CHANNEL ?= dev
+DISPLAY_NAME := $(if $(filter release,$(CHANNEL)),Tooki,Tooki Dev)
+BUNDLE_ID := com.mohammadtahsin.tooki$(if $(filter release,$(CHANNEL)),,.dev)
 BUILD_DIR := build
-APP := $(BUILD_DIR)/$(APP_NAME).app
-DMG := $(BUILD_DIR)/$(APP_NAME).dmg
-# Uses an Apple Development certificate when one exists, which keeps the Accessibility
-# permission across rebuilds. Otherwise signs ad hoc, so only the Command Line Tools are needed.
-SIGN_ID ?= $(shell security find-identity -v -p codesigning 2>/dev/null | grep -q "Apple Development" && echo "Apple Development" || echo "-")
+APP := $(BUILD_DIR)/$(DISPLAY_NAME).app
+DMG := $(BUILD_DIR)/$(DISPLAY_NAME).dmg
+# Uses Tooki Dev Signing or Apple Development to preserve Accessibility permission across rebuilds.
+# Falls back to ad hoc signing when no certificate is installed. Override with SIGN_ID if needed.
+SIGN_ID ?= $(shell bash scripts/signing-identity.sh "$(CHANNEL)")
 # Set ARCHS="arm64 x86_64" for a universal build.
 ARCHS ?= $(shell uname -m)
-SWIFT_BUILD := swift build -c release $(foreach arch,$(ARCHS),--arch $(arch))
+# Only inspect SDKs for targets that compile Swift, so clean and icon work without a toolchain.
+ifneq ($(filter build app run install dmg info test,$(or $(MAKECMDGOALS),build)),)
+MACOS_SDK := $(shell bash scripts/select-macos-sdk.sh)
+ifeq ($(MACOS_SDK),)
+$(error No compatible macOS SDK found. See the SDK diagnostic above)
+endif
+endif
+SWIFT_BUILD := swift build -c release --sdk "$(MACOS_SDK)" $(foreach arch,$(ARCHS),--arch $(arch))
 VERSION ?= $(shell /usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' Resources/Info.plist)
-# "dev" for local builds; the release workflow passes CHANNEL=release. Shown at the bottom of the sidebar.
-CHANNEL ?= dev
 COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null)$(shell git diff --quiet HEAD 2>/dev/null || echo "-dirty")
 MIN_MACOS := $(shell /usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' Resources/Info.plist)
-SDK_VERSION := $(shell xcrun --sdk macosx --show-sdk-version)
+SDK_VERSION = $(shell /usr/libexec/PlistBuddy -c 'Print :Version' "$(MACOS_SDK)/SDKSettings.plist")
 
 .PHONY: build app run install dmg info icon test clean
 
@@ -21,34 +29,39 @@ build:
 	$(SWIFT_BUILD)
 
 app: build
-	rm -rf $(APP)
-	mkdir -p $(APP)/Contents/MacOS
-	mkdir -p $(APP)/Contents/Resources
-	cp "$$($(SWIFT_BUILD) --show-bin-path)/$(APP_NAME)" $(APP)/Contents/MacOS/$(APP_NAME)
-	cp Resources/Info.plist $(APP)/Contents/Info.plist
-	/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $(VERSION)" $(APP)/Contents/Info.plist
-	/usr/libexec/PlistBuddy -c "Set :TookiBuildChannel $(CHANNEL)" -c "Set :TookiCommit $(COMMIT)" $(APP)/Contents/Info.plist
-	cp Resources/AppIcon.icns $(APP)/Contents/Resources/AppIcon.icns
+	rm -rf "$(APP)"
+	mkdir -p "$(APP)/Contents/MacOS" "$(APP)/Contents/Resources"
+	cp "$$($(SWIFT_BUILD) --show-bin-path)/$(APP_NAME)" "$(APP)/Contents/MacOS/$(APP_NAME)"
+	cp Resources/Info.plist "$(APP)/Contents/Info.plist"
+	/usr/libexec/PlistBuddy -c "Set :CFBundleName $(DISPLAY_NAME)" -c "Set :CFBundleDisplayName $(DISPLAY_NAME)" -c "Set :CFBundleIdentifier $(BUNDLE_ID)" "$(APP)/Contents/Info.plist"
+	/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $(VERSION)" "$(APP)/Contents/Info.plist"
+	/usr/libexec/PlistBuddy -c "Set :TookiBuildChannel $(CHANNEL)" -c "Set :TookiCommit $(COMMIT)" "$(APP)/Contents/Info.plist"
+	/usr/libexec/PlistBuddy -c "Add :TookiBuiltAt string $$(date -u '+%Y-%m-%dT%H:%M:%SZ')" "$(APP)/Contents/Info.plist"
+	cp Resources/AppIcon.icns "$(APP)/Contents/Resources/AppIcon.icns"
+ifneq ($(CHANNEL),release)
+	xcrun swift scripts/dev-icon.swift Resources/AppIcon.png "$(BUILD_DIR)/DevIcon.iconset"
+	iconutil -c icns -o "$(APP)/Contents/Resources/AppIcon.icns" "$(BUILD_DIR)/DevIcon.iconset"
+endif
 	# SwiftPM records the deployment target as the SDK version, which makes macOS fall back
 	# to the old look. Record the real SDK so Tooki gets the current system design.
 	vtool -set-build-version macos $(MIN_MACOS) $(SDK_VERSION) -replace \
-		-output $(APP)/Contents/MacOS/$(APP_NAME) $(APP)/Contents/MacOS/$(APP_NAME)
-	codesign --force --sign "$(SIGN_ID)" $(APP)
+		-output "$(APP)/Contents/MacOS/$(APP_NAME)" "$(APP)/Contents/MacOS/$(APP_NAME)"
+	codesign --force --sign "$(SIGN_ID)" "$(APP)"
 
 run: app
-	open $(APP)
+	open -n "$(APP)"
 
 install: app
-	rm -rf /Applications/$(APP_NAME).app
-	cp -R $(APP) /Applications/
-	@echo "Installed to /Applications/$(APP_NAME).app"
+	rm -rf "/Applications/$(DISPLAY_NAME).app"
+	cp -R "$(APP)" /Applications/
+	@echo "Installed to /Applications/$(DISPLAY_NAME).app"
 
 dmg: app
-	rm -rf $(BUILD_DIR)/dmg $(DMG)
+	rm -rf $(BUILD_DIR)/dmg "$(DMG)"
 	mkdir -p $(BUILD_DIR)/dmg
-	cp -R $(APP) $(BUILD_DIR)/dmg/
+	cp -R "$(APP)" $(BUILD_DIR)/dmg/
 	ln -s /Applications $(BUILD_DIR)/dmg/Applications
-	hdiutil create -volname $(APP_NAME) -srcfolder $(BUILD_DIR)/dmg -ov -format UDZO $(DMG)
+	hdiutil create -volname "$(DISPLAY_NAME)" -srcfolder $(BUILD_DIR)/dmg -ov -format UDZO "$(DMG)"
 	rm -rf $(BUILD_DIR)/dmg
 
 info: app
@@ -71,7 +84,12 @@ icon:
 	iconutil -c icns -o Resources/AppIcon.icns $(BUILD_DIR)/AppIcon.iconset
 
 test:
-	swift test
+	@plugin_dir="$$(dirname "$$(xcrun --find swiftc)")/../lib/swift/host/plugins/testing"; \
+	if [ -d "$$plugin_dir" ]; then \
+		swift test --sdk "$(MACOS_SDK)" -Xswiftc -plugin-path -Xswiftc "$$plugin_dir"; \
+	else \
+		swift test --sdk "$(MACOS_SDK)"; \
+	fi
 
 clean:
 	rm -rf $(BUILD_DIR) .build
