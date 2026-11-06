@@ -237,7 +237,9 @@ final class MainWindowController {
         self.window = window
         // A regular app while the window is open, so it shows in ⌘-Tab and the Dock.
         NSApp.setActivationPolicy(.regular)
-        NSApp.activate()
+        // Plain activate() asks politely and is refused when opened from the menu bar menu,
+        // leaving Tooki behind other apps and last in ⌘-Tab.
+        NSApp.activate(ignoringOtherApps: true)
         window.makeKeyAndOrderFront(nil)
         // SwiftUI's column width limits are ignored on macOS 26, so lock the sidebar once it exists.
         DispatchQueue.main.async { [self] in
