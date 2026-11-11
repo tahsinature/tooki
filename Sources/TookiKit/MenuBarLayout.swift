@@ -5,16 +5,19 @@ import Foundation
 public struct MenuBarLayout: Codable, Equatable, Sendable {
     public var shown: [String] = []
     public var hidden: [String] = []
+    public var alwaysHidden: [String] = []
 
-    public init(shown: [String] = [], hidden: [String] = []) {
+    public init(shown: [String] = [], hidden: [String] = [], alwaysHidden: [String] = []) {
         self.shown = shown
         self.hidden = hidden
+        self.alwaysHidden = alwaysHidden
     }
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         shown = try container.decode(.shown, default: [])
         hidden = try container.decode(.hidden, default: [])
+        alwaysHidden = try container.decode(.alwaysHidden, default: [])
     }
 }
 
@@ -36,6 +39,8 @@ public struct MenuBarItemDescriptor: Sendable {
 public enum MenuBarLayoutPlanner {
     /// Tooki's separator: icons left of it are hidden.
     public static let separatorID = "tooki.separator"
+    /// The always-hidden divider: icons left of it stay hidden when the hidden section is shown.
+    public static let alwaysHiddenSeparatorID = "tooki.alwaysHiddenSeparator"
 
     public enum Placement: Equatable, Sendable {
         case before(String)
@@ -64,11 +69,13 @@ public enum MenuBarLayoutPlanner {
     }
 
     /// The next icon to move, or `nil` when the bar already matches the layout.
-    /// `current` lists the IDs in the menu bar left to right, including `separatorID`.
-    /// Icons missing from the layout are left alone.
+    /// `current` lists the IDs in the menu bar left to right, including the separators.
+    /// Icons missing from the layout are left alone. Without the always-hidden divider,
+    /// always-hidden icons simply go to the hidden section.
     public static func nextMove(current: [String], layout: MenuBarLayout) -> Move? {
         let present = Set(current)
-        let target = unique(layout.hidden + [separatorID] + layout.shown).filter(present.contains)
+        let ordered = layout.alwaysHidden + [alwaysHiddenSeparatorID] + layout.hidden + [separatorID] + layout.shown
+        let target = unique(ordered).filter(present.contains)
         let targetIndex = Dictionary(uniqueKeysWithValues: target.enumerated().map { ($1, $0) })
         let ranks = current.compactMap { targetIndex[$0] }
         let inPlace = Set(longestIncreasingSubsequence(ranks).map { target[$0] })

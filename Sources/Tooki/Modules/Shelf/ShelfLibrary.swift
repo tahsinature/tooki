@@ -42,6 +42,10 @@ final class ShelfLibrary {
         save()
     }
 
+    func dropMissingFiles() {
+        shelves.forEach { $0.dropMissingFiles() }
+    }
+
     /// Finds a shelf by its id or its name (any case).
     func shelf(matching reference: String) -> Shelf? {
         shelves.first { $0.id.uuidString.caseInsensitiveCompare(reference) == .orderedSame }

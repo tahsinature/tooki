@@ -6,34 +6,48 @@ struct ClipboardView: View {
     let history: ClipboardHistory
 
     var body: some View {
-        Form {
-            PageHeader(page: .clipboard)
-
-            Section {
-                Toggle("Record clipboard history", isOn: $config.value.clipboard.enabled)
-                Stepper(value: $config.value.clipboard.maxItems, in: 10...2000, step: 10) {
-                    LabeledContent("Keep last", value: "\(config.value.clipboard.maxItems) items")
+        SettingsScrollPage {
+            SettingsSection("Clipboard History") {
+                SettingsToggleRow("Record clipboard history", isOn: $config.value.clipboard.enabled)
+                SettingsRow("Keep last") {
+                    SettingsStepper(
+                        title: "Keep last",
+                        value: $config.value.clipboard.maxItems,
+                        range: 10...2000,
+                        step: 10,
+                        valueLabel: "\(config.value.clipboard.maxItems) items"
+                    )
                 }
-                Stepper(value: $config.value.clipboard.maxImages, in: 0...500, step: 10) {
-                    LabeledContent("Of which images", value: config.value.clipboard.maxImages == 0 ? "Off" : "\(config.value.clipboard.maxImages)")
+                SettingsRow("Of which images") {
+                    SettingsStepper(
+                        title: "Of which images",
+                        value: $config.value.clipboard.maxImages,
+                        range: 0...500,
+                        step: 10,
+                        valueLabel: config.value.clipboard.maxImages == 0 ? "Off" : "\(config.value.clipboard.maxImages)"
+                    )
                 }
-                Toggle("Remember history after restart", isOn: $config.value.clipboard.persistHistory)
+                SettingsToggleRow("Remember history after restart", isOn: $config.value.clipboard.persistHistory)
             } footer: {
                 Text("Open with Hyper + V. Text inside copied images is searchable; it is read on this Mac. Passwords and content from ignored apps are never recorded. History stays on this Mac and is not part of your config folder.")
-                    .foregroundStyle(.secondary)
             }
 
-            Section("Ignored apps (bundle identifiers)") {
+            SettingsSection("Ignored apps (bundle identifiers)") {
                 StringListEditor(items: $config.value.clipboard.ignoredApps, placeholder: "com.example.app")
             }
 
-            Section("History") {
-                LabeledContent("Saved items", value: "\(history.items.count)")
-                Button("Clear History", role: .destructive) { history.clear() }
-                    .disabled(history.items.isEmpty)
+            SettingsSection("History") {
+                SettingsRow("Saved items") {
+                    HStack(spacing: 12) {
+                        Text("\(history.items.count)")
+                            .foregroundStyle(SettingsTheme.secondaryText)
+                            .monospacedDigit()
+                        Button("Clear History", role: .destructive) { history.clear() }
+                            .disabled(history.items.isEmpty)
+                    }
+                }
             }
         }
-        .formStyle(.grouped)
     }
 }
 
@@ -45,20 +59,24 @@ struct StringListEditor: View {
 
     var body: some View {
         ForEach(items, id: \.self) { item in
-            HStack {
-                Text(item).font(.body.monospaced())
-                Spacer()
-                Button("Remove", systemImage: "minus.circle") { items.removeAll { $0 == item } }
-                    .labelStyle(.iconOnly)
-                    .buttonStyle(.borderless)
+            SettingsCardRow {
+                HStack {
+                    Text(item).font(.body.monospaced())
+                    Spacer()
+                    Button("Remove", systemImage: "minus.circle") { items.removeAll { $0 == item } }
+                        .labelStyle(.iconOnly)
+                        .buttonStyle(.borderless)
+                }
             }
         }
-        HStack {
-            TextField(placeholder, text: $newItem)
-                .textFieldStyle(.roundedBorder)
-                .font(.body.monospaced())
-                .onSubmit(add)
-            Button("Add", action: add).disabled(newItem.isEmpty)
+        SettingsCardRow {
+            HStack {
+                TextField(placeholder, text: $newItem)
+                    .textFieldStyle(.roundedBorder)
+                    .font(.body.monospaced())
+                    .onSubmit(add)
+                Button("Add", action: add).disabled(newItem.isEmpty)
+            }
         }
     }
 

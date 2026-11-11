@@ -1,18 +1,22 @@
 import AppKit
+import TookiKit
 
-/// Clicks a menu bar item for you, revealing hidden icons first when needed.
+/// Clicks a menu bar item for you, revealing its section first when it's hidden.
+/// Like Thaw, the click is a mouse event aimed at the icon's window; Accessibility's
+/// press action is the fallback when that can't be delivered.
 @MainActor
 enum MenuBarItemPresser {
     static func press(_ item: MenuBarItem, organizer: MenuBarOrganizer) async {
-        let mustReveal = !item.isOnScreen && organizer.isCollapsed
+        let section = organizer.section(of: item)
+        let mustReveal = section != .shown && !organizer.reveals(section)
         if mustReveal {
-            organizer.expand()
+            organizer.reveal(section)
             // Give macOS time to slide the icons back into view.
             try? await Task.sleep(for: .milliseconds(300))
         }
 
         let windowsBefore = windowNumbers(of: item.pid)
-        guard AXUIElementPerformAction(item.element, kAXPressAction as CFString) == .success else {
+        guard await click(item) else {
             NSSound.beep()
             if mustReveal { organizer.collapse() }
             return
@@ -22,6 +26,15 @@ enum MenuBarItemPresser {
             await waitUntilMenuCloses(pid: item.pid, ignoring: windowsBefore)
             organizer.collapse()
         }
+    }
+
+    private static func click(_ item: MenuBarItem) async -> Bool {
+        if let windowID = item.windowID,
+           await MenuBarItemEvents.click(.init(windowID: windowID, pid: item.eventPID)) {
+            return true
+        }
+        guard let element = item.element else { return false }
+        return AXUIElementPerformAction(element, kAXPressAction as CFString) == .success
     }
 
     /// The item's menu or popover is a new window of its app. Waits for one to

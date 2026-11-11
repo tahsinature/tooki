@@ -11,7 +11,7 @@ make run       # builds and opens it, replacing any running copy
 make install   # copies it to /Applications
 make dmg       # builds build/Tooki.dmg
 make info      # builds the app and shows its size, version, and requirements
-make icon      # rebuilds Resources/AppIcon.icns after changing AppIcon.png
+make icon      # rebuilds Resources/AppIcon.icns after changing AppIcon.png (needs `brew install pngquant`)
 ```
 
 The app is signed with your "Apple Development" certificate when you have one. A stable signature means macOS keeps the Accessibility permission across rebuilds. Without a certificate, the Makefile signs ad hoc, and you may need to grant Accessibility again after rebuilding. Override with `make app SIGN_ID="..."`.

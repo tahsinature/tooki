@@ -4,22 +4,20 @@ import TookiKit
 /// Lists every `tooki://` link other apps and scripts can use. Click a row to copy it.
 struct URLSchemeSection: View {
     var body: some View {
-        Section {
-            ForEach(Self.shelfLinks) { URLSchemeRow(link: $0) }
-        } header: {
-            Text("URL Scheme: Shelf")
+        SettingsSection("URL Scheme: Shelf") {
+            ForEach(Self.shelfLinks) { link in
+                SettingsCardRow { URLSchemeRow(link: link) }
+            }
         } footer: {
             Text("Click a link to copy it, or ⓘ for what it does and examples. Run links with `open -g \"<link>\"` and quote them in zsh. Unknown links beep.")
-                .foregroundStyle(.secondary)
         }
 
-        Section {
-            ForEach(HotkeyAction.builtIns, id: \.self) { URLSchemeRow(link: Self.actionLink($0)) }
-        } header: {
-            Text("URL Scheme: Actions")
+        SettingsSection("URL Scheme: Actions") {
+            ForEach(HotkeyAction.builtIns, id: \.self) { action in
+                SettingsCardRow { URLSchemeRow(link: Self.actionLink(action)) }
+            }
         } footer: {
             Text("The same actions you can bind on the Shortcuts page. Opening apps isn't available from links.")
-                .foregroundStyle(.secondary)
         }
     }
 

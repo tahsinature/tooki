@@ -14,6 +14,7 @@ struct ShortcutRow: View {
         HStack(spacing: 12) {
             ShortcutActionIcon(icon: info.icon)
             Text(info.title)
+                .font(SettingsTheme.rowTitleFont)
             Spacer()
             if let warning {
                 Image(systemName: "exclamationmark.triangle.fill")

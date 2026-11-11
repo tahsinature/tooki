@@ -2,8 +2,8 @@ import AppKit
 import Observation
 import TookiKit
 
-/// Puts menu bar icons into the saved layout by ⌘-dragging them, one at a time,
-/// and does it again whenever macOS shuffles them (app launches, wake, display changes).
+/// Puts menu bar icons into the saved layout by ⌘-dragging them with targeted mouse events,
+/// one at a time, and does it again whenever macOS shuffles them (app launches, wake, display changes).
 @MainActor
 @Observable
 final class MenuBarArranger {
@@ -46,36 +46,41 @@ final class MenuBarArranger {
         guard !isArranging, organizer.isInstalled else { return }
         isArranging = true
         defer { isArranging = false }
-        let wasCollapsed = organizer.isCollapsed
-        // Measure the actual icon positions, without auto-hide interrupting a drag.
-        organizer.expand(autoHide: false)
+        let previousReveal = organizer.revealState
+        // Every section must be in the menu bar to be measured and moved.
+        organizer.reveal(.alwaysHidden)
         await pause(400)
         status = await moveIcons(into: layout)
-        if wasCollapsed {
-            organizer.collapse()
-        } else {
-            organizer.expand()
+        switch previousReveal {
+        case .nothing: organizer.collapse()
+        case .hidden: organizer.reveal(.hidden)
+        case .all: organizer.reveal(.alwaysHidden)
         }
     }
 
     private func moveIcons(into layout: MenuBarLayout) async -> String? {
         var previousMove: MenuBarLayoutPlanner.Move?
         for _ in 0..<Self.maxMoves {
-            // Never take the mouse away from someone using it.
-            guard NSEvent.pressedMouseButtons == 0 else { return "Stopped because the mouse was in use." }
             guard !Task.isCancelled, organizer.isInstalled else { return "Arranging stopped." }
-            let snapshot = await MenuBarSnapshot.capture(separatorFrame: organizer.separatorFrame)
+            let snapshot = await MenuBarSnapshot.capture(organizer: organizer)
             guard let move = MenuBarLayoutPlanner.nextMove(current: snapshot.order, layout: layout) else {
                 return notchWarning(snapshot)
             }
-            let title = snapshot.icons.first { $0.id == move.item }?.title ?? move.item
+            let title = snapshot.icon(move.item)?.title ?? move.item
             guard move != previousMove else { return "Couldn't move \(title). Try ⌘-dragging it by hand." }
-            guard let frame = snapshot.frame(of: move.item), let dropX = snapshot.dropX(for: move.placement) else {
+            let (side, anchorID) = switch move.placement {
+            case .before(let anchor): (MenuBarItemEvents.Side.left, anchor)
+            case .after(let anchor): (MenuBarItemEvents.Side.right, anchor)
+            }
+            guard let item = snapshot.icon(move.item)?.target, let anchor = snapshot.icon(anchorID)?.target else {
                 return "Couldn't find \(title) in the menu bar."
             }
             previousMove = move
-            await MenuBarItemMover.drag(frame, toX: dropX)
-            await pause(300)
+            let anchorIsDivider = snapshot.dividers[anchorID] != nil
+            let moved = await MenuBarItemEvents.move(item, to: side, of: anchor, anchorIsDivider: anchorIsDivider)
+            // Moves wait for the user to let go of the mouse and keys, and give up if they don't.
+            if !moved, NSEvent.pressedMouseButtons != 0 { return "Stopped because the mouse was in use." }
+            await pause(150)
         }
         return "Stopped after \(Self.maxMoves) moves."
     }

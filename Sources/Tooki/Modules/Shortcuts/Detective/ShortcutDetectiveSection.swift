@@ -10,18 +10,17 @@ struct ShortcutDetectiveSection: View {
     @ViewState private var couldNotStart = false
 
     var body: some View {
-        Section {
-            header
+        SettingsSection("Shortcut Detective") {
+            SettingsCardRow { header }
             if detective.isListening || !detective.checks.isEmpty {
-                stage
+                SettingsCardRow { stage }
             }
-            DetectiveModePicker(mode: $detective.testMode)
+            SettingsCardRow { DetectiveModePicker(mode: $detective.testMode) }
             ForEach(detective.checks.dropFirst()) { check in
-                DetectiveHistoryRow(check: check)
+                SettingsCardRow { DetectiveHistoryRow(check: check) }
             }
         } footer: {
             Text("Tooki can name macOS, skhd and its own shortcuts, plus menu items of the app you're in. Other apps' global hotkeys show up as taken before reaching any app.")
-                .foregroundStyle(.secondary)
         }
         .onDisappear(perform: detective.stop)
     }
@@ -30,13 +29,13 @@ struct ShortcutDetectiveSection: View {
         HStack(spacing: 14) {
             IconTile(symbol: "magnifyingglass", color: .indigo, size: 40)
             VStack(alignment: .leading, spacing: 2) {
-                Text("Shortcut Detective")
-                    .font(.headline)
+                Text("Find what takes a shortcut")
+                    .font(SettingsTheme.rowTitleFont)
                 Text(couldNotStart
                     ? "Tooki needs the Accessibility permission to watch the keyboard."
                     : "Press a shortcut in any app to find out what takes it.")
-                    .font(.callout)
-                    .foregroundStyle(couldNotStart ? AnyShapeStyle(.orange) : AnyShapeStyle(.secondary))
+                    .font(SettingsTheme.rowDescriptionFont)
+                    .foregroundStyle(couldNotStart ? AnyShapeStyle(.orange) : AnyShapeStyle(SettingsTheme.secondaryText))
             }
             Spacer()
             if detective.isListening {
@@ -46,7 +45,6 @@ struct ShortcutDetectiveSection: View {
                     .buttonStyle(.borderedProminent)
             }
         }
-        .padding(.vertical, 4)
     }
 
     private var stage: some View {

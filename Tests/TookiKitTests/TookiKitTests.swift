@@ -42,6 +42,25 @@ struct KeywordMatcherTests {
         #expect(KeywordMatcher.match(typed: "hello", in: [short, long, empty]) == nil)
     }
 
+    @Test func snippetLeavesOutUnsetFieldsAndReadsOldFiles() throws {
+        let encoded = try JSONEncoder().encode(Snippet(name: "a", text: "b"))
+        let json = try #require(String(data: encoded, encoding: .utf8))
+        #expect(!json.contains("isPinned") && !json.contains("createdAt"))
+
+        let old = try JSONDecoder().decode(Snippet.self, from: Data(#"{"name":"a","text":"b"}"#.utf8))
+        #expect(!old.isPinned && old.createdAt == nil && old.keyword.isEmpty)
+
+        let pinned = try JSONDecoder().decode(Snippet.self, from: JSONEncoder().encode(Snippet(name: "a", text: "b", isPinned: true)))
+        #expect(pinned.isPinned)
+    }
+
+    @Test func snippetMatchesEveryWordAcrossFields() {
+        let snippet = Snippet(name: "Email reply", keyword: ";thanks", collection: "Work", text: "Best, Mohammad")
+        #expect(snippet.matches("work reply"))
+        #expect(snippet.matches(""))
+        #expect(!snippet.matches("work invoice"))
+    }
+
     @Test func typedBufferKeepsOnlyRecentCharacters() {
         var buffer = TypedBuffer(maxLength: 3)
         buffer.append("abcd")
@@ -71,6 +90,7 @@ struct ConfigTests {
     @Test func parsesHotkeyActions() {
         #expect(HotkeyAction("open:com.apple.mail") == .open("com.apple.mail"))
         #expect(HotkeyAction("keepAwake.toggle") == .toggleKeepAwake)
+        #expect(HotkeyAction("shelf.manager") == .shelfManager)
         #expect(HotkeyAction("open:") == nil)
         #expect(HotkeyAction("explode") == nil)
     }
@@ -331,5 +351,33 @@ struct AppVersionTests {
         #expect(!AppVersion.isNewer("v0.6.0", than: "0.6.0"))
         #expect(!AppVersion.isNewer("0.6", than: "0.6.0"))
         #expect(!AppVersion.isNewer("0.5.9", than: "0.6.0"))
+    }
+}
+
+struct TimeSectionTests {
+    var calendar: Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "UTC")!
+        return calendar
+    }
+
+    let now = Date(timeIntervalSince1970: 1_793_793_600) // Wed 2026-11-04 12:00 UTC
+
+    func section(daysAgo: Double) -> TimeSection {
+        TimeSection(of: now.addingTimeInterval(-daysAgo * 86_400), now: now, calendar: calendar)
+    }
+
+    @Test func groupsByCalendarDay() {
+        #expect(section(daysAgo: 0.4) == .today)
+        #expect(section(daysAgo: 0.6) == .yesterday) // 21:36 the day before
+        #expect(section(daysAgo: 3) == .thisWeek)
+    }
+
+    @Test func olderEntriesFallBackToMonthThenOlder() {
+        // Nov 4 minus 7 days is still October, so it is older rather than this month.
+        #expect(section(daysAgo: 7) == .older)
+        let november20 = Date(timeIntervalSince1970: 1_795_176_000) // 2026-11-20 12:00 UTC
+        let november3 = Date(timeIntervalSince1970: 1_793_707_200)
+        #expect(TimeSection(of: november3, now: november20, calendar: calendar) == .thisMonth)
     }
 }

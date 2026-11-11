@@ -27,11 +27,25 @@ final class AppController {
     @ObservationIgnored private let hyperKey = HyperKeyController()
     @ObservationIgnored private let shortcuts = ShortcutController()
     @ObservationIgnored private let snippetInserter = SnippetInserter()
-    @ObservationIgnored private let searchPanel = SearchPanelController()
+    @ObservationIgnored private let snippetUsage = SnippetUsage()
+    @ObservationIgnored private lazy var snippetPanel = SnippetPanelController(
+        snippets: snippets, usage: snippetUsage, inserter: snippetInserter
+    )
+    @ObservationIgnored private lazy var searchPanel: SearchPanelController = {
+        let panel = SearchPanelController()
+        panel.onOpenSettings = { [weak self] in self?.showSettings() }
+        return panel
+    }()
     @ObservationIgnored private lazy var clipboardPanel = ClipboardPanelController(history: clipboard)
+    @ObservationIgnored private let emojiPanel = EmojiPanelController()
+    @ObservationIgnored let appCatalog = AppCatalog()
+    @ObservationIgnored let currencyRates = CurrencyRates(
+        cacheURL: StoragePaths.dataDirectory.appending(path: "calculator/rates.json")
+    )
     @ObservationIgnored private(set) lazy var shelfWindows = ShelfWindows(library: shelves)
+    @ObservationIgnored private lazy var shelfManager = ShelfManagerController(windows: shelfWindows)
     @ObservationIgnored private let shelfDragWatcher = ShelfDragWatcher()
-    @ObservationIgnored private lazy var snippetExpander = SnippetExpander(snippets: snippets, inserter: snippetInserter)
+    @ObservationIgnored private lazy var snippetExpander = SnippetExpander(snippets: snippets, inserter: snippetInserter, usage: snippetUsage)
     @ObservationIgnored private lazy var keyboardMonitor = KeyboardMonitor(handlers: [hyperKey, detective, shortcuts, snippetExpander])
     @ObservationIgnored private lazy var mainWindow = MainWindowController(app: self)
     @ObservationIgnored private var pollTimer: Timer?
@@ -51,6 +65,8 @@ final class AppController {
         shortcuts.onAction = { [weak self] in self?.perform($0) }
         apply(config.value)
         startShelf()
+        Task { await appCatalog.refresh() }
+        Task { await currencyRates.refreshIfStale() }
 
         startKeyboardMonitor()
         // Checks for external config edits and for the Accessibility grant.
@@ -81,7 +97,10 @@ final class AppController {
         switch action {
         case .search: toggleSearch(.everything)
         case .clipboard: toggleClipboard()
+        case .snippets: toggleSnippets()
+        case .emoji: toggleEmoji()
         case .toggleShelf: toggleShelf()
+        case .shelfManager: toggleShelfManager()
         case .toggleKeepAwake: keepAwake.toggle()
         case .toggleMenuBar: menuBar.toggle()
         case .searchMenuBar: Task { await toggleMenuBarSearch() }
@@ -117,22 +136,69 @@ final class AppController {
     }
 
     func toggleSearch(_ mode: SearchPanelController.Mode) {
-        clipboardPanel.close()
-        let items = SearchItems(app: self, inserter: snippetInserter)
-        searchPanel.toggle(mode, items: items.all())
+        closePanels(except: searchPanel)
+        searchPanel.onBack = nil
+        let items = SearchItems(app: self)
+        searchPanel.toggle(mode, items: items.all(), calculate: items.calculation)
+        // Picks up apps installed since the last scan, ready for next time.
+        Task { await appCatalog.refresh() }
+        Task { await currencyRates.refreshIfStale() }
     }
 
-    func toggleClipboard() {
-        searchPanel.close()
+    /// - Parameter fromSearch: Esc goes back to root search instead of just closing.
+    func toggleSnippets(fromSearch: Bool = false) {
+        closePanels(except: snippetPanel)
+        snippetPanel.onBack = backToSearch(fromSearch)
+        snippetPanel.toggle()
+    }
+
+    func createSnippet(fromSearch: Bool = false) {
+        closePanels(except: snippetPanel)
+        snippetPanel.onBack = backToSearch(fromSearch)
+        snippetPanel.show(creating: true)
+    }
+
+    func toggleClipboard(fromSearch: Bool = false) {
+        closePanels(except: clipboardPanel)
+        clipboardPanel.onBack = backToSearch(fromSearch)
         clipboardPanel.toggle()
     }
 
-    func toggleMenuBarSearch() async {
+    func toggleShelfManager(fromSearch: Bool = false) {
+        closePanels(except: shelfManager)
+        shelfManager.onBack = backToSearch(fromSearch)
+        shelfManager.toggle(library: shelves)
+    }
+
+    func toggleEmoji(fromSearch: Bool = false) {
+        closePanels(except: emojiPanel)
+        emojiPanel.onBack = backToSearch(fromSearch)
+        emojiPanel.toggle()
+    }
+
+    /// What Esc does after closing a panel opened from root search.
+    private func backToSearch(_ fromSearch: Bool) -> (() -> Void)? {
+        guard fromSearch else { return nil }
+        return { [weak self] in self?.toggleSearch(.everything) }
+    }
+
+    /// Only one floating panel shows at a time.
+    private func closePanels(except kept: AnyObject) {
+        if kept !== searchPanel { searchPanel.close() }
+        if kept !== clipboardPanel { clipboardPanel.close() }
+        if kept !== emojiPanel { emojiPanel.close() }
+        if kept !== snippetPanel { snippetPanel.close() }
+        if kept !== shelfManager { shelfManager.close() }
+    }
+
+    func toggleMenuBarSearch(fromSearch: Bool = false) async {
+        closePanels(except: searchPanel)
         if searchPanel.isShowing(.menuBar) {
             searchPanel.close()
             return
         }
-        let items = await SearchItems(app: self, inserter: snippetInserter).menuBarItems()
+        let items = await SearchItems(app: self).menuBarItems()
+        searchPanel.onBack = backToSearch(fromSearch)
         searchPanel.show(.menuBar, items: items)
     }
 
@@ -171,6 +237,7 @@ final class AppController {
     private func poll() {
         SingleInstance.quitIfProductionIsRunning()
         reloadFromDisk()
+        shelves.dropMissingFiles()
         let trusted = Accessibility.isTrusted
         guard trusted != hasAccessibility else { return }
         hasAccessibility = trusted

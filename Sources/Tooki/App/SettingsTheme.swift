@@ -1,16 +1,23 @@
+import AppKit
 import SwiftUI
 
-/// The purple palette is scoped to the settings window.
+/// Colors and sizes for the settings window. Colors are system colors, so the window follows
+/// light and dark mode like the rest of macOS.
 enum SettingsTheme {
-    static let background = Color(red: 0.09, green: 0.065, blue: 0.12)
-    static let sidebar = Color(red: 0.145, green: 0.11, blue: 0.22)
-    static let surface = Color(red: 0.16, green: 0.125, blue: 0.19)
-    static let accent = Color(red: 0.69, green: 0.47, blue: 0.92)
-    static let secondaryText = Color(red: 0.76, green: 0.68, blue: 0.82)
-    static let border = Color.white.opacity(0.09)
-    static let heroGradient = LinearGradient(
-        colors: [Color(red: 0.27, green: 0.13, blue: 0.36), Color(red: 0.13, green: 0.09, blue: 0.18)],
-        startPoint: .topLeading,
-        endPoint: .bottomTrailing
-    )
+    // MARK: Colors
+
+    /// A faint fill for small boxes inside rows, like a command or a comparison tile.
+    static let secondaryBackground = Color(nsColor: .quaternaryLabelColor).opacity(0.35)
+
+    static let primaryText = Color.primary
+    static let secondaryText = Color.secondary
+
+    // MARK: Sizes
+
+    static let controlRadius: CGFloat = 6
+
+    // MARK: Fonts
+
+    static let rowTitleFont = Font.body
+    static let rowDescriptionFont = Font.subheadline
 }

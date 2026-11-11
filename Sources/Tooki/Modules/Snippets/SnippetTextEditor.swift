@@ -53,5 +53,12 @@ struct SnippetTextEditor: NSViewRepresentable {
             guard let textView = notification.object as? NSTextView else { return }
             text.wrappedValue = textView.string
         }
+
+        /// Esc would show word completions; pass it to the window so the snippets panel can go back.
+        func textView(_ textView: NSTextView, doCommandBy selector: Selector) -> Bool {
+            guard selector == #selector(NSResponder.cancelOperation(_:)) else { return false }
+            textView.window?.cancelOperation(nil)
+            return true
+        }
     }
 }

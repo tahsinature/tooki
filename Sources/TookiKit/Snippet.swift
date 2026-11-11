@@ -7,13 +7,33 @@ public struct Snippet: Codable, Equatable, Identifiable, Sendable {
     public var keyword: String
     public var collection: String
     public var text: String
+    public var isPinned: Bool
+    /// `nil` for snippets written by hand or saved before Tooki tracked dates.
+    public var createdAt: Date?
+    public var modifiedAt: Date?
 
-    public init(id: UUID = UUID(), name: String, keyword: String = "", collection: String = "", text: String) {
+    private enum CodingKeys: String, CodingKey {
+        case id, name, keyword, collection, text, isPinned, createdAt, modifiedAt
+    }
+
+    public init(
+        id: UUID = UUID(),
+        name: String,
+        keyword: String = "",
+        collection: String = "",
+        text: String,
+        isPinned: Bool = false,
+        createdAt: Date? = nil,
+        modifiedAt: Date? = nil
+    ) {
         self.id = id
         self.name = name
         self.keyword = keyword
         self.collection = collection
         self.text = text
+        self.isPinned = isPinned
+        self.createdAt = createdAt
+        self.modifiedAt = modifiedAt
     }
 
     public init(from decoder: Decoder) throws {
@@ -23,6 +43,30 @@ public struct Snippet: Codable, Equatable, Identifiable, Sendable {
         keyword = try container.decode(.keyword, default: "")
         collection = try container.decode(.collection, default: "")
         text = try container.decode(.text, default: "")
+        isPinned = try container.decode(.isPinned, default: false)
+        createdAt = try container.decodeIfPresent(Date.self, forKey: .createdAt)
+        modifiedAt = try container.decodeIfPresent(Date.self, forKey: .modifiedAt)
+    }
+
+    /// Leaves out `isPinned` when false and missing dates, so hand-written files stay short.
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(name, forKey: .name)
+        try container.encode(keyword, forKey: .keyword)
+        try container.encode(collection, forKey: .collection)
+        try container.encode(text, forKey: .text)
+        if isPinned { try container.encode(isPinned, forKey: .isPinned) }
+        try container.encodeIfPresent(createdAt, forKey: .createdAt)
+        try container.encodeIfPresent(modifiedAt, forKey: .modifiedAt)
+    }
+
+    /// Whether every word of the query appears in the name, keyword, collection or text.
+    public func matches(_ query: String) -> Bool {
+        let words = query.lowercased().split(separator: " ")
+        guard !words.isEmpty else { return true }
+        let haystack = "\(name) \(keyword) \(collection) \(text)".lowercased()
+        return words.allSatisfy { haystack.contains($0) }
     }
 
     public static let examples = [

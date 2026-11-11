@@ -190,6 +190,12 @@ final class Shelf: Identifiable {
         }
     }
 
+    /// Drops items whose file was moved or deleted outside Tooki, e.g. in Finder or yazi.
+    func dropMissingFiles() {
+        let missing = items.filter { !copyingIDs.contains($0.id) && !$0.exists }
+        remove(Set(missing.map(\.id)))
+    }
+
     /// Called after items were dropped somewhere outside the shelf.
     func didDragOut(_ draggedItems: [ShelfItem]) {
         guard removeAfterDragOut else { return }

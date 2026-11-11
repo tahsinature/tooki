@@ -17,50 +17,45 @@ struct ShortcutsView: View {
     }
 
     var body: some View {
-        Form {
-            PageHeader(page: .shortcuts)
-
+        SettingsScrollPage {
             ShortcutDetectiveSection(detective: detective, tookiShortcuts: config.value.shortcuts)
 
-            Section {
+            SettingsSection("Tooki") {
                 ForEach(HotkeyAction.builtIns, id: \.self) { action in
                     row(for: action)
                 }
-            } header: {
-                Text("Tooki")
             } footer: {
                 Text("Click a hotkey to record a new one. Right-click to remove it.")
-                    .foregroundStyle(.secondary)
             }
 
-            Section {
+            SettingsSection("Apps") {
                 ForEach(appActions, id: \.self) { action in
                     row(for: action) { removeShortcuts(for: action) }
                 }
-                Button("Add App Shortcut…", systemImage: "plus", action: addApps)
-            } header: {
-                Text("Apps")
+                SettingsCardRow {
+                    Button("Add App Shortcut…", systemImage: "plus", action: addApps)
+                }
             } footer: {
                 Text("Open an app, or hide it if it's already in front.")
-                    .foregroundStyle(.secondary)
             }
         }
-        .formStyle(.grouped)
         .onAppear { otherShortcuts = .load() }
     }
 
     private func row(for action: String, onRemove: (() -> Void)? = nil) -> some View {
-        ShortcutRow(
-            shortcut: binding(for: action),
-            validate: { problem(with: $0, for: action) },
-            warning: warning(for: action),
-            onRecordingChange: { isRecording in
-                // The detective would otherwise see (or block) the keys being recorded.
-                if isRecording { detective.stop() }
-                onRecordingChange(isRecording)
-            },
-            onRemove: onRemove
-        )
+        SettingsCardRow {
+            ShortcutRow(
+                shortcut: binding(for: action),
+                validate: { problem(with: $0, for: action) },
+                warning: warning(for: action),
+                onRecordingChange: { isRecording in
+                    // The detective would otherwise see (or block) the keys being recorded.
+                    if isRecording { detective.stop() }
+                    onRecordingChange(isRecording)
+                },
+                onRemove: onRemove
+            )
+        }
     }
 
     /// The first shortcut for an action. Built-in actions without one get it created on first edit.

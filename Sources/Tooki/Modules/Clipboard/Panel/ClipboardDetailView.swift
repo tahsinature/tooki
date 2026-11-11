@@ -1,30 +1,26 @@
 import SwiftUI
 import TookiKit
 
-/// The right column: a preview, stat tiles and the item's actions.
+/// The right column: a preview of the item, then its details.
 struct ClipboardDetailView: View {
     let item: ClipboardItem
-    let targetAppName: String?
-    let onAction: (ClipboardAction.Kind) -> Void
-    let onShowActions: () -> Void
+    /// Runs when the item was dragged into another app.
     let onDropped: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 0) {
             ClipboardPreview(item: item)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-            ClipboardStatsView(item: item)
-            ClipboardActionBar(
-                item: item,
-                targetAppName: targetAppName,
-                onAction: onAction,
-                onShowActions: onShowActions,
-                onDropped: onDropped
-            )
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .overlay(alignment: .topTrailing) {
+                    // A finished drop works like a paste, so the panel closes.
+                    ClipboardDragButton(item: item, onDropped: onDropped)
+                        .frame(width: 28, height: 28)
+                        .background(PanelTheme.tertiaryBackground, in: RoundedRectangle(cornerRadius: 8))
+                        .disabled(!item.canBeUsed)
+                        .padding(10)
+                }
+            MetadataList(title: "Information", items: ClipboardMetadata.items(for: item))
         }
-        .padding(.horizontal, 18)
-        .padding(.top, 4)
-        .padding(.bottom, 16)
     }
 }
 
@@ -39,6 +35,8 @@ private struct ClipboardPreview: View {
                     .resizable()
                     .scaledToFit()
                     .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(PanelTheme.border))
+                    .padding(16)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         case .color:
@@ -48,13 +46,13 @@ private struct ClipboardPreview: View {
         case .link, .text:
             ScrollView {
                 Text(item.text)
-                    .font(.body.monospaced())
+                    .font(PanelTheme.monoFont)
+                    .lineSpacing(5)
+                    .foregroundStyle(PanelTheme.primaryText)
                     .textSelection(.enabled)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(14)
+                    .padding(16)
             }
-            .background(Color.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 10))
-            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.primary.opacity(0.06)))
         }
     }
 }
@@ -80,6 +78,7 @@ private struct ColorPreview: View {
             }
             .textSelection(.enabled)
         }
+        .padding(16)
         .frame(maxHeight: .infinity)
     }
 }
@@ -104,6 +103,7 @@ private struct FilePreview: View {
                 MissingFilesNotice(item: item)
             }
         }
+        .padding(16)
         .frame(maxHeight: .infinity)
     }
 }
