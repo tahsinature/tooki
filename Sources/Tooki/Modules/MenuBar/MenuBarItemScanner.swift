@@ -1,32 +1,9 @@
 import AppKit
-
-/// One icon in the menu bar, read through Accessibility.
-/// `@unchecked Sendable` because AXUIElement is safe to use from any thread.
-struct MenuBarItem: @unchecked Sendable {
-    let element: AXUIElement
-    let pid: pid_t
-    let appName: String
-    let bundleID: String?
-    /// The accessibility identifier, e.g. "com.apple.menuextra.wifi". Mostly set by Apple's items.
-    let identifier: String?
-    /// The accessibility title or description, e.g. "Wi‑Fi, connected, 3 bars". Often empty.
-    let label: String
-    /// Screen position, with the origin at the top left of the main screen.
-    let frame: CGRect
-
-    /// "Wi‑Fi" for "Wi‑Fi, connected, 3 bars", or the app name when the item has no label.
-    var title: String {
-        let firstPart = label.split(separator: ",").first.map(String.init) ?? ""
-        let trimmed = firstPart.trimmingCharacters(in: .whitespaces)
-        return trimmed.isEmpty ? appName : trimmed
-    }
-
-    var isOnScreen: Bool {
-        NSScreen.screens.contains { $0.frame.minX <= frame.midX && frame.midX < $0.frame.maxX }
-    }
-}
+import TookiKit
 
 /// Finds the menu bar items of every running app, Apple's own included.
+/// Like Thaw, the Window Server lists the icon windows and Accessibility names them:
+/// each window is paired with the Accessibility element at the same spot.
 enum MenuBarItemScanner {
     private struct AppInfo: Sendable {
         let pid: pid_t
@@ -39,7 +16,33 @@ enum MenuBarItemScanner {
         let apps = NSWorkspace.shared.runningApplications
             .filter { $0.processIdentifier != ownPID }
             .map { AppInfo(pid: $0.processIdentifier, name: $0.localizedName ?? "Unknown", bundleID: $0.bundleIdentifier) }
-        return await Task.detached { scan(apps) }.value
+        return await Task.detached { attachWindows(to: scan(apps), apps: apps, ownPID: ownPID) }.value
+    }
+
+    /// Gives each item its window, and adds the windows of apps that list no items to Accessibility.
+    /// Without Window Server access the Accessibility items are returned unchanged.
+    private nonisolated static func attachWindows(to items: [MenuBarItem], apps: [AppInfo], ownPID: pid_t) -> [MenuBarItem] {
+        var windows = WindowServer.menuBarItemWindows()
+        var result = items.map { item in
+            var item = item
+            if let index = MenuBarFrameMatcher.index(matching: item.frame, in: windows.map(\.frame)) {
+                item.windowID = windows[index].id
+                item.eventPID = windows[index].ownerPID
+                windows.remove(at: index)
+            }
+            return item
+        }
+        let appsByPID = Dictionary(apps.map { ($0.pid, $0) }, uniquingKeysWith: { first, _ in first })
+        let appsWithItems = Set(items.map(\.pid))
+        // On macOS 26 Control Center owns every window, so unmatched ones can't be named and are skipped.
+        for window in windows where window.ownerPID != ownPID && !appsWithItems.contains(window.ownerPID) {
+            guard let app = appsByPID[window.ownerPID], app.bundleID != "com.apple.controlcenter" else { continue }
+            result.append(MenuBarItem(
+                element: nil, pid: app.pid, appName: app.name, bundleID: app.bundleID, identifier: nil, label: "",
+                frame: window.frame, windowID: window.id, eventPID: window.ownerPID
+            ))
+        }
+        return result
     }
 
     /// Asks all apps at once, because each answer takes a few milliseconds.
@@ -76,7 +79,9 @@ enum MenuBarItemScanner {
                 bundleID: app.bundleID,
                 identifier: attribute(element, kAXIdentifierAttribute),
                 label: title.isEmpty ? description : title,
-                frame: frame
+                frame: frame,
+                windowID: nil,
+                eventPID: app.pid
             )
         }
     }

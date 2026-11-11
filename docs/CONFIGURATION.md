@@ -15,6 +15,42 @@ Tooki reads two files from `~/.config/tooki/` (or `$TOOKI_CONFIG_DIR`):
 
 To keep them in dotfiles, symlink the folder (or the individual files) into your dotfiles repository. Tooki writes through symlinks without replacing them, and edits made outside Tooki are picked up within 2 seconds. Missing keys fall back to defaults; invalid values are reported on the General page instead of being overwritten.
 
+### Launcher
+
+Bind the `search` action (for example `opt+space`) to open the launcher. Like Asyar, it searches apps and commands. Before you type, it lists your most-used results under **Recent**, then Applications and Commands. Snippets, clipboard history and emoji have their own panels: open them from the launcher (Search Snippets, Clipboard History, Emoji Picker) or bind their own shortcuts. A panel opened from the launcher goes back to it when you press Esc. Press ⌘P, or click the menu next to the search field, to show only Applications or Commands. The clipboard and snippets panels use ⌘P the same way for their type and collection menus. Typing ranks everything by how well the name matches (whole name, start, start of a word, initials such as `vsc` for Visual Studio Code, then anywhere), plus a boost for results you pick often and recently. Your picks are stored privately in `~/Library/Application Support/Tooki/launcher-history.json`.
+
+Apps are found in `/Applications`, `/System/Applications`, `~/Applications` and their subfolders. Type a calculation such as `12 * 3` or `20% of 150` to see the answer card at the top; ↵ copies the answer.
+
+| Key | Action |
+| --- | --- |
+| ↑ ↓, Page Up/Down | Move through the results |
+| ↵ | Open, paste or run the selected result |
+| ⌘↵ | Copy it instead |
+| ⌘K | Show all actions, such as Show in Finder |
+| ⌘, | Close the launcher and open Settings |
+
+### Snippets panel
+
+The `snippets` action opens your snippets in their own panel, laid out like clipboard history: pinned snippets first, then the rest grouped by when you last used them, with a preview and details of the selected one. Pick a collection from the menu next to the search field to show only that collection. Creating or editing a snippet replaces the list with a form; ⌘↵ saves and Esc goes back without saving.
+
+| Key | Action |
+| --- | --- |
+| ↵ | Copy the snippet, with placeholders filled in |
+| ⌘↵ | Paste it into the app you were using |
+| ⌘O | Open it in another app (links in a browser, anything else as a text file) |
+| ⇧⌘P | Pin or unpin it |
+| ⌘E | Edit it |
+| ⌘D | Duplicate it |
+| ⌘N | Create a snippet |
+| ⌃X | Delete it, after confirming |
+| ⌘K | Show all actions |
+
+How often and when each snippet was last used is stored privately in `~/Library/Application Support/Tooki/snippet-usage.json`, so using a snippet never changes `snippets.json`.
+
+### Emoji picker
+
+Bind the `emoji` action to open a searchable emoji grid. Arrow keys move through it, ↵ pastes, ⌘↵ copies, and ⌘K offers Copy Shortcode. Recently used emoji are listed first. With snippet keywords on, typing an emoji's code between colons, such as `:rocket:`, replaces it with the emoji. Codes are the emoji's Unicode name with underscores, for example `:thumbs_up_sign:`.
+
 ### Clipboard history
 
 Press Hyper+V to open it. The list is on the left (Pinned first, then Most Recent) and the selected entry is previewed on the right with its source app, size and copy counts, above the Copy, Paste, Drag and More buttons. Filter by typing, or pick a type (Text, Links, Colors, Images, Files) from the menu. Pinned entries are never removed by `maxItems`.
@@ -25,7 +61,7 @@ Press Hyper+V to open it. The list is on the left (Pinned first, then Most Recen
 | ↵ (or double-click) | Copy to the clipboard |
 | ⌘↵ | Paste into the app you were using |
 | ⌘O | Open With: search for an app to open an image, file or link with (Esc goes back) |
-| ⌘P | Pin or unpin |
+| ⇧⌘P | Pin or unpin |
 | ⌃X | Delete |
 | ⌘K | Show all actions. Type to filter them, and the list behind stays as it was |
 
@@ -48,7 +84,7 @@ Clipboard history is private data and is stored separately in `~/Library/Applica
   },
   "snippets": {
     "enabled": true,
-    "keywordExpansion": true       // false keeps snippets in the search panel only
+    "keywordExpansion": true       // false keeps snippets in the snippets panel only
   },
   "clipboard": {
     "enabled": true,
@@ -81,7 +117,7 @@ Clipboard history is private data and is stored separately in `~/Library/Applica
 
 Keys for bindings are letters, digits, punctuation, or `space`, `return`, `tab`, `escape`, `left`, `right`, `up` and `down`.
 
-**Actions:** `search`, `clipboard`, `shelf.toggle`, `keepAwake.toggle`, `menuBar.toggle`, `menuBar.search`, `settings`, `open:<bundle id or app path>` (opens the app, or hides it when it's already in front).
+**Actions:** `search`, `clipboard`, `snippets`, `emoji`, `shelf.toggle`, `shelf.manager`, `keepAwake.toggle`, `menuBar.toggle`, `menuBar.search`, `settings`, `open:<bundle id or app path>` (opens the app, or hides it when it's already in front).
 
 Hyper + any unbound key is passed on as ⌃⌥⇧⌘ + key, so it also works with shortcuts in other apps.
 
@@ -94,12 +130,15 @@ Hyper + any unbound key is passed on as ⌃⌥⇧⌘ + key, so it also works wit
     "name": "Email reply",
     "keyword": ";thanks",
     "collection": "Work",
-    "text": "Hi {argument:name},\n\nThanks for reaching out. {cursor}\n\nBest,\nMohammad"
+    "text": "Hi {argument:name},\n\nThanks for reaching out. {cursor}\n\nBest,\nMohammad",
+    "isPinned": true,
+    "createdAt": "2026-11-01T09:30:00Z",
+    "modifiedAt": "2026-11-04T16:12:00Z"
   }
 ]
 ```
 
-`id` is optional when you write snippets by hand. Placeholders:
+`id`, `isPinned`, `createdAt` and `modifiedAt` are optional when you write snippets by hand. The snippets panel sets them when you pin, create or edit a snippet. Placeholders:
 
 | Placeholder | Result |
 |---|---|
@@ -113,7 +152,7 @@ Hyper + any unbound key is passed on as ⌃⌥⇧⌘ + key, so it also works wit
 
 The shelf is a floating spot to collect files while you move between folders and apps. Hold **Shift** while dragging anything to make it appear next to the pointer, then drop onto it. You can also open it from the menu bar menu, from search, or by binding the `shelf.toggle` action to a shortcut.
 
-It holds files and folders. Dropped or pasted text, links and images are saved as files (`.txt`, `.webloc`, `.png`) so you can drag them into any app. Text files are named after the first words, letters and digits only, up to 30 characters. Items stay on the shelf after Tooki restarts.
+It holds files and folders. Dropped or pasted text, links and images are saved as files (`.txt`, `.webloc`, `.png`) so you can drag them into any app. Text files are named after the first words, letters and digits only, up to 30 characters. Items stay on the shelf after Tooki restarts. When a file is moved or deleted outside Tooki (in Finder, yazi or a script), its item leaves the shelf within a couple of seconds.
 
 You can have several shelves, each in its own floating panel. Every Shift-drag opens a fresh shelf next to the pointer (dropping on a shelf that's already showing adds to that one instead). Shelves are named Shelf 1, Shelf 2 and so on; rename one with **Rename** in its ⋯ menu. Drag a shelf by its name or any empty part of its header or footer (the pointer turns into a hand). A focused shelf has a soft blue glow. The `shelf.toggle` shortcut hides every shelf, or shows them all, or opens a new one when there are none. The menu bar menu and the Shelf page list every shelf, with New Shelf and Clear All.
 
@@ -145,6 +184,23 @@ When you drag files onto the shelf, it splits in two: drop on the left half to *
 | → ← | Show the selected item's details, and go back to the list |
 | Esc | Step back: from details to the list, then fold the list, then hide the shelf |
 | Hold Esc | Delete the shelf. It shrinks and turns red while held; let go early to cancel. If the shelf holds copies, the – button turns into "Delete?" to confirm |
+
+### Searching shelves
+
+The `shelf.manager` action (or **Shelf Manager** in search) opens every shelf in a panel laid out like clipboard history. It lists your shelves, most recently used first, with a few of their items and a summary on the right. Searching also finds shelves holding a matching file. Return opens a shelf to list its items, with a preview and where each file lives. Drag an item from the list into any app.
+
+| Key | Shelves | Items of a shelf |
+| --- | --- | --- |
+| Return | Open the shelf | Open the file |
+| ⌘Return | Show the shelf on screen | |
+| ⌘K | Actions | Actions |
+| ⌘O | | Open With |
+| ⌘Y | | Quick Look (shows the shelf to preview it) |
+| ⇧⌘F | | Show in Finder |
+| ⌘C, ⇧⌘C | | Copy the file, copy its path |
+| ⌘R | | Rename the file |
+| ⌃X | Close the shelf (asks first when it holds copies) | Remove from the shelf |
+| Esc | Close the panel, or go back to search | Back to the shelves |
 
 `config.json` options under `shelf`: `enabled`, `shiftDragOpens`, `removeAfterDragOut` and `closeWhenEmpty` (all `true` by default).
 
@@ -194,7 +250,7 @@ done
 open -g "tooki://shelf/add?${query#&}&mode=$mode$shelf"
 ```
 
-`tooki-shelf list` runs `Tooki shelf list`, which prints one line per shelf (id, name and item count, separated by tabs), most recently used first. It reads what Tooki saved, so it works even when Tooki isn't running. Set `TOOKI_BIN` if Tooki isn't in `/Applications`.
+`tooki-shelf list` runs `Tooki shelf list`, which prints one line per shelf (id, name and item count, separated by tabs), most recently used first. `Tooki shelf items <name or id>` prints the path of each file on that shelf, one per line. Both read what Tooki saved, so they work even when Tooki isn't running. Set `TOOKI_BIN` if Tooki isn't in `/Applications`.
 
 With fzf, pick files with Tab and shelve them:
 
@@ -202,13 +258,13 @@ With fzf, pick files with Tab and shelve them:
 fzf -m --print0 | xargs -0 tooki-shelf
 ```
 
-In yazi, use a plugin that adds the selection (or the hovered file). When shelves are open it asks which one: `1` to `9` for a shelf, `n` for a new one. Save it as `~/.config/yazi/plugins/tooki-shelf.yazi/main.lua`:
+In yazi, use a plugin that adds the selection (or the hovered file). When shelves are open, [fzf](https://github.com/junegunn/fzf) asks which one (or a new one), then you choose to add a copy or the original. It can also do the reverse: pick files from a shelf with fzf (Tab marks, Ctrl-A marks all), then pick Copy or Cut, as if you'd pressed yazi's `y` or `x`; then press `p` in a folder. Without fzf it selects every file on the shelf so you can use `y` or `x` yourself. Save it as `~/.config/yazi/plugins/tooki-shelf.yazi/main.lua`:
 
 ```lua
---- Adds the selected files and folders (or the hovered one) to the Tooki shelf.
---- `plugin tooki-shelf -- copy` adds Tooki's own copies, so the originals never move.
---- Without an argument it links to the originals.
---- When shelves are open, a picker asks which one: 1-9 for an open shelf, n for a new one.
+--- `plugin tooki-shelf -- add` adds the selected files and folders (or the hovered one) to a Tooki shelf.
+--- fzf picks the shelf (or a new one) when shelves are open, then a menu asks: c adds a copy, o the original.
+--- `plugin tooki-shelf -- get` picks files from a shelf with fzf, then a second fzf asks whether to copy or cut them.
+--- Then press p in a folder. Without fzf it selects every file on the shelf instead.
 
 local selected_paths = ya.sync(function()
 	local paths = {}
@@ -229,13 +285,13 @@ end
 
 local tooki = os.getenv("TOOKI_BIN") or "/Applications/Tooki.app/Contents/MacOS/Tooki"
 
---- Open shelves from `Tooki shelf list`, most recently used first.
+--- Open shelves from `Tooki shelf list`, most recently used first. Returns nil when Tooki can't run.
 local function open_shelves()
 	local output = Command(tooki):arg("shelf"):arg("list"):output()
-	local shelves = {}
 	if not output or not output.status.success then
-		return shelves
+		return nil
 	end
+	local shelves = {}
 	for line in output.stdout:gmatch("[^\n]+") do
 		local id, name, count = line:match("^([^\t]+)\t([^\t]*)\t(%d+)$")
 		if id then
@@ -245,77 +301,233 @@ local function open_shelves()
 	return shelves
 end
 
---- Returns the shelf query (`shelf=<id>` or `shelf=new`), "" with no shelves open, or nil when cancelled.
-local function pick_shelf()
-	local shelves = open_shelves()
-	if #shelves == 0 then
-		return ""
-	end
+--- Asks which of `shelves` to use: 1-9, plus n for a new one when `allow_new` is set.
+--- Returns the shelf, "new", or nil when cancelled.
+local function ask_shelf(shelves, allow_new)
 	local cands = {}
 	for i = 1, math.min(#shelves, 9) do
 		local shelf = shelves[i]
 		local items = shelf.count == 1 and "1 item" or string.format("%d items", shelf.count)
 		cands[i] = { on = tostring(i), desc = string.format("%s (%s)", shelf.name, items) }
 	end
-	cands[#cands + 1] = { on = "n", desc = "New shelf" }
+	if allow_new then
+		cands[#cands + 1] = { on = "n", desc = "New shelf" }
+	end
 	local choice = ya.which({ cands = cands })
 	if not choice then
 		return nil
-	elseif choice == #cands then
-		return "shelf=new"
 	end
-	return "shelf=" .. shelves[choice].id
+	return shelves[choice] or "new"
 end
 
 local function notify(content, level)
 	ya.notify({ title = "Tooki Shelf", content = content, timeout = 3, level = level or "info" })
 end
 
+--- Runs fzf over `lines` with extra `args`. Returns its output ("" when cancelled), or nil without fzf.
+local function run_fzf(lines, args)
+	local child = Command("fzf"):arg(args):stdin(Command.PIPED):stdout(Command.PIPED):spawn()
+	if not child then
+		return nil
+	end
+	for _, line in ipairs(lines) do
+		child:write_all(line .. "\n")
+	end
+	child:flush()
+	local output = child:wait_with_output()
+	return output and output.stdout or ""
+end
+
+--- Picks a shelf with fzf: the open shelves plus a new one. Returns the shelf, "new", "" when cancelled,
+--- or nil without fzf.
+local function choose_shelf_with_fzf(shelves)
+	local lines = {}
+	for i, shelf in ipairs(shelves) do
+		local items = shelf.count == 1 and "1 item" or string.format("%d items", shelf.count)
+		lines[i] = string.format("%d\t%s (%s)", i, shelf.name, items)
+	end
+	lines[#lines + 1] = "new\tNew shelf"
+
+	local permit = ui.hide()
+	local output = run_fzf(lines, { "--delimiter", "\t", "--with-nth", "2", "--prompt", "Add to shelf> " })
+	permit:drop()
+
+	if not output then
+		return nil
+	end
+	local choice = output:match("^[^\t]+") or ""
+	if choice == "new" then
+		return "new"
+	end
+	return shelves[tonumber(choice)] or ""
+end
+
+--- Returns the shelf query (`shelf=<id>` or `shelf=new`), "" with no shelves open, or nil when cancelled.
+local function pick_shelf()
+	local shelves = open_shelves() or {}
+	if #shelves == 0 then
+		return ""
+	end
+	local shelf = choose_shelf_with_fzf(shelves)
+	if shelf == nil then
+		shelf = ask_shelf(shelves, true)
+	end
+	if shelf == nil or shelf == "" then
+		return nil
+	end
+	return "shelf=" .. (shelf == "new" and "new" or shelf.id)
+end
+
+--- Asks whether to add copies or the originals. Returns true for copies, false for originals, nil when cancelled.
+local function ask_copy()
+	local choice = ya.which({
+		cands = {
+			{ on = "c", desc = "Add a copy (originals stay put)" },
+			{ on = "o", desc = "Add the originals" },
+		},
+	})
+	if choice == nil then
+		return nil
+	end
+	return choice == 1
+end
+
+local function add_to_shelf()
+	local paths = selected_paths()
+	if #paths == 0 then
+		return notify("Nothing to add", "warn")
+	end
+
+	local shelf = pick_shelf()
+	if shelf == nil then
+		return
+	end
+	local as_copy = ask_copy()
+	if as_copy == nil then
+		return
+	end
+
+	local query = {}
+	for _, path in ipairs(paths) do
+		query[#query + 1] = "path=" .. percent_encode(path)
+	end
+	query[#query + 1] = "mode=" .. (as_copy and "copy" or "original")
+	if shelf ~= "" then
+		query[#query + 1] = shelf
+	end
+	local link = "tooki://shelf/add?" .. table.concat(query, "&")
+
+	local status, err = Command("open"):arg("-g"):arg(link):status()
+	if not status or not status.success then
+		return notify("Couldn't reach Tooki: " .. tostring(err or status.code), "error")
+	end
+	local count = #paths == 1 and "1 item" or string.format("%d items", #paths)
+	notify(as_copy and ("Copied " .. count) or ("Added " .. count .. " as originals"))
+end
+
+local preview = [[if [ -d {1} ]; then ls -la {1}; else bat --color=always --style=plain {1} 2>/dev/null || cat {1}; fi]]
+
+--- Lets you mark files with fzf, then asks whether to copy or cut them.
+--- Returns the chosen paths ({} when cancelled) and whether to cut them, or nil without fzf.
+local function choose_with_fzf(paths, shelf_name)
+	local lines = {}
+	for i, path in ipairs(paths) do
+		lines[i] = path .. "\t" .. path:match("[^/]+$")
+	end
+
+	local permit = ui.hide()
+	local marked = run_fzf(lines, {
+		"-m", "--delimiter", "\t", "--with-nth", "2", "--preview", preview,
+		"--prompt", shelf_name .. "> ", "--header", "Tab marks · Ctrl-A marks all · Enter continues",
+		"--bind", "ctrl-a:select-all",
+	})
+	local action = ""
+	if marked and marked ~= "" then
+		action = run_fzf({ "Copy", "Cut" }, { "--prompt", "Then> ", "--no-sort" }) or ""
+	end
+	permit:drop()
+
+	if not marked then
+		return nil
+	end
+	local chosen = {}
+	if action == "" then
+		return chosen
+	end
+	for line in marked:gmatch("[^\n]+") do
+		chosen[#chosen + 1] = line:match("^[^\t]+")
+	end
+	return chosen, action:match("^Cut") ~= nil
+end
+
+--- Picks files from a shelf (asking which one when there are several) and selects them, replacing the selection.
+local function get_from_shelf()
+	local shelves = open_shelves()
+	if not shelves then
+		return notify("Couldn't run Tooki at " .. tooki .. ". Check TOOKI_BIN", "error")
+	elseif #shelves == 0 then
+		return notify("No shelves open", "warn")
+	end
+	local shelf = #shelves == 1 and shelves[1] or ask_shelf(shelves, false)
+	if not shelf then
+		return
+	end
+
+	local output = Command(tooki):arg("shelf"):arg("items"):arg(shelf.id):output()
+	if not output or not output.status.success then
+		local reason = output and output.stderr:match("[^\n]+") or "Tooki didn't run"
+		return notify("Couldn't read " .. shelf.name .. ": " .. reason .. ". Is Tooki up to date?", "error")
+	end
+	local paths = {}
+	for path in output.stdout:gmatch("[^\n]+") do
+		paths[#paths + 1] = path
+	end
+	if #paths == 0 then
+		return notify(shelf.name .. " is empty", "warn")
+	end
+
+	local chosen, cut = choose_with_fzf(paths, shelf.name)
+	if not chosen then
+		notify("fzf isn't installed, so every file is selected", "warn")
+		chosen = paths
+	elseif #chosen == 0 then
+		return
+	end
+
+	ya.emit("escape", { select = true })
+	for _, path in ipairs(chosen) do
+		ya.emit("toggle", { Url(path), state = "on" })
+	end
+	local count = #chosen == 1 and "1 item" or string.format("%d items", #chosen)
+	if cut == nil then
+		return notify(string.format("Selected %s from %s. Press y or x, then p in a folder", count, shelf.name))
+	end
+	ya.emit("yank", { cut = cut })
+	notify(string.format("%s %s from %s. Press p in a folder", cut and "Cut" or "Copied", count, shelf.name))
+end
+
 return {
 	entry = function(_, job)
-		local as_copy = job.args[1] == "copy"
-		local paths = selected_paths()
-		if #paths == 0 then
-			return notify("Nothing to add", "warn")
+		if job.args[1] == "get" then
+			return get_from_shelf()
 		end
-
-		local shelf = pick_shelf()
-		if shelf == nil then
-			return
-		end
-
-		local query = {}
-		for _, path in ipairs(paths) do
-			query[#query + 1] = "path=" .. percent_encode(path)
-		end
-		query[#query + 1] = "mode=" .. (as_copy and "copy" or "original")
-		if shelf ~= "" then
-			query[#query + 1] = shelf
-		end
-		local link = "tooki://shelf/add?" .. table.concat(query, "&")
-
-		local status, err = Command("open"):arg("-g"):arg(link):status()
-		if not status or not status.success then
-			return notify("Couldn't reach Tooki: " .. tostring(err or status.code), "error")
-		end
-		local count = #paths == 1 and "1 item" or string.format("%d items", #paths)
-		notify(as_copy and ("Copied " .. count) or ("Added " .. count .. " as originals"))
+		add_to_shelf()
 	end,
 }
 ```
 
-Then add keys to `keymap.toml`. `T s` adds copies (the safe choice) and `T S` adds the originals:
+Then add keys to `keymap.toml`. `T a` adds to a shelf: fzf picks the shelf (or a new one), then press `c` to add a copy (the safe choice) or `o` for the originals. `T s` selects a shelf's files: mark them in fzf, then pick Copy or Cut and press `p` in a folder:
 
 ```toml
 [[mgr.prepend_keymap]]
-on   = ["T", "s"]
-run  = "plugin tooki-shelf -- copy"
-desc = "Add a copy of the selection to a Tooki shelf"
+on   = ["T", "a"]
+run  = "plugin tooki-shelf -- add"
+desc = "Add to Tooki shelf"
 
 [[mgr.prepend_keymap]]
-on   = ["T", "S"]
-run  = "plugin tooki-shelf -- original"
-desc = "Add the selected originals to a Tooki shelf"
+on   = ["T", "s"]
+run  = "plugin tooki-shelf -- get"
+desc = "Select from Tooki shelf"
 ```
 
 ## Menu bar organizer

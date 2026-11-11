@@ -134,6 +134,21 @@ public struct MenuBarConfig: Codable, Equatable, Sendable {
     public var layout: MenuBarLayout?
     /// Puts icons back into `layout` when apps launch, the Mac wakes or displays change.
     public var restoreLayout = true
+    /// Adds a second divider. Icons left of it stay hidden until you ⌥-click the menu bar or choose Show All.
+    public var alwaysHiddenSection = false
+    /// Shows hidden icons in a bar below the menu bar (Thaw's "Thaw Bar") instead of in the menu bar.
+    public var useThawBar = false
+    public var thawBarLocation = ThawBarLocation.underMouse
+    public var thawBarStyle = ThawBarStyle.material
+    /// The Thaw Bar shows pictures of the icons instead of app icons. Needs Screen Recording.
+    public var captureIconImages = false
+    /// Reveal triggers on empty menu bar space.
+    public var showOnHover = false
+    public var showOnHoverDelay = 0.2
+    public var showOnClick = false
+    public var showOnScroll = false
+    public var dividerStyle = MenuBarDividerStyle.line
+    public var tint = MenuBarTint()
 
     public init() {}
 
@@ -145,6 +160,17 @@ public struct MenuBarConfig: Codable, Equatable, Sendable {
         autoHideSeconds = try container.decode(.autoHideSeconds, default: defaults.autoHideSeconds)
         layout = try container.decodeIfPresent(MenuBarLayout.self, forKey: .layout)
         restoreLayout = try container.decode(.restoreLayout, default: defaults.restoreLayout)
+        alwaysHiddenSection = try container.decode(.alwaysHiddenSection, default: defaults.alwaysHiddenSection)
+        useThawBar = try container.decode(.useThawBar, default: defaults.useThawBar)
+        thawBarLocation = try container.decode(.thawBarLocation, default: defaults.thawBarLocation)
+        thawBarStyle = try container.decode(.thawBarStyle, default: defaults.thawBarStyle)
+        captureIconImages = try container.decode(.captureIconImages, default: defaults.captureIconImages)
+        showOnHover = try container.decode(.showOnHover, default: defaults.showOnHover)
+        showOnHoverDelay = try container.decode(.showOnHoverDelay, default: defaults.showOnHoverDelay)
+        showOnClick = try container.decode(.showOnClick, default: defaults.showOnClick)
+        showOnScroll = try container.decode(.showOnScroll, default: defaults.showOnScroll)
+        dividerStyle = try container.decode(.dividerStyle, default: defaults.dividerStyle)
+        tint = try container.decode(.tint, default: defaults.tint)
     }
 }
 

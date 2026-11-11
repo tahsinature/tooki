@@ -11,22 +11,8 @@ enum ClipboardOpenWith {
     /// One action per app that can open the item. The default app comes first, then the rest by name.
     static func actions(for item: ClipboardItem) -> [ClipboardAction] {
         guard let first = urls(for: item).first else { return [] }
-        let workspace = NSWorkspace.shared
-        let defaultApp = workspace.urlForApplication(toOpen: first)
-        let others = workspace.urlsForApplications(toOpen: first)
-            .filter { $0 != defaultApp }
-            .sorted { name(of: $0).localizedStandardCompare(name(of: $1)) == .orderedAscending }
-
-        var seenNames = Set<String>()
-        return ([defaultApp].compactMap { $0 } + others).compactMap { appURL in
-            let name = name(of: appURL)
-            guard seenNames.insert(name).inserted else { return nil }
-            return ClipboardAction(
-                kind: .open(appURL: appURL),
-                title: name,
-                icon: .app(workspace.icon(forFile: appURL.path)),
-                shortcut: appURL == defaultApp ? "Default" : ""
-            )
+        return OpenWithApps.apps(toOpen: first).map { app in
+            ClipboardAction(kind: .open(appURL: app.url), title: app.name, icon: .image(app.icon), shortcut: app.isDefault ? "Default" : "")
         }
     }
 
@@ -56,9 +42,5 @@ enum ClipboardOpenWith {
         } catch {
             return original
         }
-    }
-
-    private static func name(of appURL: URL) -> String {
-        FileManager.default.displayName(atPath: appURL.path).replacing(".app", with: "")
     }
 }

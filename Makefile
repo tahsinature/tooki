@@ -32,6 +32,9 @@ app: build
 	rm -rf "$(APP)"
 	mkdir -p "$(APP)/Contents/MacOS" "$(APP)/Contents/Resources"
 	cp "$$($(SWIFT_BUILD) --show-bin-path)/$(APP_NAME)" "$(APP)/Contents/MacOS/$(APP_NAME)"
+	# Keep debug symbols beside the app for reading crash logs, then strip them from the binary.
+	dsymutil "$(APP)/Contents/MacOS/$(APP_NAME)" -o "$(BUILD_DIR)/$(APP_NAME).dSYM"
+	strip -x "$(APP)/Contents/MacOS/$(APP_NAME)"
 	cp Resources/Info.plist "$(APP)/Contents/Info.plist"
 	/usr/libexec/PlistBuddy -c "Set :CFBundleName $(DISPLAY_NAME)" -c "Set :CFBundleDisplayName $(DISPLAY_NAME)" -c "Set :CFBundleIdentifier $(BUNDLE_ID)" "$(APP)/Contents/Info.plist"
 	/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $(VERSION)" "$(APP)/Contents/Info.plist"
@@ -61,7 +64,8 @@ dmg: app
 	mkdir -p $(BUILD_DIR)/dmg
 	cp -R "$(APP)" $(BUILD_DIR)/dmg/
 	ln -s /Applications $(BUILD_DIR)/dmg/Applications
-	hdiutil create -volname "$(DISPLAY_NAME)" -srcfolder $(BUILD_DIR)/dmg -ov -format UDZO "$(DMG)"
+	# ULMO (LZMA) makes a DMG about a quarter smaller than UDZO and opens on macOS 10.15 and later.
+	hdiutil create -volname "$(DISPLAY_NAME)" -srcfolder $(BUILD_DIR)/dmg -ov -format ULMO "$(DMG)"
 	rm -rf $(BUILD_DIR)/dmg
 
 info: app
@@ -75,11 +79,17 @@ info: app
 
 # Rebuilds Resources/AppIcon.icns from AppIcon.png. Every size is resampled to RGBA,
 # because a palette PNG left the 16px icon garbled in System Settings and Finder lists.
+# Sizes of 256px and up are then quantized with pngquant, which cuts the icon by about 70%
+# without a visible change. Install it with `brew install pngquant`.
 icon:
+	@command -v pngquant >/dev/null || { echo "pngquant is required: brew install pngquant"; exit 1; }
 	rm -rf $(BUILD_DIR)/AppIcon.iconset && mkdir -p $(BUILD_DIR)/AppIcon.iconset
 	for size in 16 32 128 256 512; do \
 		sips -s format png -z $$size $$size Resources/AppIcon.png --out $(BUILD_DIR)/AppIcon.iconset/icon_$${size}x$${size}.png >/dev/null; \
 		sips -s format png -z $$((size * 2)) $$((size * 2)) Resources/AppIcon.png --out $(BUILD_DIR)/AppIcon.iconset/icon_$${size}x$${size}@2x.png >/dev/null; \
+	done
+	for file in icon_128x128@2x icon_256x256 icon_256x256@2x icon_512x512 icon_512x512@2x; do \
+		pngquant --quality 85-98 --speed 1 --strip --force --output $(BUILD_DIR)/AppIcon.iconset/$$file.png $(BUILD_DIR)/AppIcon.iconset/$$file.png; \
 	done
 	iconutil -c icns -o Resources/AppIcon.icns $(BUILD_DIR)/AppIcon.iconset
 

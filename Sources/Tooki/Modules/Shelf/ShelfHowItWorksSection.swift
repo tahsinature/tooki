@@ -4,103 +4,85 @@ import SwiftUI
 /// whether dragging something out will move their file.
 struct ShelfHowItWorksSection: View {
     var body: some View {
-        Section {
-            ViewThatFits(in: .horizontal) {
-                HStack(alignment: .top, spacing: 12) {
-                    linkCard
-                    copyCard
-                }
-                // Two 260-point cards with a 12-point gap.
-                .frame(minWidth: 532, idealWidth: 532)
-
-                VStack(spacing: 12) {
-                    linkCard
-                    copyCard
-                }
-            }
-            .padding(.vertical, 4)
-        } header: {
-            Text("How it works")
+        SettingsSection("How it works") {
+            ShelfKindTable()
         } footer: {
-            Text("Each item on the shelf shows its kind as a small badge on its icon. Hover over an item to see where it came from. Dropped text, links and images are always saved as copies.")
-                .foregroundStyle(.secondary)
+            Text("Each item shows its kind as a badge on its icon; hover to see where it came from. Dropped text, links and images are always saved as copies.")
         }
 
-        Section("Ways to add") {
-            ShelfWayRow(symbol: "hand.point.up.left", color: .indigo, title: "Drag onto the shelf") {
-                Text("Drop on the left half to link to the original, or on the right half to make a copy. Hold Shift while dragging to bring the shelf up.")
+        SettingsSection("Ways to add") {
+            Grid(horizontalSpacing: 8, verticalSpacing: 8) {
+                GridRow {
+                    ShelfWayTile(symbol: "hand.point.up.left", color: .indigo, title: "Drag onto the shelf") {
+                        Text("Left half links, right half copies. Hold Shift while dragging to bring it up.")
+                    }
+                    ShelfWayTile(symbol: "command", color: .blue, title: "Paste with ⌘V") {
+                        Text("Copied files are added as links to the originals.")
+                    }
+                }
+                GridRow {
+                    ShelfWayTile(symbol: "link", color: .teal, title: "Links and scripts") {
+                        Text("`tooki://shelf/add?path=…` links. Add `&mode=copy` or run `tooki-shelf -c` for copies.")
+                    }
+                    ShelfWayTile(symbol: "terminal", color: .gray, title: "yazi") {
+                        Text("`T s` adds a copy of the selection, `T S` adds the originals.")
+                    }
+                }
             }
-            ShelfWayRow(symbol: "command", color: .blue, title: "Paste with ⌘V") {
-                Text("Copied files are added as links to the originals.")
-            }
-            ShelfWayRow(symbol: "link", color: .teal, title: "Links and scripts") {
-                Text("`tooki://shelf/add?path=…` adds originals. Add `&mode=copy`, or run `tooki-shelf -c`, to add copies.")
-            }
-            ShelfWayRow(symbol: "terminal", color: .gray, title: "yazi") {
-                Text("Press `T s` to add a copy of the selection, or `T S` to add the originals.")
-            }
+            .padding(8)
         }
-    }
-
-    private var linkCard: some View {
-        ShelfKindCard(
-            symbol: "arrow.up.right", color: .orange, title: "Link to original",
-            facts: [
-                ("folder", "Stays where it is. The shelf only points to it."),
-                ("hand.draw", "Dragging it out uses the real file, so dropping it on a folder moves it."),
-                ("xmark.circle", "Removing it from the shelf leaves the file alone."),
-            ],
-            bestFor: "Moving files into place, or anything too big to copy."
-        )
-    }
-
-    private var copyCard: some View {
-        ShelfKindCard(
-            symbol: "doc.on.doc.fill", color: .green, title: "Copy",
-            facts: [
-                ("externaldrive", "Tooki keeps its own copy, so the shelf survives restarts and reboots."),
-                ("hand.draw", "Dragging it out hands over the copy. Your original never moves."),
-                ("trash", "Removing it deletes Tooki's copy. Dragged-out copies are kept a minute so uploads can finish."),
-            ],
-            bestFor: "Sharing, uploading or attaching without touching the original."
-        )
     }
 }
 
-private struct ShelfKindCard: View {
-    let symbol: String
-    let color: Color
-    let title: String
-    let facts: [(symbol: String, text: String)]
-    let bestFor: String
+/// Link and Copy side by side, one row per behavior that differs.
+private struct ShelfKindTable: View {
+    private let rows: [(label: String, link: String, copy: String)] = [
+        ("The file", "Stays where it is; the shelf points to it", "Tooki keeps its own copy, safe across restarts"),
+        ("Drag out", "Uses the real file, so a folder drop moves it", "Hands over the copy; your original never moves"),
+        ("Remove", "Leaves the file alone", "Deletes Tooki's copy (kept a minute for uploads)"),
+        ("Best for", "Moving files into place, or anything big", "Sharing, uploading or attaching"),
+    ]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 8) {
-                IconTile(symbol: symbol, color: color, size: 24)
-                Text(title).font(.headline)
+        Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 0) {
+            GridRow {
+                Color.clear.gridCellUnsizedAxes([.horizontal, .vertical])
+                header(symbol: "arrow.up.right", color: .orange, title: "Link to original")
+                header(symbol: "doc.on.doc.fill", color: .green, title: "Copy")
             }
-            ForEach(facts, id: \.text) { fact in
-                Label {
-                    Text(fact.text).fixedSize(horizontal: false, vertical: true)
-                } icon: {
-                    Image(systemName: fact.symbol).foregroundStyle(color)
+            .padding(.bottom, 8)
+            ForEach(rows, id: \.label) { row in
+                Divider()
+                GridRow(alignment: .firstTextBaseline) {
+                    Text(row.label)
+                        .font(SettingsTheme.rowDescriptionFont.weight(.semibold))
+                        .foregroundStyle(SettingsTheme.secondaryText)
+                    cell(row.link)
+                    cell(row.copy)
                 }
-                .font(.callout)
+                .padding(.vertical, 7)
             }
-            Text("Best for: \(bestFor)")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(12)
-        .frame(maxWidth: .infinity, alignment: .topLeading)
-        .background(color.opacity(0.08), in: .rect(cornerRadius: 10))
-        .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(color.opacity(0.3)))
+    }
+
+    private func header(symbol: String, color: Color, title: String) -> some View {
+        HStack(spacing: 8) {
+            IconTile(symbol: symbol, color: color, size: 20)
+            Text(title).font(SettingsTheme.rowTitleFont)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func cell(_ text: String) -> some View {
+        Text(text)
+            .font(.callout)
+            .foregroundStyle(SettingsTheme.primaryText)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
-private struct ShelfWayRow<Detail: View>: View {
+private struct ShelfWayTile<Detail: View>: View {
     let symbol: String
     let color: Color
     let title: String
@@ -108,14 +90,18 @@ private struct ShelfWayRow<Detail: View>: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
-            IconTile(symbol: symbol, color: color, size: 24)
+            IconTile(symbol: symbol, color: color, size: 22)
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
+                    .font(SettingsTheme.rowTitleFont)
                 detail
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
+                    .font(SettingsTheme.rowDescriptionFont)
+                    .foregroundStyle(SettingsTheme.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .padding(.vertical, 2)
+        .padding(10)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .background(SettingsTheme.secondaryBackground, in: RoundedRectangle(cornerRadius: SettingsTheme.controlRadius + 2))
     }
 }

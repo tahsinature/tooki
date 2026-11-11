@@ -1,117 +1,39 @@
 import SwiftUI
 import TookiKit
 
-/// The left column: a Pinned section and a Most Recent section.
+/// The left column: pinned items, then the rest grouped by day (Today, Yesterday, This Week…).
 struct ClipboardListView: View {
     let model: ClipboardPanelModel
     let onCopy: () -> Void
 
     var body: some View {
-        let selectedID = model.selectedItem?.id
-        ScrollViewReader { proxy in
-            ScrollView {
-                // One ForEach for both sections, so pinning moves a row instead of leaving a stale copy behind.
-                LazyVStack(alignment: .leading, spacing: 2) {
-                    ForEach(entries) { entry in
-                        // Keep one layout container per entry, including section headers.
-                        // Explicit heights keep lazy scroll measurements stable as entries unload.
-                        VStack(alignment: .leading, spacing: 0) {
-                            switch entry {
-                            case .header(let title):
-                                header(title)
-                            case .item(let item):
-                                row(item, isSelected: item.id == selectedID)
-                            }
-                        }
-                        .frame(height: entry.height)
-                        .id(entry.id)
-                    }
-                }
-                .padding(.horizontal, 8)
-            }
-            // Margins, not padding, so scrolling to the last row keeps space below it.
-            .contentMargins(.top, 8, for: .scrollContent)
-            .contentMargins(.bottom, 12, for: .scrollContent)
-            .onChange(of: selectedID) { _, newValue in
-                if let newValue { proxy.scrollTo(ListEntry.itemID(newValue)) }
-            }
-        }
-    }
-
-    private var entries: [ListEntry] {
-        section("Pinned", model.pinned) + section("Most Recent", model.recent)
-    }
-
-    private func section(_ title: String, _ items: [ClipboardItem]) -> [ListEntry] {
-        items.isEmpty ? [] : [.header(title)] + items.map(ListEntry.item)
-    }
-
-    private func header(_ title: String) -> some View {
-        Text(title)
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(.secondary)
-            .padding(.horizontal, 10)
-            .padding(.top, 8)
-            .padding(.bottom, 2)
+        GroupedPanelList(
+            sections: [PanelListSection(title: "Pinned", items: model.pinned)]
+                + PanelListSection.byDay(model.recent, date: \.copiedAt),
+            selectedID: model.selectedItem?.id,
+            onSelect: { model.selectedID = $0 },
+            onDoubleClick: onCopy,
+            row: row
+        )
     }
 
     private func row(_ item: ClipboardItem, isSelected: Bool) -> some View {
-        ClipboardRow(item: item, isSelected: isSelected)
-            .contentShape(Rectangle())
-            .onTapGesture(count: 2, perform: onCopy)
-            .simultaneousGesture(TapGesture().onEnded { model.selectedID = item.id })
-    }
-}
-
-private enum ListEntry: Identifiable {
-    case header(String)
-    case item(ClipboardItem)
-
-    static func itemID(_ id: ClipboardItem.ID) -> String { id.uuidString }
-
-    var height: CGFloat {
-        switch self {
-        case .header: 24
-        case .item: 34
-        }
-    }
-
-    var id: String {
-        switch self {
-        case .header(let title): "header-\(title)"
-        case .item(let item): Self.itemID(item.id)
-        }
-    }
-}
-
-private struct ClipboardRow: View {
-    let item: ClipboardItem
-    let isSelected: Bool
-
-    var body: some View {
         let isMissing = !item.canBeUsed
-        HStack(spacing: 10) {
-            ClipboardIcon(item: item, size: 18)
-                .opacity(isMissing ? 0.4 : 1)
-            Text(item.title)
-                .lineLimit(1)
-                .truncationMode(.tail)
-                .foregroundStyle(isMissing ? .secondary : .primary)
-            Spacer(minLength: 0)
+        return ResultRow(title: item.title, isSelected: isSelected, isDimmed: isMissing) {
+            ClipboardIcon(item: item, size: 20)
+                .foregroundStyle(PanelTheme.secondaryText)
+        } trailing: {
             if isMissing {
                 Image(systemName: "exclamationmark.triangle.fill")
-                    .font(.caption)
+                    .font(.system(size: 11))
                     .foregroundStyle(.orange)
                     .help("The file no longer exists")
             }
             if item.isPinned {
                 Image(systemName: "pin.fill")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
+                    .font(.system(size: 11))
+                    .foregroundStyle(PanelTheme.secondaryText)
             }
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 8)
-        .background(isSelected ? Color.primary.opacity(0.12) : .clear, in: RoundedRectangle(cornerRadius: 8))
     }
 }

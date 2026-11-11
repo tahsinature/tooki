@@ -1,105 +1,63 @@
 import SwiftUI
 import TookiKit
 
+/// Snippet settings. Snippets themselves are browsed, written and edited in the snippets panel.
 struct SnippetsView: View {
-    @Bindable var snippets: JSONDocument<[Snippet]>
-    @ViewState private var selection: Snippet.ID?
-    @ViewState private var filter = ""
+    let app: AppController
+    let onOpenShortcuts: () -> Void
 
-    private var filtered: [Snippet] {
-        guard !filter.isEmpty else { return snippets.value }
-        return snippets.value.filter {
-            $0.name.localizedCaseInsensitiveContains(filter) || $0.keyword.localizedCaseInsensitiveContains(filter)
-        }
-    }
+    private var config: JSONDocument<TookiConfig> { app.config }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            InlinePageHeader(page: .snippets)
-            HStack(spacing: 16) {
-                snippetList
-                    .frame(width: 260)
-                    .groupedCard()
-                selectedEditor
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .groupedCard()
-            }
-        }
-        .padding(20)
-        .onAppear { selection = selection ?? snippets.value.first?.id }
-    }
-
-    @ViewBuilder
-    private var selectedEditor: some View {
-        if let binding = binding(for: selection) {
-            SnippetEditor(
-                snippet: binding,
-                duplicateKeyword: hasDuplicateKeyword(binding.wrappedValue),
-                onDelete: deleteSelected
-            )
-        } else {
-            ContentUnavailableView("No Snippet Selected", systemImage: "text.cursor")
-        }
-    }
-
-    private var snippetList: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 8) {
-                TextField("Filter", text: $filter)
-                    .textFieldStyle(.roundedBorder)
-                Button("New Snippet", systemImage: "plus", action: addSnippet)
-                    .labelStyle(.iconOnly)
-                    .help("New Snippet")
-            }
-            .padding(10)
-            List(filtered, selection: $selection) { snippet in
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(snippet.name.isEmpty ? "Untitled" : snippet.name)
-                    if !snippet.keyword.isEmpty {
-                        Text(snippet.keyword)
-                            .font(.caption.monospaced())
-                            .foregroundStyle(.tint)
+        @Bindable var config = config
+        SettingsScrollPage {
+            SettingsSection("Your snippets") {
+                SettingsRow(countText, description: "Search, copy, paste, pin and edit them in the snippets panel.") {
+                    HStack(spacing: 8) {
+                        Button("New Snippet") { app.createSnippet() }
+                        Button("Open Snippets") { app.toggleSnippets() }
                     }
                 }
-                .padding(.vertical, 2)
-                .contextMenu {
-                    Button("Delete", systemImage: "trash", role: .destructive) { delete(snippet.id) }
+            }
+
+            SettingsSection("Settings") {
+                SettingsToggleRow("Enable snippets", isOn: $config.value.snippets.enabled)
+                SettingsToggleRow(
+                    "Expand keywords as you type",
+                    description: "Typing a snippet's keyword in any app, like ;date, replaces it with the snippet.",
+                    isOn: $config.value.snippets.keywordExpansion
+                )
+                .disabled(!config.value.snippets.enabled)
+                SettingsRow("Shortcut", description: shortcutText) {
+                    Button("Open Shortcuts", action: onOpenShortcuts)
                 }
             }
-            .scrollContentBackground(.hidden)
-            .onDeleteCommand(perform: deleteSelected)
+
+            SettingsSection("Placeholders") {
+                ForEach(SnippetPlaceholder.all) { placeholder in
+                    SettingsRow(placeholder.title, description: placeholder.detail) {
+                        Text(placeholder.token)
+                            .font(.callout.monospaced())
+                            .foregroundStyle(SettingsTheme.secondaryText)
+                            .textSelection(.enabled)
+                    }
+                }
+            } footer: {
+                Text("Placeholders are filled in when a snippet is copied, pasted or expanded.")
+            }
         }
     }
 
-    private func binding(for id: Snippet.ID?) -> Binding<Snippet>? {
-        guard let id, snippets.value.contains(where: { $0.id == id }) else { return nil }
-        return Binding(
-            get: { snippets.value.first { $0.id == id } ?? Snippet(name: "", text: "") },
-            set: { updated in
-                if let index = snippets.value.firstIndex(where: { $0.id == id }) {
-                    snippets.value[index] = updated
-                }
-            }
-        )
+    private var countText: String {
+        let count = app.snippets.value.count
+        return count == 1 ? "1 snippet" : "\(count.formatted()) snippets"
     }
 
-    private func hasDuplicateKeyword(_ snippet: Snippet) -> Bool {
-        !snippet.keyword.isEmpty && snippets.value.contains { $0.id != snippet.id && $0.keyword == snippet.keyword }
-    }
-
-    private func addSnippet() {
-        let snippet = Snippet(name: "New Snippet", text: "")
-        snippets.value.append(snippet)
-        filter = ""
-        selection = snippet.id
-    }
-
-    private func deleteSelected() {
-        if let selection { delete(selection) }
-    }
-
-    private func delete(_ id: Snippet.ID) {
-        snippets.value.removeAll { $0.id == id }
-        if selection == id { selection = snippets.value.first?.id }
+    private var shortcutText: String {
+        let shortcut = config.value.shortcuts.first { HotkeyAction($0.action) == .snippets && $0.enabled }
+        guard let keys = shortcut?.keys, let combo = KeyCombo(keys) else {
+            return "No shortcut yet. Bind “Search Snippets” to open the snippets panel from the keyboard."
+        }
+        return "Press \(combo.symbols.joined()) to open the snippets panel."
     }
 }

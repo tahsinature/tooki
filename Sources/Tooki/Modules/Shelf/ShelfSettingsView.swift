@@ -11,52 +11,46 @@ struct ShelfSettingsView: View {
 
     var body: some View {
         @Bindable var config = config
-        Form {
-            PageHeader(page: .shelf)
-
+        SettingsScrollPage {
             ShelfListSection(app: app)
                 .disabled(!config.value.shelf.enabled)
 
             ShelfHowItWorksSection()
 
-            Section("Settings") {
-                Toggle("Enable the shelf", isOn: $config.value.shelf.enabled)
+            SettingsSection("Settings") {
+                SettingsToggleRow("Enable the shelf", isOn: $config.value.shelf.enabled)
                 Group {
-                    Toggle(isOn: $config.value.shelf.shiftDragOpens) {
-                        Text("Show while Shift-dragging")
-                        Text("Hold Shift while dragging files, text or images in any app.")
-                    }
-                    Toggle(isOn: $config.value.shelf.removeAfterDragOut) {
-                        Text("Remove items after dragging them out")
-                        Text("Turn off to keep items, so you can drag them out again.")
-                    }
-                    Toggle(isOn: $config.value.shelf.closeWhenEmpty) {
-                        Text("Close a shelf when it's empty")
-                        Text("Turn off to keep an empty shelf open, ready for the next drop.")
-                    }
+                    SettingsToggleRow(
+                        "Show while Shift-dragging",
+                        description: "Hold Shift while dragging files, text or images in any app.",
+                        isOn: $config.value.shelf.shiftDragOpens
+                    )
+                    SettingsToggleRow(
+                        "Remove items after dragging them out",
+                        description: "Turn off to keep items, so you can drag them out again.",
+                        isOn: $config.value.shelf.removeAfterDragOut
+                    )
+                    SettingsToggleRow(
+                        "Close a shelf when it's empty",
+                        description: "Turn off to keep an empty shelf open, ready for the next drop.",
+                        isOn: $config.value.shelf.closeWhenEmpty
+                    )
                 }
                 .disabled(!config.value.shelf.enabled)
             }
 
-            Section {
-                LabeledContent {
+            SettingsSection("Shortcuts and links") {
+                SettingsRow("Shortcut", description: shortcutText) {
                     Button("Open Shortcuts", action: onOpenShortcuts)
-                } label: {
-                    Text("Shortcut")
-                    Text(shortcutText)
                 }
-            }
-
-            Section {
-                LabeledContent {
+                SettingsRow(
+                    "Use from other apps",
+                    description: "Add files from scripts, fzf or yazi with tooki:// links. They're listed under General › URL Scheme."
+                ) {
                     Button("Open General", action: onOpenGeneral)
-                } label: {
-                    Text("Use from other apps")
-                    Text("Add files from scripts, fzf or yazi with tooki:// links. They're listed under General › URL Scheme.")
                 }
             }
         }
-        .formStyle(.grouped)
     }
 
     private var shortcutText: String {

@@ -1,150 +1,188 @@
 import SwiftUI
 
+/// Asyar-style launcher: search on top, grouped results, actions along the bottom.
 struct SearchView: View {
     @Bindable var model: SearchModel
-    let onSubmit: (SearchItem, _ copyOnly: Bool) -> Void
+    let onRun: (SearchAction, _ item: SearchItem) -> Void
     let onCancel: () -> Void
+    let onOpenSettings: () -> Void
 
     @FocusState private var isSearchFocused: Bool
+    @ViewState private var isFilterMenuOpen = false
+
+    static let size = CGSize(width: 750, height: 480)
+    private static let pageSize = 8
 
     var body: some View {
         VStack(spacing: 0) {
-            searchField
-            Divider()
-            HStack(spacing: 0) {
-                resultList
-                if let url = model.selectedItem?.imageURL {
-                    Divider()
-                    ImagePreview(url: url, text: model.selectedItem?.searchText ?? "")
+            SearchHeader(
+                placeholder: model.placeholder,
+                query: $model.query,
+                isFocused: $isSearchFocused,
+                onKey: handleKey
+            ) {
+                if !model.filterGroups.isEmpty {
+                    PanelFilterMenu(
+                        selection: $model.groupFilter,
+                        isOpen: $isFilterMenuOpen,
+                        allTitle: "All",
+                        options: model.filterGroups.map { ($0, $0.rawValue) }
+                    )
                 }
             }
-            Divider()
-            footer
+            // Keeps the filter popup above the results.
+            .zIndex(1)
+            content
+                .frame(maxHeight: .infinity)
+                .simultaneousGesture(TapGesture().onEnded { isFilterMenuOpen = false })
+            BottomActionBar(
+                title: model.title,
+                icon: model.icon,
+                primaryActionTitle: model.selectedItem?.actionTitle,
+                onPrimaryAction: { runSelected(copyOnly: false) },
+                onShowActions: { model.isShowingActions.toggle() }
+            )
         }
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
-        .overlay(RoundedRectangle(cornerRadius: 14).stroke(.separator))
-        .onAppear { isSearchFocused = true }
+        .overlay(alignment: .bottomTrailing) {
+            if model.isShowingActions, let item = model.selectedItem {
+                ActionsPopup(
+                    title: item.title,
+                    actions: model.menuActions,
+                    selection: model.actionSelection,
+                    query: $model.menuQuery,
+                    searchPrompt: "Search for actions…",
+                    onKey: handleKey,
+                    onRun: { onRun($0, item) }
+                )
+                .padding(.trailing, 12)
+                .padding(.bottom, PanelTheme.footerHeight + 8)
+            }
+        }
+        .frame(width: Self.size.width, height: Self.size.height)
+        .panelSurface()
+        .onAppear { Task { isSearchFocused = true } }
+        .onChange(of: model.isShowingActions) { _, isShowing in
+            if !isShowing { isSearchFocused = true }
+        }
+        .onChange(of: isFilterMenuOpen) { _, isOpen in
+            if !isOpen { isSearchFocused = true }
+        }
     }
 
-    private var searchField: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "magnifyingglass")
-                .font(.title3)
-                .foregroundStyle(.secondary)
-            TextField(model.placeholder, text: $model.query)
-                .textFieldStyle(.plain)
-                .font(.title3)
-                .focused($isSearchFocused)
-                .onKeyPress(.upArrow) { model.moveSelection(by: -1); return .handled }
-                .onKeyPress(.downArrow) { model.moveSelection(by: 1); return .handled }
-                .onKeyPress(.escape) { onCancel(); return .handled }
-                .onKeyPress(keys: [.return]) { press in
-                    if let item = model.selectedItem {
-                        onSubmit(item, press.modifiers.contains(.command))
-                    }
-                    return .handled
-                }
+    @ViewBuilder
+    private var content: some View {
+        if model.results.isEmpty {
+            ContentUnavailableView.search(text: model.query)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else {
+            SearchResultList(model: model, onRun: { runSelected(copyOnly: false) })
         }
-        .padding(.horizontal, 18)
-        .padding(.vertical, 16)
     }
 
-    private var resultList: some View {
+    private func runSelected(copyOnly: Bool) {
+        guard let item = model.selectedItem else { return }
+        let actions = model.menuActions
+        let action = copyOnly ? actions.first { $0.id == "copy" } : actions.first
+        if let action { onRun(action, item) }
+    }
+
+    private func handleKey(_ press: KeyPress) -> KeyPress.Result {
+        if let offset = navigationOffset(for: press.key) {
+            if model.isShowingActions {
+                model.moveActionSelection(by: offset)
+            } else {
+                model.moveSelection(by: offset)
+            }
+            return .handled
+        }
+        guard press.phase == .down else { return .ignored }
+        switch press.key {
+        case .escape:
+            if model.isShowingActions {
+                model.isShowingActions = false
+            } else {
+                onCancel()
+            }
+        case .return:
+            if model.isShowingActions {
+                if let action = model.selectedMenuAction, let item = model.selectedItem { onRun(action, item) }
+            } else {
+                runSelected(copyOnly: press.modifiers.contains(.command))
+            }
+        default:
+            guard press.modifiers.contains(.command) else { return .ignored }
+            switch press.characters.lowercased() {
+            case "k": model.isShowingActions.toggle()
+            case ",": onOpenSettings()
+            case "p" where !model.filterGroups.isEmpty:
+                model.isShowingActions = false
+                isFilterMenuOpen.toggle()
+            default: return .ignored
+            }
+        }
+        return .handled
+    }
+
+    private func navigationOffset(for key: KeyEquivalent) -> Int? {
+        switch key {
+        case .upArrow: -1
+        case .downArrow: 1
+        case .pageUp: -Self.pageSize
+        case .pageDown: Self.pageSize
+        default: nil
+        }
+    }
+}
+
+private struct SearchResultList: View {
+    let model: SearchModel
+    let onRun: () -> Void
+
+    var body: some View {
         ScrollViewReader { proxy in
             ScrollView {
-                LazyVStack(spacing: 2) {
-                    ForEach(Array(model.results.enumerated()), id: \.element.id) { index, item in
-                        SearchRow(item: item, isSelected: index == model.selection)
-                            .id(index)
-                            .contentShape(Rectangle())
-                            .onTapGesture { onSubmit(item, false) }
+                LazyVStack(spacing: 0) {
+                    ForEach(Array(model.sections.enumerated()), id: \.element.id) { sectionIndex, section in
+                        SectionHeader(title: section.title, isFirst: sectionIndex == 0, isCompact: true)
+                        ForEach(section.items) { item in
+                            row(item)
+                        }
                     }
                 }
-                .padding(8)
+                .padding(PanelTheme.listInset)
             }
-            .onChange(of: model.selection) { _, newValue in
-                proxy.scrollTo(newValue)
+            .onChange(of: model.selection) { _, _ in
+                if let id = model.selectedItem?.id { proxy.scrollTo(id) }
             }
         }
-        .frame(maxHeight: .infinity)
     }
 
-    private var footer: some View {
-        HStack {
-            Text(model.hint)
-            Spacer()
-            Text("\(model.results.count) results")
-        }
-        .font(.caption)
-        .foregroundStyle(.secondary)
-        .padding(.horizontal, 18)
-        .padding(.vertical, 9)
-    }
-}
-
-private struct SearchRow: View {
-    let item: SearchItem
-    let isSelected: Bool
-
-    var body: some View {
-        HStack(spacing: 12) {
-            if let url = item.imageURL, let image = ClipboardImageStore.nsImage(at: url) {
-                Image(nsImage: image)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: 18, height: 18)
-                    .clipShape(RoundedRectangle(cornerRadius: 3))
-            } else if let appIcon = item.appIcon {
-                Image(nsImage: appIcon)
-                    .resizable()
-                    .frame(width: 18, height: 18)
+    private func row(_ item: SearchItem) -> some View {
+        let isSelected = item.id == model.selectedItem?.id
+        return Group {
+            if let calculation = item.calculation {
+                CalculatorCard(calculation: calculation, isSelected: isSelected)
             } else {
-                Image(systemName: item.icon)
-                    .frame(width: 18)
-            }
-            Text(item.title)
-                .lineLimit(1)
-            Spacer()
-            if let keyword = item.keyword, !keyword.isEmpty {
-                Text(keyword).font(.callout.monospaced())
-            }
-            Text(item.kind)
-                .font(.caption)
-                .foregroundStyle(isSelected ? AnyShapeStyle(.white.opacity(0.85)) : AnyShapeStyle(.secondary))
-        }
-        .foregroundStyle(isSelected ? AnyShapeStyle(.white) : AnyShapeStyle(.primary))
-        .padding(.horizontal, 12)
-        .padding(.vertical, 9)
-        .background(isSelected ? Color.accentColor : .clear, in: RoundedRectangle(cornerRadius: 8))
-    }
-}
-
-/// Larger view of the selected image with the text found in it.
-private struct ImagePreview: View {
-    let url: URL
-    let text: String
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            if let image = ClipboardImageStore.nsImage(at: url) {
-                Image(nsImage: image)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(maxWidth: .infinity, maxHeight: 180)
-                    .clipShape(RoundedRectangle(cornerRadius: 6))
-            }
-            if !text.isEmpty {
-                ScrollView {
-                    Text(text)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .textSelection(.enabled)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                ResultRow(title: item.title, subtitle: item.subtitle, isSelected: isSelected) {
+                    PanelIconView(icon: item.icon)
+                        .foregroundStyle(PanelTheme.primaryText)
+                } trailing: {
+                    if let keyword = item.keyword, !keyword.isEmpty {
+                        Text(keyword)
+                            .font(PanelTheme.monoFont)
+                            .foregroundStyle(PanelTheme.secondaryText)
+                    }
+                    Text(item.kind)
+                        .font(.system(size: 13))
+                        .foregroundStyle(PanelTheme.secondaryText)
+                        .lineLimit(1)
                 }
             }
-            Spacer(minLength: 0)
         }
-        .padding(12)
-        .frame(width: 240)
+        .id(item.id)
+        .onTapGesture {
+            if let index = model.results.firstIndex(where: { $0.id == item.id }) { model.selection = index }
+            onRun()
+        }
     }
 }

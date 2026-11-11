@@ -5,6 +5,8 @@ import TookiKit
 @MainActor
 final class ClipboardPanelController {
     private var panel: FloatingPanel?
+    /// Runs after Esc closes the panel, e.g. to go back to root search. Set before each `show()`.
+    var onBack: (() -> Void)?
     private let history: ClipboardHistory
 
     init(history: ClipboardHistory) {
@@ -23,18 +25,19 @@ final class ClipboardPanelController {
             history: history,
             targetAppName: NSWorkspace.shared.frontmostApplication?.localizedName
         )
-        let panel = FloatingPanel(size: ClipboardPanelView.size) {
+        let panel = FloatingPanel(size: PanelTheme.listDetailSize) {
             ClipboardPanelView(
                 model: model,
                 onAction: { [weak self, weak model] kind in
                     guard let model else { return }
                     self?.perform(kind, model: model)
                 },
-                onCancel: { [weak self] in self?.close() }
+                onCancel: { [weak self] in self?.dismiss() },
+                onClose: { [weak self] in self?.close() }
             )
         }
         panel.onEscape = { [weak self, weak model] in
-            if model?.dismissMenu() != true { self?.close() }
+            if model?.actions.dismiss() != true { self?.dismiss() }
         }
         self.panel = panel
         panel.present()
@@ -43,6 +46,12 @@ final class ClipboardPanelController {
     func close() {
         panel?.close()
         panel = nil
+    }
+
+    /// Esc with nothing left to back out of.
+    private func dismiss() {
+        close()
+        onBack?()
     }
 
     private func perform(_ kind: ClipboardAction.Kind, model: ClipboardPanelModel) {
@@ -59,7 +68,7 @@ final class ClipboardPanelController {
             model.showOpenWith()
             return
         }
-        model.isShowingActions = false
+        model.actions.close()
         switch kind {
         case .paste:
             close()

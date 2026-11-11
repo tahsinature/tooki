@@ -2,20 +2,15 @@ import AppKit
 import TookiKit
 
 /// One entry in the ⌘K actions menu.
-struct ClipboardAction: Identifiable {
+struct ClipboardAction: PanelActionItem {
     enum Kind: Hashable {
         case paste, copy, openWith, togglePin, delete
         case open(appURL: URL)
     }
 
-    enum Icon {
-        case symbol(String)
-        case app(NSImage)
-    }
-
     let kind: Kind
     let title: String
-    let icon: Icon
+    let icon: PanelIcon
     let shortcut: String
 
     var id: Kind { kind }
@@ -34,7 +29,7 @@ struct ClipboardAction: Identifiable {
             actions.append(ClipboardAction(kind: .openWith, title: "Open With…", icon: .symbol("arrow.up.forward.app"), shortcut: "⌘O"))
         }
         actions += [
-            ClipboardAction(kind: .togglePin, title: item.isPinned ? "Unpin" : "Pin", icon: .symbol(item.isPinned ? "pin.slash" : "pin"), shortcut: "⌘P"),
+            ClipboardAction(kind: .togglePin, title: item.isPinned ? "Unpin" : "Pin", icon: .symbol(item.isPinned ? "pin.slash" : "pin"), shortcut: "⇧⌘P"),
             ClipboardAction(kind: .delete, title: "Delete", icon: .symbol("trash"), shortcut: "⌃X"),
         ]
         return actions
