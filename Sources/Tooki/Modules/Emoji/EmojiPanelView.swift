@@ -26,8 +26,8 @@ struct EmojiPanelView: View {
                 onShowActions: { model.isShowingActions.toggle() }
             )
         }
-        .overlay(alignment: .bottomTrailing) {
-            if model.isShowingActions, let emoji = model.selected {
+        .actionsPopup(isPresented: model.isShowingActions, onDismiss: { model.isShowingActions = false }) {
+            if let emoji = model.selected {
                 ActionsPopup(
                     title: "\(emoji.character)  \(emoji.name.capitalized)",
                     actions: EmojiAction.allCases,
@@ -37,8 +37,6 @@ struct EmojiPanelView: View {
                     onKey: handleKey,
                     onRun: onRun
                 )
-                .padding(.trailing, 12)
-                .padding(.bottom, PanelTheme.footerHeight + 8)
             }
         }
         .frame(width: Self.size.width, height: Self.size.height)
@@ -60,11 +58,16 @@ struct EmojiPanelView: View {
 
     private func handleKey(_ press: KeyPress) -> KeyPress.Result {
         let columns = EmojiPanelModel.columns
+        let page = columns * EmojiPanelModel.pageRows
         let offset: Int? = switch press.key {
         case .leftArrow: -1
         case .rightArrow: 1
         case .upArrow: -columns
         case .downArrow: columns
+        case .pageUp: -page
+        case .pageDown: page
+        case .home: -model.results.count
+        case .end: model.results.count
         default: nil
         }
         if let offset {
@@ -103,13 +106,16 @@ private struct EmojiGrid: View {
     var body: some View {
         ScrollViewReader { proxy in
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: 0) {
+                // One grid for all sections: grids nested in a lazy stack misjudge their height,
+                // which stopped scrolling before the last rows.
+                LazyVGrid(columns: columns, spacing: 4) {
                     ForEach(Array(model.sections.enumerated()), id: \.element.id) { index, section in
-                        SectionHeader(title: section.title, isFirst: index == 0, isCompact: true)
-                        LazyVGrid(columns: columns, spacing: 4) {
+                        SwiftUI.Section {
                             ForEach(section.emoji) { emoji in
                                 cell(emoji, sectionID: section.id)
                             }
+                        } header: {
+                            SectionHeader(title: section.title, isFirst: index == 0, isCompact: true)
                         }
                     }
                 }

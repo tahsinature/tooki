@@ -80,7 +80,6 @@ struct MenuBarMenu: View {
             Button(app.menuBar.isCollapsed ? "Show Hidden Menu Bar Icons" : "Hide Menu Bar Icons") {
                 app.menuBar.toggle()
             }
-            .shortcutHint(for: .toggleMenuBar, in: app)
         }
     }
 
@@ -88,7 +87,6 @@ struct MenuBarMenu: View {
     private var shelfControls: some View {
         Button("New Shelf") { app.shelfWindows.newShelf() }
         Button("Show or Hide All") { app.toggleShelf() }
-            .shortcutHint(for: .toggleShelf, in: app)
         if !shelves.isEmpty {
             Divider()
             ForEach(shelves.shelves) { shelf in

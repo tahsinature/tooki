@@ -89,7 +89,7 @@ struct ConfigTests {
 
     @Test func parsesHotkeyActions() {
         #expect(HotkeyAction("open:com.apple.mail") == .open("com.apple.mail"))
-        #expect(HotkeyAction("keepAwake.toggle") == .toggleKeepAwake)
+        #expect(HotkeyAction("keepAwake.toggle") == nil)
         #expect(HotkeyAction("shelf.manager") == .shelfManager)
         #expect(HotkeyAction("open:") == nil)
         #expect(HotkeyAction("explode") == nil)

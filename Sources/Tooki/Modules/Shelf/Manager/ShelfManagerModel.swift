@@ -9,8 +9,13 @@ final class ShelfManagerModel {
     let actions = ActionsMenu<ShelfManagerAction>()
 
     var query = "" {
-        didSet { if query != oldValue { selectedShelfID = nil; selectedItemID = nil } }
+        didSet {
+            // While renaming, the search field holds the new name instead of a search.
+            if query != oldValue, renamingShelfID == nil { selectedShelfID = nil; selectedItemID = nil }
+        }
     }
+    /// The shelf being renamed in the search field.
+    private(set) var renamingShelfID: Shelf.ID?
     /// The shelf whose items are listed. `nil` lists the shelves.
     private(set) var openShelfID: Shelf.ID?
     var selectedShelfID: Shelf.ID?
@@ -19,8 +24,8 @@ final class ShelfManagerModel {
     init(library: ShelfLibrary) {
         self.library = library
         actions.rootActions = { [weak self] in
-            guard let self else { return [] }
-            if openShelf != nil { return selectedItem == nil ? [] : ShelfManagerAction.forItem }
+            guard let self, renamingShelfID == nil else { return [] }
+            if let openShelf { return selectedItem == nil ? [] : ShelfManagerAction.forItem(in: openShelf) }
             return selectedShelf == nil ? [] : ShelfManagerAction.forShelf
         }
     }
@@ -33,7 +38,7 @@ final class ShelfManagerModel {
     /// Most recently used first. Searching also finds shelves holding a matching item.
     var shelves: [Shelf] {
         library.shelves
-            .filter { query.isEmpty || matches($0.name) || $0.items.contains { matches($0.name) } }
+            .filter { renamingShelfID != nil || query.isEmpty || matches($0.name) || $0.items.contains { matches($0.name) } }
             .sorted { $0.lastUsed > $1.lastUsed }
     }
 
@@ -49,6 +54,14 @@ final class ShelfManagerModel {
         selectedItemID = nil
     }
 
+    /// Lists the shelves again with `shelf` selected, e.g. after making it.
+    func select(_ shelf: Shelf) {
+        if openShelfID != nil { closeOpenShelf() }
+        actions.close()
+        query = ""
+        selectedShelfID = shelf.id
+    }
+
     /// Back to the list of shelves, with the one that was open still selected.
     func closeOpenShelf() {
         let id = openShelfID
@@ -56,6 +69,26 @@ final class ShelfManagerModel {
         openShelfID = nil
         query = ""
         selectedShelfID = id
+    }
+
+    // MARK: - Renaming
+
+    var renamingShelf: Shelf? { library.shelves.first { $0.id == renamingShelfID } }
+
+    func startRenaming(_ shelf: Shelf) {
+        actions.close()
+        renamingShelfID = shelf.id
+        selectedShelfID = shelf.id
+        query = shelf.name
+    }
+
+    /// Saves the typed name, or keeps the old one when `save` is `false`.
+    func finishRenaming(save: Bool) {
+        guard let shelf = renamingShelf else { return }
+        if save { shelf.rename(to: query) }
+        renamingShelfID = nil
+        query = ""
+        selectedShelfID = shelf.id
     }
 
     // MARK: - Items
@@ -71,6 +104,7 @@ final class ShelfManagerModel {
     // MARK: - Moving
 
     func moveSelection(by offset: Int) {
+        guard renamingShelfID == nil else { return }
         if openShelf != nil {
             selectedItemID = neighbour(of: selectedItem?.id, in: items.map(\.id), by: offset)
         } else {

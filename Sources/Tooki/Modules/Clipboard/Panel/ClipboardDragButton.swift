@@ -86,7 +86,7 @@ private final class DragSourceView: NSView, NSDraggingSource {
 
 /// What a dragged clipboard item puts on the drag pasteboard, and how it looks under the pointer.
 @MainActor
-private enum ClipboardDragContent {
+enum ClipboardDragContent {
     static func writers(for item: ClipboardItem) -> [NSPasteboardWriting] {
         if let image = item.image {
             // A named file, so upload fields show a readable name instead of a hash.

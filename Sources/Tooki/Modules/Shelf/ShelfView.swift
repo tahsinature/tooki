@@ -71,23 +71,21 @@ struct ShelfView: View {
     /// While dropping, the content stays underneath (hidden) so the drop zone is at least as big as the shelf.
     @ViewBuilder
     private var content: some View {
-        if shelf.isEmpty {
-            ShelfEmptyView()
-        } else {
-            VStack(spacing: 0) {
-                ShelfHeader(shelf: shelf, onHide: onHide, onDelete: onDelete, onClear: onClear)
-                if shelf.isExpanded {
-                    ShelfPages(shelf: shelf, namespace: namespace)
-                    Divider()
-                    ShelfFooter(shelf: shelf, onClear: onClear)
-                } else {
-                    ShelfStack(shelf: shelf, namespace: namespace)
-                    ShelfShowAllBar(shelf: shelf, onClear: onClear)
-                }
+        VStack(spacing: 0) {
+            ShelfHeader(shelf: shelf, onHide: onHide, onDelete: onDelete, onClear: onClear)
+            if shelf.isEmpty {
+                ShelfEmptyView()
+            } else if shelf.isExpanded {
+                ShelfPages(shelf: shelf, namespace: namespace)
+                Divider()
+                ShelfFooter(shelf: shelf, onClear: onClear)
+            } else {
+                ShelfStack(shelf: shelf, namespace: namespace)
+                ShelfShowAllBar(shelf: shelf, onClear: onClear)
             }
-            .frame(width: ShelfMotion.width)
-            .animation(ShelfMotion.spring, value: shelf.isExpanded)
         }
+        .frame(width: ShelfMotion.width)
+        .animation(ShelfMotion.spring, value: shelf.isExpanded)
     }
 }
 
@@ -327,7 +325,8 @@ private struct ShelfPile: View {
     }
 }
 
-/// Shown when the shelf is opened with nothing on it. Same size as the drop zone that replaces it.
+/// Shown below the header when the shelf has nothing on it. With the header, it's as tall
+/// as the drop zone that replaces it.
 private struct ShelfEmptyView: View {
     var body: some View {
         VStack(spacing: 4) {
@@ -346,8 +345,8 @@ private struct ShelfEmptyView: View {
                 .strokeBorder(style: StrokeStyle(lineWidth: 1.5, dash: [6, 4]))
                 .foregroundStyle(.tertiary)
         )
-        .padding(8)
-        .frame(width: ShelfDropZone.size.width, height: ShelfDropZone.size.height)
+        .padding([.horizontal, .bottom], 8)
+        .frame(width: ShelfDropZone.size.width, height: ShelfDropZone.size.height - ShelfHeader.height)
     }
 }
 

@@ -16,9 +16,8 @@ final class ShelfLibrary {
     var itemCount: Int { shelves.map(\.items.count).reduce(0, +) }
     var mostRecent: Shelf? { shelves.max { $0.lastUsed < $1.lastUsed } }
 
-    /// Empty shelves aren't brought back.
     func load() {
-        shelves = Self.readSaved().map(Shelf.init(saved:)).filter { !$0.isEmpty }
+        shelves = Self.readSaved().map(Shelf.init(saved:))
         shelves.forEach(watch)
         let ownedFiles = shelves.flatMap(\.items).filter(\.ownsFile).map(\.url)
         ShelfStorage.deleteUnused(keeping: ownedFiles)
@@ -36,7 +35,6 @@ final class ShelfLibrary {
 
     /// Takes the shelf away for good. Tooki's own copies on it are deleted.
     func remove(_ shelf: Shelf) {
-        shelf.onEmptied = {}
         shelf.clear()
         shelves.removeAll { $0.id == shelf.id }
         save()

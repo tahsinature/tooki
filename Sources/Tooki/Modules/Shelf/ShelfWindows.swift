@@ -54,11 +54,11 @@ final class ShelfWindows {
         library.shelves.forEach(hide)
     }
 
-    /// Makes an empty shelf and shows it with keyboard focus, ready for a drop or ⌘V.
+    /// Makes an empty shelf and shows it, by default with keyboard focus, ready for a drop or ⌘V.
     @discardableResult
-    func newShelf(named name: String? = nil) -> Shelf {
+    func newShelf(named name: String? = nil, focus: Bool = true) -> Shelf {
         let shelf = library.newShelf(named: name)
-        show(shelf, focus: true)
+        show(shelf, focus: focus)
         return shelf
     }
 
@@ -71,9 +71,7 @@ final class ShelfWindows {
         controller(for: shelf).show(besides: neighbour, focus: focus)
     }
 
-    /// An empty shelf has nothing to come back for, so hiding it closes it.
     func hide(_ shelf: Shelf) {
-        if shelf.isEmpty { return close(shelf) }
         controllers[shelf.id]?.hide()
     }
 
@@ -140,6 +138,26 @@ final class ShelfWindows {
         }
     }
 
+    /// Adds what `pasteboard` holds without showing or hiding the shelf, so a hidden shelf stays
+    /// hidden. A new shelf starts hidden too. Beeps when there was nothing usable.
+    func add(from pasteboard: NSPasteboard, mode: ShelfAddMode, to destination: ShelfDestination) {
+        guard isEnabled else { return NSSound.beep() }
+        let shelf: Shelf
+        switch destination {
+        case .existing(let id):
+            guard let existing = library.shelves.first(where: { $0.id == id }) else { return NSSound.beep() }
+            shelf = existing
+        case .new:
+            shelf = library.newShelf()
+        }
+        // Wires up closing and settings like any other shelf.
+        _ = controller(for: shelf)
+        guard shelf.add(from: pasteboard, mode: mode) else {
+            if shelf.isEmpty { close(shelf) }
+            return NSSound.beep()
+        }
+    }
+
     /// Shows an empty shelf next to the pointer while something is Shift-dragged.
     func showForDrag() {
         guard isEnabled, dragShelfID == nil else { return }
@@ -180,8 +198,7 @@ final class ShelfWindows {
             guard let self, let shelf else { return }
             let frame = controller?.frame
             self.hide(shelf)
-            // Only a shelf with items is kept; an empty one closes, and that has its own look.
-            if !shelf.isEmpty, let frame { ShelfHiddenHUD.show(where: frame) }
+            if let frame { ShelfHiddenHUD.show(where: frame) }
         }
         controller.onNewShelf = { [weak self] in self?.newShelf() }
         controller.onDelete = { [weak self, weak shelf] in
@@ -189,10 +206,6 @@ final class ShelfWindows {
         }
         controller.onClear = { [weak self, weak shelf] in
             if let shelf { self?.request(.clear, on: shelf) }
-        }
-        shelf.onEmptied = { [weak self, weak shelf] in
-            guard let self, let shelf, self.config.closeWhenEmpty else { return }
-            self.close(shelf)
         }
         controllers[shelf.id] = controller
         return controller

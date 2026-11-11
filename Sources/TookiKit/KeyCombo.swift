@@ -70,9 +70,11 @@ public struct KeyCombo: Equatable, Hashable, Sendable, CustomStringConvertible {
         "hyper": .hyper,
     ]
 
+    /// ⌘Space isn't here: Spotlight's shortcut can be turned off, and the live macOS
+    /// shortcut check warns when it's still on.
     private static let reserved: Set<String> = [
         "cmd+q", "cmd+w", "cmd+c", "cmd+v", "cmd+x", "cmd+z", "cmd+a", "cmd+s", "cmd+n", "cmd+t",
-        "cmd+h", "cmd+m", "cmd+tab", "cmd+space", "cmd+,", "shift+cmd+z",
+        "cmd+h", "cmd+m", "cmd+tab", "cmd+,", "shift+cmd+z",
     ]
 
     private static func symbol(forKey key: String) -> String {

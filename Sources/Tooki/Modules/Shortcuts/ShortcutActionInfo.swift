@@ -25,12 +25,8 @@ struct ShortcutActionInfo {
         case "clipboard": ("Clipboard History", .symbol("list.clipboard.fill", .orange))
         case "snippets": ("Search Snippets", .symbol("text.cursor", .purple))
         case "emoji": ("Emoji Picker", .symbol("face.smiling", .yellow))
-        case "shelf.toggle": ("Show or Hide Shelf", .symbol("tray.full.fill", .indigo))
         case "shelf.manager": ("Shelf Manager", .symbol("tray.2.fill", .indigo))
         case "menuBar.search": ("Search Menu Bar", .symbol("menubar.rectangle", .teal))
-        case "menuBar.toggle": ("Show Hidden Menu Bar Icons", .symbol("menubar.arrow.up.rectangle", .teal))
-        case "keepAwake.toggle": ("Toggle Keep Awake", .symbol("cup.and.saucer.fill", .brown))
-        case "settings": ("Open Tooki Settings", .symbol("gearshape.fill", .gray))
         default: (action, .symbol("questionmark", .gray))
         }
     }

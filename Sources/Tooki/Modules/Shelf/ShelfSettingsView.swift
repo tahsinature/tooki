@@ -30,11 +30,6 @@ struct ShelfSettingsView: View {
                         description: "Turn off to keep items, so you can drag them out again.",
                         isOn: $config.value.shelf.removeAfterDragOut
                     )
-                    SettingsToggleRow(
-                        "Close a shelf when it's empty",
-                        description: "Turn off to keep an empty shelf open, ready for the next drop.",
-                        isOn: $config.value.shelf.closeWhenEmpty
-                    )
                 }
                 .disabled(!config.value.shelf.enabled)
             }
@@ -54,10 +49,10 @@ struct ShelfSettingsView: View {
     }
 
     private var shortcutText: String {
-        let shortcut = config.value.shortcuts.first { HotkeyAction($0.action) == .toggleShelf && $0.enabled }
+        let shortcut = config.value.shortcuts.first { HotkeyAction($0.action) == .shelfManager && $0.enabled }
         guard let keys = shortcut?.keys, let combo = KeyCombo(keys) else {
-            return "No shortcut yet. Bind “Show or Hide Shelf” to open the shelf from the keyboard."
+            return "No shortcut yet. Bind “Shelf Manager” to open your shelves from the keyboard."
         }
-        return "Press \(combo.symbols.joined()) to show or hide every shelf, or open a new one when there are none."
+        return "Press \(combo.symbols.joined()) to open the Shelf Manager. Press ⌘S there to show or hide every shelf."
     }
 }

@@ -40,7 +40,9 @@ final class ActionsMenu<Action: PanelActionItem> {
         isShowing ? close() : open()
     }
 
+    /// Does nothing when there are no actions to list.
     func open() {
+        guard !rootActions().isEmpty else { return }
         submenu = nil
         query = ""
         isShowing = true

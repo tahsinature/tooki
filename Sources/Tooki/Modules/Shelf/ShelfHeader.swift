@@ -1,13 +1,16 @@
 import AppKit
 import SwiftUI
 
-/// The shelf's top bar, the same in both views: the name (drag it to move the shelf),
+/// The shelf's top bar, the same in every view: the name (drag it to move the shelf),
 /// Stack or List, the ⋯ menu, and Hide. Holding ⌥ turns Hide into Delete.
+/// An empty shelf leaves out what needs items: the view switch and the item commands.
 struct ShelfHeader: View {
     let shelf: Shelf
     let onHide: () -> Void
     let onDelete: () -> Void
     let onClear: () -> Void
+
+    static let height: CGFloat = 42
 
     @State private var isRenaming = false
 
@@ -20,12 +23,12 @@ struct ShelfHeader: View {
             .padding(.leading, 12)
             .frame(maxHeight: .infinity)
             .shelfWindowDragArea()
-            ShelfViewSwitch(shelf: shelf)
+            if !shelf.isEmpty { ShelfViewSwitch(shelf: shelf) }
             ShelfMoreMenu(shelf: shelf, onRename: { isRenaming = true }, onClear: onClear, onDelete: onDelete)
             ShelfHideButton(shelf: shelf, onHide: onHide, onDelete: onDelete)
         }
         .padding(.trailing, 12)
-        .frame(height: 42)
+        .frame(height: Self.height)
     }
 }
 
@@ -67,15 +70,17 @@ private struct ShelfMoreMenu: View {
     var body: some View {
         Menu {
             Button("Rename", action: onRename)
-            Button("Show All in Finder") {
-                NSWorkspace.shared.activateFileViewerSelecting(shelf.readyURLs)
-            }
-            Button("Copy All Paths") {
-                NSPasteboard.general.clearContents()
-                NSPasteboard.general.setString(shelf.readyURLs.map(\.path).joined(separator: "\n"), forType: .string)
+            if !shelf.isEmpty {
+                Button("Show All in Finder") {
+                    NSWorkspace.shared.activateFileViewerSelecting(shelf.readyURLs)
+                }
+                Button("Copy All Paths") {
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(shelf.readyURLs.map(\.path).joined(separator: "\n"), forType: .string)
+                }
             }
             Divider()
-            Button("Clear", action: onClear)
+            if !shelf.isEmpty { Button("Clear", action: onClear) }
             Button("Delete Shelf", role: .destructive, action: onDelete)
         } label: {
             Image(systemName: "ellipsis")
