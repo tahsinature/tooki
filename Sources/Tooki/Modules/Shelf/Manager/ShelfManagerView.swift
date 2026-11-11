@@ -8,17 +8,26 @@ struct ShelfManagerView: View {
 
     var body: some View {
         ListDetailPanel(
-            placeholder: model.openShelf.map { "Search \($0.name)…" } ?? "Search shelves…",
+            placeholder: placeholder,
             query: $model.query,
             actions: model.actions,
             footer: ListDetailFooter(
-                title: model.openShelf?.name ?? "Shelves",
-                icon: .symbol("tray.full"),
-                primaryActionTitle: model.openShelf == nil ? "Open Shelf" : "Open"
+                title: model.renamingShelf.map { "Rename “\($0.name)”" } ?? model.openShelf?.name ?? "Shelves",
+                icon: .symbol(model.renamingShelf == nil ? "tray.full" : "pencil"),
+                primaryActionTitle: primaryActionTitle,
+                secondaryAction: model.renamingShelf != nil ? nil : model.library.isEmpty
+                    ? FooterAction(title: "New Shelf", shortcut: "⌘N") { onAction(.newShelf) }
+                    : FooterAction(title: model.openShelf == nil ? "Show/Hide All" : "Show/Hide", shortcut: "⌘S") { onAction(.toggleShelves) }
             ),
             hasItems: hasItems,
             onMove: model.moveSelection,
-            onReturn: { isCommand in onAction(primaryAction(isCommand: isCommand)) },
+            onReturn: { isCommand in
+                if model.renamingShelf != nil {
+                    model.finishRenaming(save: true)
+                } else {
+                    onAction(primaryAction(isCommand: isCommand))
+                }
+            },
             onRunAction: { onAction($0.kind) },
             onShortcut: handleShortcut,
             onCancel: onCancel
@@ -37,6 +46,17 @@ struct ShelfManagerView: View {
         }
     }
 
+    private var placeholder: String {
+        if model.renamingShelf != nil { return "Shelf name" }
+        return model.openShelf.map { "Search \($0.name)…" } ?? "Search shelves…"
+    }
+
+    private var primaryActionTitle: String? {
+        if model.renamingShelf != nil { return "Save Name" }
+        guard hasItems else { return nil }
+        return model.openShelf == nil ? "Open Shelf" : "Open"
+    }
+
     private var hasItems: Bool {
         model.openShelf == nil ? model.selectedShelf != nil : model.selectedItem != nil
     }
@@ -52,7 +72,7 @@ struct ShelfManagerView: View {
             ContentUnavailableView(
                 "No Shelves",
                 systemImage: "tray",
-                description: Text("Hold Shift while dragging files to start a shelf.")
+                description: Text("Press ⌘N to make one, or hold Shift while dragging files.")
             )
         } else {
             ContentUnavailableView(
@@ -64,13 +84,25 @@ struct ShelfManagerView: View {
     }
 
     private func handleShortcut(_ press: KeyPress) -> KeyPress.Result {
+        guard model.renamingShelf == nil else { return .ignored }
         let key = press.characters.lowercased()
         let command = press.modifiers.contains(.command)
         let shift = press.modifiers.contains(.shift)
         let isControlX = key == "\u{18}" || (key == "x" && press.modifiers.contains(.control))
         let kind: ShelfManagerAction.Kind?
-        if model.openShelf == nil {
-            kind = isControlX ? .closeShelf : nil
+        if key == "s", command, !shift {
+            kind = .toggleShelves
+        } else if key == "n", command, !shift {
+            kind = .newShelf
+        } else if model.openShelf == nil {
+            kind = switch key {
+            case _ where press.key == .rightArrow:
+                model.actions.isShowing && model.actions.query.isEmpty
+                    && model.actions.selectedAction?.kind == .pasteFromClipboard ? .pasteFromClipboard : nil
+            case "r" where command: .renameShelf
+            case _ where isControlX: .closeShelf
+            default: nil
+            }
         } else {
             kind = switch key {
             case _ where press.key == .rightArrow:

@@ -45,13 +45,15 @@ struct LaunchHistoryTests {
 }
 
 struct EmojiCatalogTests {
-    @Test func buildsNamedEmojiFromUnicode() throws {
+    @Test func loadsBundledEmojiData() throws {
         let grinning = try #require(EmojiCatalog.all.first { $0.character == "😀" })
         #expect(grinning.name == "grinning face")
-        #expect(grinning.shortcode == "grinning_face")
-        #expect(grinning.category == .smileys)
-        #expect(EmojiCatalog.all.contains { $0.character == "🇨🇦" && $0.name == "flag canada" })
+        #expect(grinning.shortcode == "grinning")
+        #expect(grinning.group == "Smileys & Emotion")
+        #expect(EmojiCatalog.all.contains { $0.character == "🇨🇦" && $0.name == "flag: canada" })
+        #expect(EmojiCatalog.all.contains { $0.character == "👨‍👩‍👧" })
         #expect(!EmojiCatalog.all.contains { $0.character == "🏻" })
+        #expect(EmojiCatalog.groups.first == "Smileys & Emotion")
     }
 
     @Test func searchRanksNameStartFirst() {
@@ -60,8 +62,14 @@ struct EmojiCatalogTests {
         #expect(EmojiCatalog.search("zzzqqq").isEmpty)
     }
 
+    @Test func searchFindsKeywords() {
+        #expect(EmojiCatalog.search("like").contains { $0.character == "👍" })
+    }
+
     @Test func findsByShortcode() {
-        #expect(EmojiCatalog.emoji(forShortcode: "thumbs_up_sign")?.character == "👍")
+        #expect(EmojiCatalog.emoji(forShortcode: "thumbsup")?.character == "👍")
+        #expect(EmojiCatalog.emoji(forShortcode: "grinning_face")?.character == "😀")
+        #expect(EmojiCatalog.shortcodeMatch(typed: "ok :+1:")?.emoji.character == "👍")
         let match = EmojiCatalog.shortcodeMatch(typed: "nice :rocket:")
         #expect(match?.emoji.character == "🚀" && match?.length == 8)
         #expect(EmojiCatalog.shortcodeMatch(typed: "rocket:") == nil)

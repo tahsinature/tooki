@@ -118,15 +118,12 @@ struct SearchItems {
             command("clipboard", "Clipboard History", icon: "doc.on.clipboard") { app.toggleClipboard(fromSearch: true) },
             command("snippets", "Search Snippets", icon: "text.cursor") { app.toggleSnippets(fromSearch: true) },
             command("emoji", "Emoji Picker", icon: "face.smiling") { app.toggleEmoji(fromSearch: true) },
-            command("shelf", "Show or Hide Shelf", icon: "tray.full") { app.toggleShelf() },
             command("shelf-manager", "Shelf Manager", icon: "tray.2") { app.toggleShelfManager(fromSearch: true) },
             command("menu-bar", app.menuBar.isCollapsed ? "Show Hidden Menu Bar Icons" : "Hide Menu Bar Icons",
                     icon: "menubar.rectangle") { app.menuBar.toggle() },
             command("menu-bar-search", "Search Menu Bar Items", icon: "magnifyingglass") {
                 Task { await app.toggleMenuBarSearch(fromSearch: true) }
             },
-            command("new-snippet", "Create Snippet", icon: "square.and.pencil") { app.createSnippet(fromSearch: true) },
-            command("settings", "Tooki Settings", icon: "gearshape") { app.showSettings() },
         ]
     }
 }

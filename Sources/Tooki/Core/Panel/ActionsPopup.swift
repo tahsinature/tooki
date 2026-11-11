@@ -91,6 +91,26 @@ struct ActionsPopup<Action: PanelActionItem>: View {
 }
 
 extension View {
+    /// Shows the ⌘K popup above the panel's footer. A click anywhere outside it closes it.
+    func actionsPopup<Popup: View>(
+        isPresented: Bool,
+        onDismiss: @escaping () -> Void,
+        @ViewBuilder popup: () -> Popup
+    ) -> some View {
+        overlay(alignment: .bottomTrailing) {
+            if isPresented {
+                ZStack(alignment: .bottomTrailing) {
+                    Color.clear
+                        .contentShape(Rectangle())
+                        .onTapGesture(perform: onDismiss)
+                    popup()
+                        .padding(.trailing, 12)
+                        .padding(.bottom, PanelTheme.footerHeight + 8)
+                }
+            }
+        }
+    }
+
     /// The blurred, bordered card the ⌘K and filter popups float on.
     func popupSurface(cornerRadius: CGFloat = PanelTheme.cornerRadius) -> some View {
         background {

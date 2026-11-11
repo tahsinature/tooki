@@ -25,7 +25,9 @@ struct SnippetPanelView: View {
                 title: "Snippets",
                 icon: .symbol("text.quote"),
                 primaryActionTitle: model.selectedSnippet == nil ? "Create Snippet" : "Copy to Clipboard",
-                primaryShortcut: model.selectedSnippet == nil ? "⌘N" : "↵"
+                primaryShortcut: model.selectedSnippet == nil ? "⌘N" : "↵",
+                // With nothing selected, creating is already the main action.
+                secondaryAction: model.selectedSnippet == nil ? nil : FooterAction(title: "Create Snippet", shortcut: "⌘N") { onAction(.create) }
             ),
             hasItems: model.selectedSnippet != nil,
             onMove: model.moveSelection,

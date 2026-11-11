@@ -49,7 +49,9 @@ final class ShelfManagerController {
 
     /// Esc leaves an open shelf first, then closes the panel.
     private func back(_ model: ShelfManagerModel) {
-        if model.openShelf != nil {
+        if model.renamingShelf != nil {
+            model.finishRenaming(save: false)
+        } else if model.openShelf != nil {
             model.closeOpenShelf()
         } else {
             close()
@@ -58,6 +60,22 @@ final class ShelfManagerController {
     }
 
     private func perform(_ kind: ShelfManagerAction.Kind, model: ShelfManagerModel) {
+        switch kind {
+        case .toggleShelves:
+            model.actions.close()
+            if let shelf = model.openShelf {
+                windows.isVisible(shelf) ? windows.hide(shelf) : windows.show(shelf)
+            } else {
+                windows.isAnyVisible ? windows.hideAll() : windows.showAll()
+            }
+            return
+        case .newShelf:
+            // Without focus: focusing the new shelf would close this panel.
+            model.select(windows.newShelf(focus: false))
+            return
+        default:
+            break
+        }
         if let shelf = model.openShelf {
             if let item = model.selectedItem { perform(kind, on: item, in: shelf, model: model) }
         } else if let shelf = model.selectedShelf {
@@ -72,6 +90,8 @@ final class ShelfManagerController {
         case .showShelf:
             close()
             windows.show(shelf, focus: true)
+        case .renameShelf:
+            model.startRenaming(shelf)
         case .closeShelf where shelf.hasCopies:
             model.actions.showSubmenu(title: "Close “\(shelf.name)”?", actions: ShelfManagerAction.closeConfirmation, parentID: .closeShelf)
         case .closeShelf, .confirmClose:
@@ -79,9 +99,21 @@ final class ShelfManagerController {
             windows.close(shelf)
         case .cancelClose:
             _ = model.actions.dismiss()
+        case .pasteFromClipboard where Self.clipboardHasFiles:
+            model.actions.showSubmenu(title: "Paste Files", actions: ShelfManagerAction.pasteModes, parentID: .pasteFromClipboard)
+        case .pasteFromClipboard:
+            model.actions.close()
+            windows.add(from: .general, mode: .copy, to: .existing(shelf.id))
+        case .paste(let mode):
+            model.actions.close()
+            windows.add(from: .general, mode: mode, to: .existing(shelf.id))
         default:
             break
         }
+    }
+
+    private static var clipboardHasFiles: Bool {
+        NSPasteboard.general.canReadObject(forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true])
     }
 
     private func perform(_ kind: ShelfManagerAction.Kind, on item: ShelfItem, in shelf: Shelf, model: ShelfManagerModel) {

@@ -8,9 +8,11 @@ final class ClipboardPanelController {
     /// Runs after Esc closes the panel, e.g. to go back to root search. Set before each `show()`.
     var onBack: (() -> Void)?
     private let history: ClipboardHistory
+    private let shelves: ShelfWindows
 
-    init(history: ClipboardHistory) {
+    init(history: ClipboardHistory, shelves: ShelfWindows) {
         self.history = history
+        self.shelves = shelves
     }
 
     var isShowing: Bool { panel?.isVisible == true }
@@ -57,16 +59,22 @@ final class ClipboardPanelController {
     private func perform(_ kind: ClipboardAction.Kind, model: ClipboardPanelModel) {
         guard let item = model.selectedItem else { return }
         let needsUsableItem = switch kind {
-        case .paste, .copy, .open, .openWith: true
+        case .paste, .copy, .open, .openWith, .addToShelf, .addTo, .add: true
         case .togglePin, .delete: false
         }
         if needsUsableItem, !item.canBeUsed {
             NSSound.beep()
             return
         }
-        if kind == .openWith {
-            model.showOpenWith()
-            return
+        switch kind {
+        case .openWith:
+            return model.showOpenWith()
+        case .addToShelf:
+            return model.actions.showSubmenu(title: "Add to Shelf", actions: ClipboardAction.shelves(in: shelves.library), parentID: .addToShelf)
+        case .addTo(let destination) where item.files != nil:
+            return model.actions.showSubmenu(title: "Add Files", actions: ClipboardAction.modes(for: destination), parentID: kind)
+        default:
+            break
         }
         model.actions.close()
         switch kind {
@@ -87,8 +95,22 @@ final class ClipboardPanelController {
         case .open(let appURL):
             close()
             ClipboardOpenWith.open(item, with: appURL)
-        case .openWith:
+        case .addTo(let destination):
+            // Only text, links and images get here; they're saved as new files either way.
+            addToShelf(item, destination: destination, mode: .copy)
+        case .add(let destination, let mode):
+            addToShelf(item, destination: destination, mode: mode)
+        case .openWith, .addToShelf:
             break
         }
+    }
+
+    /// Adds the item the same way dropping it on the shelf would. The clipboard panel stays open.
+    private func addToShelf(_ item: ClipboardItem, destination: ShelfDestination, mode: ShelfAddMode) {
+        let pasteboard = NSPasteboard.withUniqueName()
+        defer { pasteboard.releaseGlobally() }
+        pasteboard.clearContents()
+        pasteboard.writeObjects(ClipboardDragContent.writers(for: item))
+        shelves.add(from: pasteboard, mode: mode, to: destination)
     }
 }

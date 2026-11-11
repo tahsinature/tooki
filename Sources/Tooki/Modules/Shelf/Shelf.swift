@@ -33,8 +33,6 @@ final class Shelf: Identifiable {
     /// The item the arrow keys move from: the last one clicked or reached with an arrow.
     private(set) var cursor: ShelfItem.ID?
 
-    /// Runs after items were removed and the shelf became empty.
-    @ObservationIgnored var onEmptied: () -> Void = {}
     /// Opens Quick Look for these files. Set by the shelf's panel, which owns the preview.
     @ObservationIgnored var onQuickLook: ([URL]) -> Void = { _ in }
     /// Runs whenever something worth saving changed.
@@ -176,18 +174,14 @@ final class Shelf: Identifiable {
 
     /// Tooki's own files are deleted with their items. `deleteAfter` gives an app the item was
     /// dropped into time to read the file, like a web upload field that sends it a bit later.
-    /// `staysOpen` keeps the shelf around even when this empties it.
-    func remove(_ ids: Set<ShelfItem.ID>, deleteAfter delay: Duration = .zero, staysOpen: Bool = false) {
+    func remove(_ ids: Set<ShelfItem.ID>, deleteAfter delay: Duration = .zero) {
         let removed = items.filter { ids.contains($0.id) }
         guard !removed.isEmpty else { return }
         items.removeAll { ids.contains($0.id) }
         selection.subtract(ids)
         save()
         deleteOwnedFiles(of: removed.filter { $0.ownsFile && !copyingIDs.contains($0.id) }, after: delay)
-        if items.isEmpty {
-            isExpanded = false
-            if !staysOpen { onEmptied() }
-        }
+        if items.isEmpty { isExpanded = false }
     }
 
     /// Drops items whose file was moved or deleted outside Tooki, e.g. in Finder or yazi.
@@ -210,9 +204,8 @@ final class Shelf: Identifiable {
         }
     }
 
-    /// Empties the shelf on purpose, so it stays open for new items.
     func clear() {
-        remove(Set(items.map(\.id)), staysOpen: true)
+        remove(Set(items.map(\.id)))
     }
 
     /// A plain click selects one item; ⌘ or ⇧ adds it to or removes it from the selection.

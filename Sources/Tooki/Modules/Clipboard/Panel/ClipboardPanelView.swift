@@ -65,8 +65,10 @@ struct ClipboardPanelView: View {
         let key = press.characters.lowercased()
         let command = press.modifiers.contains(.command)
         if press.key == .rightArrow, model.actions.isShowing, model.actions.query.isEmpty,
-           model.actions.selectedAction?.kind == .openWith {
-            model.showOpenWith()
+           let kind = model.actions.selectedAction?.kind, kind == .openWith || kind == .addToShelf {
+            onAction(kind)
+        } else if command, key == "s" {
+            onAction(.addToShelf)
         } else if command, key == "o" {
             model.showOpenWith()
         } else if command, key == "p" {

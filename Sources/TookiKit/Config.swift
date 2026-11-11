@@ -53,9 +53,7 @@ public struct Shortcut: Codable, Equatable, Hashable, Sendable {
     public static let defaults = [
         Shortcut(action: "search", keys: "hyper+s"),
         Shortcut(action: "clipboard", keys: "hyper+v"),
-        Shortcut(action: "keepAwake.toggle", keys: "hyper+a"),
         Shortcut(action: "menuBar.search", keys: "hyper+m"),
-        Shortcut(action: "settings", keys: "hyper+,"),
     ]
 }
 
@@ -219,8 +217,6 @@ public struct ShelfConfig: Codable, Equatable, Sendable {
     public var shiftDragOpens = true
     /// Items leave the shelf once they're dragged somewhere else.
     public var removeAfterDragOut = true
-    /// A shelf closes for good once its last item is gone.
-    public var closeWhenEmpty = true
 
     public init() {}
 
@@ -230,7 +226,6 @@ public struct ShelfConfig: Codable, Equatable, Sendable {
         enabled = try container.decode(.enabled, default: defaults.enabled)
         shiftDragOpens = try container.decode(.shiftDragOpens, default: defaults.shiftDragOpens)
         removeAfterDragOut = try container.decode(.removeAfterDragOut, default: defaults.removeAfterDragOut)
-        closeWhenEmpty = try container.decode(.closeWhenEmpty, default: defaults.closeWhenEmpty)
     }
 }
 

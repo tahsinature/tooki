@@ -36,7 +36,7 @@ final class AppController {
         panel.onOpenSettings = { [weak self] in self?.showSettings() }
         return panel
     }()
-    @ObservationIgnored private lazy var clipboardPanel = ClipboardPanelController(history: clipboard)
+    @ObservationIgnored private lazy var clipboardPanel = ClipboardPanelController(history: clipboard, shelves: shelfWindows)
     @ObservationIgnored private let emojiPanel = EmojiPanelController()
     @ObservationIgnored let appCatalog = AppCatalog()
     @ObservationIgnored let currencyRates = CurrencyRates(
@@ -63,6 +63,7 @@ final class AppController {
         clipboard.load()
         config.onChange = { [weak self] in self?.apply($0) }
         shortcuts.onAction = { [weak self] in self?.perform($0) }
+        FloatingPanel.onCommandEscape { [weak self] in self?.showSearch(.everything) }
         apply(config.value)
         startShelf()
         Task { await appCatalog.refresh() }
@@ -99,12 +100,8 @@ final class AppController {
         case .clipboard: toggleClipboard()
         case .snippets: toggleSnippets()
         case .emoji: toggleEmoji()
-        case .toggleShelf: toggleShelf()
         case .shelfManager: toggleShelfManager()
-        case .toggleKeepAwake: keepAwake.toggle()
-        case .toggleMenuBar: menuBar.toggle()
         case .searchMenuBar: Task { await toggleMenuBarSearch() }
-        case .settings: showSettings()
         case .open(let target): AppLauncher.open(target)
         }
     }
@@ -136,10 +133,23 @@ final class AppController {
     }
 
     func toggleSearch(_ mode: SearchPanelController.Mode) {
+        presentSearch(mode, toggling: true)
+    }
+
+    /// Opens search even when it's already showing, e.g. for ⌘Esc from another panel.
+    func showSearch(_ mode: SearchPanelController.Mode) {
+        presentSearch(mode, toggling: false)
+    }
+
+    private func presentSearch(_ mode: SearchPanelController.Mode, toggling: Bool) {
         closePanels(except: searchPanel)
         searchPanel.onBack = nil
         let items = SearchItems(app: self)
-        searchPanel.toggle(mode, items: items.all(), calculate: items.calculation)
+        if toggling {
+            searchPanel.toggle(mode, items: items.all(), calculate: items.calculation)
+        } else {
+            searchPanel.show(mode, items: items.all(), calculate: items.calculation)
+        }
         // Picks up apps installed since the last scan, ready for next time.
         Task { await appCatalog.refresh() }
         Task { await currencyRates.refreshIfStale() }
@@ -152,9 +162,9 @@ final class AppController {
         snippetPanel.toggle()
     }
 
-    func createSnippet(fromSearch: Bool = false) {
+    func createSnippet() {
         closePanels(except: snippetPanel)
-        snippetPanel.onBack = backToSearch(fromSearch)
+        snippetPanel.onBack = nil
         snippetPanel.show(creating: true)
     }
 

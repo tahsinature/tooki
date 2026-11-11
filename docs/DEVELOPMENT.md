@@ -33,4 +33,8 @@ Use `@ViewState` for view-owned state. It aliases SwiftUI's `State` property wra
 
 To add a tool, create a folder under `Modules/`, add its config struct to `TookiKit/Config.swift`, wire it in `AppController`, and add a page to `SettingsPage`.
 
+## UI component names
+
+`design/ui-component-names-sketch.fig` names every part of the UI (Root Search, Actions Menu, Filter Menu, List-Detail Panel, Shelf Header and so on) with its Swift type. Use those names when you talk about the UI. When you add, rename or remove a component, update the sketch in the same change: edit it in [OpenPencil](https://openpencil.dev) and save. It's a rough sketch, so only the names, pins and notes need to be right. [AGENTS.md](../AGENTS.md) lists when to update it.
+
 See [RELEASING.md](RELEASING.md) for how releases are published.

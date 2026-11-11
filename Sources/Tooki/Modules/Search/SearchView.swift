@@ -40,11 +40,12 @@ struct SearchView: View {
                 icon: model.icon,
                 primaryActionTitle: model.selectedItem?.actionTitle,
                 onPrimaryAction: { runSelected(copyOnly: false) },
-                onShowActions: { model.isShowingActions.toggle() }
+                onShowActions: { model.isShowingActions.toggle() },
+                badgeAction: FooterAction(title: "Open Tooki Settings", shortcut: "⌘,", run: onOpenSettings)
             )
         }
-        .overlay(alignment: .bottomTrailing) {
-            if model.isShowingActions, let item = model.selectedItem {
+        .actionsPopup(isPresented: model.isShowingActions, onDismiss: { model.isShowingActions = false }) {
+            if let item = model.selectedItem {
                 ActionsPopup(
                     title: item.title,
                     actions: model.menuActions,
@@ -54,8 +55,6 @@ struct SearchView: View {
                     onKey: handleKey,
                     onRun: { onRun($0, item) }
                 )
-                .padding(.trailing, 12)
-                .padding(.bottom, PanelTheme.footerHeight + 8)
             }
         }
         .frame(width: Self.size.width, height: Self.size.height)

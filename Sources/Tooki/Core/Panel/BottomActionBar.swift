@@ -8,22 +8,31 @@ struct BottomActionBar: View {
     let primaryActionTitle: String?
     var primaryShortcut = "↵"
     let onPrimaryAction: () -> Void
+    /// A second action shown before the main one, e.g. "Create Snippet ⌘N".
+    var secondaryAction: FooterAction?
     /// `nil` hides "Actions ⌘K", e.g. in a form.
     let onShowActions: (() -> Void)?
+    /// Makes the icon and title on the left a button, e.g. to open Settings from search.
+    var badgeAction: FooterAction?
 
     var body: some View {
         HStack(spacing: 8) {
-            badge
+            if let badgeAction {
+                Button(action: badgeAction.run) { badge }
+                    .buttonStyle(.plain)
+                    .help("\(badgeAction.title) (\(badgeAction.shortcut))")
+            } else {
+                badge
+            }
             Spacer(minLength: 12)
+            if let secondaryAction {
+                BarButton(title: secondaryAction.title, shortcut: secondaryAction.shortcut, isPrimary: false, action: secondaryAction.run)
+                if primaryActionTitle != nil || onShowActions != nil { separator }
+            }
             if let primaryActionTitle {
                 BarButton(title: primaryActionTitle, shortcut: primaryShortcut, isPrimary: true, action: onPrimaryAction)
             }
-            if primaryActionTitle != nil, onShowActions != nil {
-                Capsule()
-                    .fill(PanelTheme.separator)
-                    .frame(width: 2, height: 11)
-                    .padding(.horizontal, 4)
-            }
+            if primaryActionTitle != nil, onShowActions != nil { separator }
             if let onShowActions {
                 BarButton(title: "Actions", shortcut: "⌘K", isPrimary: false, action: onShowActions)
             }
@@ -31,6 +40,13 @@ struct BottomActionBar: View {
         .padding(.horizontal, 16)
         .frame(height: PanelTheme.footerHeight)
         .background(PanelTheme.barBackground)
+    }
+
+    private var separator: some View {
+        Capsule()
+            .fill(PanelTheme.separator)
+            .frame(width: 2, height: 11)
+            .padding(.horizontal, 4)
     }
 
     private var badge: some View {
@@ -44,6 +60,13 @@ struct BottomActionBar: View {
                 .lineLimit(1)
         }
     }
+}
+
+/// A footer button with its shortcut. The panel handles the shortcut key itself.
+struct FooterAction {
+    let title: String
+    let shortcut: String
+    let run: () -> Void
 }
 
 private struct BarButton: View {

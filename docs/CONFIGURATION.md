@@ -17,7 +17,7 @@ To keep them in dotfiles, symlink the folder (or the individual files) into your
 
 ### Launcher
 
-Bind the `search` action (for example `opt+space`) to open the launcher. Like Asyar, it searches apps and commands. Before you type, it lists your most-used results under **Recent**, then Applications and Commands. Snippets, clipboard history and emoji have their own panels: open them from the launcher (Search Snippets, Clipboard History, Emoji Picker) or bind their own shortcuts. A panel opened from the launcher goes back to it when you press Esc. Press ⌘P, or click the menu next to the search field, to show only Applications or Commands. The clipboard and snippets panels use ⌘P the same way for their type and collection menus. Typing ranks everything by how well the name matches (whole name, start, start of a word, initials such as `vsc` for Visual Studio Code, then anywhere), plus a boost for results you pick often and recently. Your picks are stored privately in `~/Library/Application Support/Tooki/launcher-history.json`.
+Bind the `search` action (for example `opt+space`) to open the launcher. Like Asyar, it searches apps and commands. Before you type, it lists your most-used results under **Recent**, then Applications and Commands. Snippets, clipboard history and emoji have their own panels: open them from the launcher (Search Snippets, Clipboard History, Emoji Picker) or bind their own shortcuts. A panel opened from the launcher goes back to it when you press Esc. ⌘Esc goes back to the launcher from any panel, however you opened it. Press ⌘P, or click the menu next to the search field, to show only Applications or Commands. The clipboard and snippets panels use ⌘P the same way for their type and collection menus. Typing ranks everything by how well the name matches (whole name, start, start of a word, initials such as `vsc` for Visual Studio Code, then anywhere), plus a boost for results you pick often and recently. Your picks are stored privately in `~/Library/Application Support/Tooki/launcher-history.json`.
 
 Apps are found in `/Applications`, `/System/Applications`, `~/Applications` and their subfolders. Type a calculation such as `12 * 3` or `20% of 150` to see the answer card at the top; ↵ copies the answer.
 
@@ -27,7 +27,7 @@ Apps are found in `/Applications`, `/System/Applications`, `~/Applications` and 
 | ↵ | Open, paste or run the selected result |
 | ⌘↵ | Copy it instead |
 | ⌘K | Show all actions, such as Show in Finder |
-| ⌘, | Close the launcher and open Settings |
+| ⌘, | Close the launcher and open Settings (or click Tooki in the bottom-left corner) |
 
 ### Snippets panel
 
@@ -49,7 +49,9 @@ How often and when each snippet was last used is stored privately in `~/Library/
 
 ### Emoji picker
 
-Bind the `emoji` action to open a searchable emoji grid. Arrow keys move through it, ↵ pastes, ⌘↵ copies, and ⌘K offers Copy Shortcode. Recently used emoji are listed first. With snippet keywords on, typing an emoji's code between colons, such as `:rocket:`, replaces it with the emoji. Codes are the emoji's Unicode name with underscores, for example `:thumbs_up_sign:`.
+Bind the `emoji` action to open a searchable emoji grid. Search matches names, keywords and shortcodes, so "like" finds 👍. Arrow keys move through it, Page Up and Page Down jump a screenful, Home and End go to the ends, ↵ pastes, ⌘↵ copies, and ⌘K offers Copy Shortcode. Recently used emoji are listed first. With snippet keywords on, typing an emoji's code between colons, such as `:rocket:`, replaces it with the emoji. Codes are GitHub-style shortcodes like `:+1:` or `:thumbsup:`, and the name with underscores also works, for example `:thumbs_up:`.
+
+Emoji data comes from [emojibase](https://emojibase.dev) and ships inside the app. Emoji that this macOS version can't draw yet are hidden, and appear once macOS supports them. To pick up a new Unicode release, run `scripts/update-emoji.py`, which regenerates `Sources/TookiKit/Emoji/EmojiData.swift`.
 
 ### Clipboard history
 
@@ -61,6 +63,7 @@ Press Hyper+V to open it. The list is on the left (Pinned first, then Most Recen
 | ↵ (or double-click) | Copy to the clipboard |
 | ⌘↵ | Paste into the app you were using |
 | ⌘O | Open With: search for an app to open an image, file or link with (Esc goes back) |
+| ⌘S | Add to Shelf: pick a shelf or a new one. Files then ask whether to add a copy or the original. The shelf stays shown or hidden as it was |
 | ⇧⌘P | Pin or unpin |
 | ⌃X | Delete |
 | ⌘K | Show all actions. Type to filter them, and the list behind stays as it was |
@@ -76,9 +79,7 @@ Clipboard history is private data and is stored separately in `~/Library/Applica
     "bindings": [
       { "key": "s", "action": "search" },
       { "key": "v", "action": "clipboard" },
-      { "key": "a", "action": "keepAwake.toggle" },
       { "key": "m", "action": "menuBar.search" },
-      { "key": ",", "action": "settings" },
       { "key": "t", "action": "open:com.apple.Terminal" }
     ]
   },
@@ -117,7 +118,7 @@ Clipboard history is private data and is stored separately in `~/Library/Applica
 
 Keys for bindings are letters, digits, punctuation, or `space`, `return`, `tab`, `escape`, `left`, `right`, `up` and `down`.
 
-**Actions:** `search`, `clipboard`, `snippets`, `emoji`, `shelf.toggle`, `shelf.manager`, `keepAwake.toggle`, `menuBar.toggle`, `menuBar.search`, `settings`, `open:<bundle id or app path>` (opens the app, or hides it when it's already in front).
+**Actions:** `search`, `clipboard`, `snippets`, `emoji`, `shelf.manager`, `menuBar.search`, `open:<bundle id or app path>` (opens the app, or hides it when it's already in front).
 
 Hyper + any unbound key is passed on as ⌃⌥⇧⌘ + key, so it also works with shortcuts in other apps.
 
@@ -150,11 +151,11 @@ Hyper + any unbound key is passed on as ⌃⌥⇧⌘ + key, so it also works wit
 
 ## Shelf
 
-The shelf is a floating spot to collect files while you move between folders and apps. Hold **Shift** while dragging anything to make it appear next to the pointer, then drop onto it. You can also open it from the menu bar menu, from search, or by binding the `shelf.toggle` action to a shortcut.
+The shelf is a floating spot to collect files while you move between folders and apps. Hold **Shift** while dragging anything to make it appear next to the pointer, then drop onto it. You can also open it from the menu bar menu, or from the Shelf Manager (bind the `shelf.manager` action to a shortcut, then press ⌘S to show or hide every shelf).
 
 It holds files and folders. Dropped or pasted text, links and images are saved as files (`.txt`, `.webloc`, `.png`) so you can drag them into any app. Text files are named after the first words, letters and digits only, up to 30 characters. Items stay on the shelf after Tooki restarts. When a file is moved or deleted outside Tooki (in Finder, yazi or a script), its item leaves the shelf within a couple of seconds.
 
-You can have several shelves, each in its own floating panel. Every Shift-drag opens a fresh shelf next to the pointer (dropping on a shelf that's already showing adds to that one instead). Shelves are named Shelf 1, Shelf 2 and so on; rename one with **Rename** in its ⋯ menu. Drag a shelf by its name or any empty part of its header or footer (the pointer turns into a hand). A focused shelf has a soft blue glow. The `shelf.toggle` shortcut hides every shelf, or shows them all, or opens a new one when there are none. The menu bar menu and the Shelf page list every shelf, with New Shelf and Clear All.
+You can have several shelves, each in its own floating panel. Every Shift-drag opens a fresh shelf next to the pointer (dropping on a shelf that's already showing adds to that one instead). Shelves are named Shelf 1, Shelf 2 and so on; rename one with **Rename** in its ⋯ menu. Drag a shelf by its name or any empty part of its header or footer (the pointer turns into a hand). A focused shelf has a soft blue glow. The menu bar menu and the Shelf page list every shelf, with New Shelf and Clear All.
 
 Each file on the shelf is one of two kinds, shown by a badge on its icon. One shelf can mix both, even for the same file:
 
@@ -170,7 +171,7 @@ When you drag files onto the shelf, it splits in two: drop on the left half to *
 - The header's **–** button hides the shelf and keeps its items; a short "Shelf hidden" note shows where it was. Hold ⌥ and it turns into a red delete button. The ⋯ menu has Rename, Show All in Finder, Copy All Paths, Clear and Delete Shelf. When the shelf holds Tooki's copies, Delete and Clear turn red and ask "Delete?" or "Clear?" right on the button: click again or press Return to go ahead, or press Esc, move away or wait to cancel. Originals are never touched. Rename allows up to 20 characters. Images show a small preview instead of their icon.
 - The list shows one row per item, with its size (or Folder, or Link) on the right. Hover a row and click ⓘ (or press →) to slide over to its details: mode, size, current path and original path. ← or **All items** goes back. Click to select, ⌘ or ⇧ click to select more, and drag to take the selection. Double-click opens an item.
 - Right-click an item (or the selection, or the stack for everything) for Quick Look, Open, Open With, Show in Finder, Copy, Copy Path and Remove from Shelf. Copies also offer Show Original in Finder and Copy Original Path. **Rename** renames the file on disk: the real file for an original, Tooki's file for a copy.
-- Items you drag out leave the shelf (turn off `removeAfterDragOut` to keep them), and the shelf closes for good once it's empty (turn off `closeWhenEmpty` to keep it open). **Clear** always keeps the shelf open. Hiding an empty shelf also closes it. For originals, Finder decides between copy and move: dragging to a folder on the same disk **moves** the file. Use a copy when that matters.
+- Items you drag out leave the shelf (turn off `removeAfterDragOut` to keep them). A shelf is never closed for you, even when it's empty: close it yourself with **Delete Shelf**. The one exception is a Shift-drag shelf that you didn't drop anything on. For originals, Finder decides between copy and move: dragging to a folder on the same disk **moves** the file. Use a copy when that matters.
 
 | Key (while the shelf is focused) | Action |
 | --- | --- |
@@ -198,11 +199,15 @@ The `shelf.manager` action (or **Shelf Manager** in search) opens every shelf in
 | ⌘Y | | Quick Look (shows the shelf to preview it) |
 | ⇧⌘F | | Show in Finder |
 | ⌘C, ⇧⌘C | | Copy the file, copy its path |
-| ⌘R | | Rename the file |
+| ⌘R | Rename the shelf in the search field (↵ saves, Esc cancels) | Rename the file |
+| ⌘S | Show or hide every shelf (keeps the panel open) | Show or hide only this shelf |
+| ⌘N | New shelf: shows it without leaving the panel and selects it | New shelf |
 | ⌃X | Close the shelf (asks first when it holds copies) | Remove from the shelf |
 | Esc | Close the panel, or go back to search | Back to the shelves |
 
-`config.json` options under `shelf`: `enabled`, `shiftDragOpens`, `removeAfterDragOut` and `closeWhenEmpty` (all `true` by default).
+On a shelf, ⌘K › **Paste from Clipboard** adds what is on the clipboard now: one or several files, an image, text or a link. Files ask whether to add a copy or the original.
+
+`config.json` options under `shelf`: `enabled`, `shiftDragOpens` and `removeAfterDragOut` (all `true` by default).
 
 ### URL commands
 

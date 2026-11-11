@@ -7,6 +7,7 @@ struct ListDetailFooter {
     /// `nil` hides the main action, e.g. when nothing is selected.
     let primaryActionTitle: String?
     var primaryShortcut = "↵"
+    var secondaryAction: FooterAction?
 }
 
 /// A Raycast-style panel: search on top, list and detail side by side, actions along the bottom,
@@ -55,23 +56,20 @@ struct ListDetailPanel<Action: PanelActionItem, Accessory: View, ListContent: Vi
                 primaryActionTitle: footer.primaryActionTitle,
                 primaryShortcut: footer.primaryShortcut,
                 onPrimaryAction: { onReturn(false) },
+                secondaryAction: footer.secondaryAction,
                 onShowActions: hasItems ? { actions.toggle() } : nil
             )
         }
-        .overlay(alignment: .bottomTrailing) {
-            if actions.isShowing, hasItems {
-                ActionsPopup(
-                    title: actions.submenu?.title,
-                    actions: actions.visibleActions,
-                    selection: actions.selection,
-                    query: Bindable(actions).query,
-                    searchPrompt: actions.submenu == nil ? "Search for actions…" : "Search…",
-                    onKey: handleKey,
-                    onRun: onRunAction
-                )
-                .padding(.trailing, 12)
-                .padding(.bottom, PanelTheme.footerHeight + 8)
-            }
+        .actionsPopup(isPresented: actions.isShowing && hasItems, onDismiss: actions.close) {
+            ActionsPopup(
+                title: actions.submenu?.title,
+                actions: actions.visibleActions,
+                selection: actions.selection,
+                query: Bindable(actions).query,
+                searchPrompt: actions.submenu == nil ? "Search for actions…" : "Search…",
+                onKey: handleKey,
+                onRun: onRunAction
+            )
         }
         .frame(width: PanelTheme.listDetailSize.width, height: PanelTheme.listDetailSize.height)
         .panelSurface()

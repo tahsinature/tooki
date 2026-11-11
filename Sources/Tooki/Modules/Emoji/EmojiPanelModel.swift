@@ -12,9 +12,12 @@ final class EmojiPanelModel {
     }
 
     static let columns = 10
+    /// Rows Page Up and Page Down move, about one screenful of the grid.
+    static let pageRows = 5
 
     var query = "" {
-        didSet { rebuild() }
+        // The search field writes the same text back when it loses focus to the ⌘K popup.
+        didSet { if query != oldValue { rebuild() } }
     }
     private(set) var sections: [Section] = []
     private(set) var results: [Emoji] = []
@@ -44,8 +47,8 @@ final class EmojiPanelModel {
         selection = 0
         isShowingActions = false
         if query.trimmingCharacters(in: .whitespaces).isEmpty {
-            let groups = EmojiCategory.allCases.map { category in
-                Section(title: category.rawValue, emoji: EmojiCatalog.all.filter { $0.category == category })
+            let groups = EmojiCatalog.groups.map { group in
+                Section(title: group, emoji: EmojiCatalog.all.filter { $0.group == group })
             }
             sections = (recent.isEmpty ? [] : [Section(title: "Recently Used", emoji: recent)]) + groups
         } else {
