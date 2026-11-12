@@ -363,8 +363,9 @@ struct ShelfCircleButton: View {
                 .background(Color.primary.opacity(0.1), in: Circle())
                 .contentShape(Circle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(InteractionButtonStyle(radius: 11))
         .help(help)
+        .accessibilityLabel(help)
     }
 }
 

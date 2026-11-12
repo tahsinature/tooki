@@ -22,7 +22,7 @@ final class SettingsToolbar: NSObject, NSToolbarDelegate {
     func showUpdateBadge(_ isVisible: Bool) {
         let about = toolbar.items.first { $0.itemIdentifier == Self.identifier(for: .about) }
         about?.image = Self.image(for: .about, badged: isVisible)
-        about?.toolTip = isVisible ? "A new version of \(BuildInfo.appName) is available" : nil
+        about?.toolTip = isVisible ? "A new version of \(BuildInfo.appName) is available" : SettingsPage.about.title
     }
 
     func toolbarDefaultItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
@@ -45,6 +45,8 @@ final class SettingsToolbar: NSObject, NSToolbarDelegate {
         guard let page = SettingsPage(rawValue: identifier.rawValue) else { return nil }
         let item = NSToolbarItem(itemIdentifier: identifier)
         item.label = page.toolbarLabel
+        item.toolTip = page.title
+        item.isBordered = true
         item.image = Self.image(for: page, badged: false)
         item.target = self
         item.action = #selector(itemClicked(_:))

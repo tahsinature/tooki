@@ -9,6 +9,10 @@ struct SettingsScrollPage<Content: View>: View {
             content
         }
         .formStyle(.grouped)
+        .buttonStyle(InteractionButtonStyle(
+            restingFill: Color.primary.opacity(0.07),
+            horizontalPadding: 12, verticalPadding: 6
+        ))
     }
 }
 
@@ -108,11 +112,22 @@ struct SettingsToggleRow: View {
     }
 
     var body: some View {
-        SettingsRow(title, description: description) {
+        HStack(spacing: 20) {
+            // A native switch doesn't toggle when its separate label is clicked.
+            Button { isOn.toggle() } label: {
+                SettingsRowLabel(title: title, description: description)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .focusable(false)
+            .accessibilityHidden(true)
             Toggle(title, isOn: $isOn)
                 .labelsHidden()
                 .toggleStyle(.switch)
                 .controlSize(.small)
+                .accessibilityHint(description ?? "")
         }
+        .padding(4)
+        .modifier(InteractionHover())
     }
 }

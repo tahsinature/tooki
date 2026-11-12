@@ -55,8 +55,10 @@ private struct ShelfViewSwitch: View {
                 .background(isOn ? Color.primary.opacity(0.18) : .clear, in: RoundedRectangle(cornerRadius: 5))
                 .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(InteractionButtonStyle(radius: 5))
         .help(help)
+        .accessibilityLabel(help)
+        .accessibilityAddTraits(isOn ? .isSelected : [])
     }
 }
 
@@ -90,10 +92,11 @@ private struct ShelfMoreMenu: View {
                 .contentShape(Circle())
         }
         .menuStyle(.button)
-        .buttonStyle(.plain)
+        .buttonStyle(InteractionButtonStyle(radius: 11))
         .menuIndicator(.hidden)
         .fixedSize()
         .help("Shelf actions")
+        .accessibilityLabel("Shelf actions")
     }
 }
 
@@ -123,8 +126,9 @@ private struct ShelfHideButton: View {
             .scaleEffect(deletes && !isArmed ? 1.12 : 1)
             .contentShape(Capsule())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(InteractionButtonStyle(radius: 11))
         .help(help(deletes: deletes, isArmed: isArmed))
+        .accessibilityLabel(deletes ? "Delete shelf" : "Hide shelf")
         .onHover { inside in if !inside, isArmed { shelf.disarm() } }
         .animation(.spring(duration: 0.3, bounce: 0.45), value: deletes)
         .animation(.spring(duration: 0.3, bounce: 0.3), value: isArmed)

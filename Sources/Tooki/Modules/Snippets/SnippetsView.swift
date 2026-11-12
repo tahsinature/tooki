@@ -24,7 +24,9 @@ struct SnippetsView: View {
                 SettingsToggleRow("Enable snippets", isOn: $config.value.snippets.enabled)
                 SettingsToggleRow(
                     "Expand keywords as you type",
-                    description: "Typing a snippet's keyword in any app, like ;date, replaces it with the snippet.",
+                    description: config.value.snippets.enabled
+                        ? "Typing a snippet's keyword in any app, like ;date, replaces it with the snippet."
+                        : "Enable snippets to use keyword expansion.",
                     isOn: $config.value.snippets.keywordExpansion
                 )
                 .disabled(!config.value.snippets.enabled)
@@ -36,14 +38,20 @@ struct SnippetsView: View {
             SettingsSection("Placeholders") {
                 ForEach(SnippetPlaceholder.all) { placeholder in
                     SettingsRow(placeholder.title, description: placeholder.detail) {
-                        Text(placeholder.token)
-                            .font(.callout.monospaced())
-                            .foregroundStyle(SettingsTheme.secondaryText)
-                            .textSelection(.enabled)
+                        VStack(alignment: .trailing, spacing: 2) {
+                            CopyableText(text: placeholder.token, label: placeholder.token)
+                                .fixedSize(horizontal: true, vertical: false)
+                            if let example = placeholder.example {
+                                Text(example)
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                                    .textSelection(.enabled)
+                            }
+                        }
                     }
                 }
             } footer: {
-                Text("Placeholders are filled in when a snippet is copied, pasted or expanded.")
+                Text("Click a token to copy it. Placeholders are filled in when a snippet is copied, pasted or expanded.")
             }
         }
     }

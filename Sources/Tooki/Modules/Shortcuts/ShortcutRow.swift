@@ -25,7 +25,7 @@ struct ShortcutRow: View {
                 shortcut.keys = $0?.description ?? ""
             }
             .frame(width: 140, alignment: .leading)
-            Toggle("Enabled", isOn: $shortcut.enabled)
+            Toggle("Enable \(info.title)", isOn: $shortcut.enabled)
                 .toggleStyle(.checkbox)
                 .labelsHidden()
             removeButton
@@ -39,7 +39,7 @@ struct ShortcutRow: View {
         if let onRemove {
             Button("Remove", systemImage: "minus.circle", action: onRemove)
                 .labelStyle(.iconOnly)
-                .buttonStyle(.borderless)
+                .buttonStyle(InteractionButtonStyle(horizontalPadding: 4, verticalPadding: 4))
         } else {
             Color.clear.frame(width: 16, height: 16)
         }

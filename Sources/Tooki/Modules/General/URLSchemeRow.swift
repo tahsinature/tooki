@@ -17,7 +17,7 @@ struct URLSchemeLink: Identifiable {
 /// One line per link: click it to copy, or open the info popover for details and examples.
 struct URLSchemeRow: View {
     let link: URLSchemeLink
-    @State private var showsInfo = false
+    @ViewState private var showsInfo = false
 
     var body: some View {
         HStack(spacing: 8) {
@@ -25,12 +25,11 @@ struct URLSchemeRow: View {
             Text(link.title)
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
-            Button {
+            Button("About \(link.title)", systemImage: "info.circle") {
                 showsInfo.toggle()
-            } label: {
-                Image(systemName: "info.circle")
             }
-            .buttonStyle(.borderless)
+            .labelStyle(.iconOnly)
+            .buttonStyle(InteractionButtonStyle(horizontalPadding: 5, verticalPadding: 5))
             .help("What this does, with examples")
             .popover(isPresented: $showsInfo, arrowEdge: .trailing) {
                 URLSchemeInfo(link: link)
@@ -62,39 +61,5 @@ private struct URLSchemeInfo: View {
         }
         .padding(14)
         .frame(width: 420)
-    }
-}
-
-/// Monospaced text that copies itself when clicked and briefly says so.
-private struct CopyableText: View {
-    let text: String
-    let label: String
-    @State private var copied = false
-
-    var body: some View {
-        Button {
-            NSPasteboard.general.clearContents()
-            NSPasteboard.general.setString(text, forType: .string)
-            copied = true
-            Task {
-                try? await Task.sleep(for: .seconds(1.5))
-                copied = false
-            }
-        } label: {
-            HStack(spacing: 6) {
-                Text(label)
-                    .font(.body.monospaced())
-                    .multilineTextAlignment(.leading)
-                if copied {
-                    Label("Copied", systemImage: "checkmark")
-                        .font(.caption)
-                        .foregroundStyle(.green)
-                }
-                Spacer(minLength: 0)
-            }
-            .contentShape(.rect)
-        }
-        .buttonStyle(.plain)
-        .help("Click to copy")
     }
 }

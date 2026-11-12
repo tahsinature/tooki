@@ -75,9 +75,11 @@ struct ActionsPopup<Action: PanelActionItem>: View {
                     .frame(maxWidth: .infinity, minHeight: PanelTheme.rowHeight)
             }
             ForEach(Array(actions.enumerated()), id: \.element.id) { index, action in
-                row(action, isSelected: index == selection)
-                    .onTapGesture { onRun(action) }
-                    .id(index)
+                Button { onRun(action) } label: {
+                    row(action, isSelected: index == selection)
+                }
+                .buttonStyle(.plain)
+                .id(index)
             }
         }
         .padding(8)

@@ -77,7 +77,7 @@ struct MenuBarLayoutEditor: View {
             Spacer()
             ForEach(destinations(from: section), id: \.self) { destination in
                 Button(Self.moveTitle(destination)) { model.move(row, to: destination) }
-                    .buttonStyle(.borderless)
+                    .buttonStyle(InteractionButtonStyle(horizontalPadding: 4, verticalPadding: 4))
             }
         }
         .opacity(row.isRunning ? 1 : 0.5)

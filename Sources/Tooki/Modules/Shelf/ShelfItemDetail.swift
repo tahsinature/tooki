@@ -16,7 +16,7 @@ struct ShelfItemDetail: View {
                         .foregroundStyle(Color.accentColor)
                         .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(InteractionButtonStyle())
                 .help("Back to the list (←)")
                 Spacer()
                 Text(position)
@@ -103,8 +103,10 @@ private struct ShelfCopyButton: View {
                 .frame(width: 14, height: 14)
                 .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(InteractionButtonStyle())
         .help("Copy the full path")
+        .accessibilityLabel("Copy the full path")
+        .accessibilityValue(didCopy ? "Copied" : "")
         .animation(.easeOut(duration: 0.15), value: didCopy)
     }
 }

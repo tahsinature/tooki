@@ -21,7 +21,7 @@ struct BottomActionBar: View {
         HStack(spacing: 8) {
             if let badgeAction {
                 Button(action: badgeAction.run) { badge }
-                    .buttonStyle(.plain)
+                    .buttonStyle(InteractionButtonStyle())
                     .help("\(badgeAction.title) (\(badgeAction.shortcut))")
             } else {
                 badge
@@ -78,21 +78,17 @@ private struct BarButton: View {
     let isPrimary: Bool
     let action: () -> Void
 
-    @ViewState private var isHovered = false
-
     var body: some View {
         Button(action: action) {
             HStack(spacing: 8) {
                 Text(title)
                     .font(PanelTheme.labelFont)
-                    .foregroundStyle(isPrimary || isHovered ? PanelTheme.primaryText : PanelTheme.secondaryText)
+                    .foregroundStyle(isPrimary ? PanelTheme.primaryText : PanelTheme.secondaryText)
                 Keycap(shortcut: shortcut)
             }
             .padding(4)
-            .background(isHovered ? PanelTheme.hoverBackground : .clear, in: RoundedRectangle(cornerRadius: 6))
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
-        .onHover { isHovered = $0 }
+        .buttonStyle(InteractionButtonStyle())
     }
 }

@@ -149,8 +149,9 @@ private struct ShelfRow: View {
                 .frame(width: 26, height: 26)
                 .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(InteractionButtonStyle())
         .help("Details (→)")
+        .accessibilityLabel("Item details")
         .padding(.trailing, 4)
     }
 }
@@ -192,7 +193,7 @@ struct ShelfClearButton: View {
                 .background(isArmed ? Color.red : Color.primary.opacity(0.1), in: RoundedRectangle(cornerRadius: 6))
                 .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(InteractionButtonStyle())
         .font(.caption.weight(.medium))
         .fixedSize()
         .help(isArmed ? "Click again to clear. Originals stay where they are." : "Remove every item")

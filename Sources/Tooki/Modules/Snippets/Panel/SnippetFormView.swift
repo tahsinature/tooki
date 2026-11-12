@@ -52,9 +52,10 @@ struct SnippetFormView: View {
                     .frame(width: 26, height: 26)
                     .background(PanelTheme.tertiaryBackground, in: RoundedRectangle(cornerRadius: 7))
             }
-            .buttonStyle(.plain)
+            .buttonStyle(InteractionButtonStyle())
             .foregroundStyle(PanelTheme.secondaryText)
             .help("Back (esc)")
+            .accessibilityLabel("Back")
             Text(isNew ? "Create Snippet" : "Edit Snippet")
                 .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(PanelTheme.primaryText)
@@ -100,7 +101,7 @@ struct SnippetFormView: View {
                             Image(systemName: "chevron.up.chevron.down")
                         }
                         .menuStyle(.button)
-                        .buttonStyle(.plain)
+                        .buttonStyle(InteractionButtonStyle())
                         .menuIndicator(.hidden)
                         .fixedSize()
                         .foregroundStyle(PanelTheme.secondaryText)

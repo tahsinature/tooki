@@ -22,7 +22,10 @@ struct HotkeyRecorder: View {
                 Text("Add Hotkey").foregroundStyle(.secondary)
             }
         }
-        .buttonStyle(.plain)
+        .buttonStyle(InteractionButtonStyle(horizontalPadding: 6, verticalPadding: 5))
+        .help(combo == nil ? "Record a shortcut" : "Change shortcut")
+        .accessibilityLabel(combo == nil ? "Record a shortcut" : "Change shortcut")
+        .accessibilityValue(combo?.symbols.joined() ?? "Not set")
         .contentShape(Rectangle())
         .contextMenu {
             if combo != nil {
@@ -59,10 +62,23 @@ private struct RecorderPanel: View {
             preview
                 .frame(width: 300, height: 110)
             Divider()
-            Text(problem ?? "Press Esc to cancel, Delete to remove")
+            Text(problem ?? "Press a shortcut to record it. Esc cancels.")
                 .font(.caption)
                 .foregroundStyle(problem == nil ? AnyShapeStyle(.secondary) : AnyShapeStyle(.orange))
                 .padding(10)
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            HStack {
+                if current != nil {
+                    Button("Remove Shortcut", role: .destructive) {
+                        onFinish(RecordedHotkey(combo: nil))
+                    }
+                    .buttonStyle(InteractionButtonStyle(horizontalPadding: 6, verticalPadding: 5))
+                }
+                Spacer()
+                Button("Cancel") { onFinish(nil) }
+            }
+            .padding(10)
         }
         .onAppear(perform: startListening)
         .onDisappear(perform: stopListening)
@@ -101,6 +117,13 @@ private struct RecorderPanel: View {
         let modifiers = KeyCombo.Modifiers(event.modifierFlags)
         if event.type == .flagsChanged {
             heldModifiers = modifiers
+            return false
+        }
+        // Keep native navigation and button activation available inside the recorder.
+        if modifiers.subtracting(.shift).isEmpty, event.keyCode == KeyCode.tab {
+            return false
+        }
+        if modifiers.isEmpty, [KeyCode.space, KeyCode.returnKey].contains(event.keyCode) {
             return false
         }
         if modifiers.isEmpty, event.keyCode == KeyCode.escape {

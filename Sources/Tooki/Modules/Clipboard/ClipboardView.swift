@@ -66,7 +66,7 @@ struct StringListEditor: View {
                     Spacer()
                     Button("Remove", systemImage: "minus.circle") { items.removeAll { $0 == item } }
                         .labelStyle(.iconOnly)
-                        .buttonStyle(.borderless)
+                        .buttonStyle(InteractionButtonStyle(horizontalPadding: 4, verticalPadding: 4))
                 }
             }
         }

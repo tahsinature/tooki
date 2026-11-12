@@ -38,7 +38,10 @@ struct GeneralView: View {
                         Button("Show in Finder") {
                             NSWorkspace.shared.activateFileViewerSelecting([app.config.fileURL])
                         }
-                        Button("Reload Now") { app.reloadFromDisk() }
+                        SettingsReloadButton {
+                            app.reloadFromDisk()
+                            return app.loadErrors.isEmpty
+                        }
                     }
                 }
                 ForEach(app.loadErrors, id: \.self) { error in

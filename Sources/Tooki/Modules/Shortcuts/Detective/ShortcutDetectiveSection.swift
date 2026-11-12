@@ -121,7 +121,7 @@ private struct DetectiveModeCard: View {
                     .strokeBorder(isSelected ? AnyShapeStyle(.tint) : AnyShapeStyle(.separator), lineWidth: isSelected ? 1.5 : 0.5)
             }
         }
-        .buttonStyle(.plain)
+        .buttonStyle(InteractionButtonStyle(radius: 8))
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
