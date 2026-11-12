@@ -37,21 +37,10 @@ struct SnippetsView: View {
 
             SettingsSection("Placeholders") {
                 ForEach(SnippetPlaceholder.all) { placeholder in
-                    SettingsRow(placeholder.title, description: placeholder.detail) {
-                        VStack(alignment: .trailing, spacing: 2) {
-                            CopyableText(text: placeholder.token, label: placeholder.token)
-                                .fixedSize(horizontal: true, vertical: false)
-                            if let example = placeholder.example {
-                                Text(example)
-                                    .font(.subheadline)
-                                    .foregroundStyle(.secondary)
-                                    .textSelection(.enabled)
-                            }
-                        }
-                    }
+                    SnippetPlaceholderRow(placeholder: placeholder)
                 }
             } footer: {
-                Text("Click a token to copy it. Placeholders are filled in when a snippet is copied, pasted or expanded.")
+                Text("Click a placeholder row to copy its token. Placeholders are filled in when a snippet is copied, pasted or expanded.")
             }
         }
     }
