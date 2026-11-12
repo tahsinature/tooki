@@ -5,6 +5,7 @@ import TookiKit
 @MainActor
 final class SnippetPanelController {
     private var panel: FloatingPanel?
+    private weak var activeModel: SnippetPanelModel?
     /// Runs after Esc closes the panel, e.g. to go back to root search. Set before each `show()`.
     var onBack: (() -> Void)?
     private let snippets: JSONDocument<[Snippet]>
@@ -31,6 +32,7 @@ final class SnippetPanelController {
             usage: usage,
             targetAppName: NSWorkspace.shared.frontmostApplication?.localizedName
         )
+        activeModel = model
         if creating { model.startCreating() }
         let panel = FloatingPanel(size: PanelTheme.listDetailSize) {
             SnippetPanelView(
@@ -55,6 +57,8 @@ final class SnippetPanelController {
     }
 
     func close() {
+        activeModel?.invalidateDynamicOutput()
+        activeModel = nil
         panel?.close()
         panel = nil
     }
@@ -71,8 +75,26 @@ final class SnippetPanelController {
             return
         }
         guard let snippet = model.selectedSnippet else { return }
+        if snippet.dynamic != nil && (kind == .copy || kind == .paste) {
+            model.actions.close()
+            Task { [weak self] in
+                guard let text = await model.resolveDynamic(), self?.activeModel === model,
+                      self?.panel?.isVisible == true else { return }
+                self?.close()
+                self?.usage.record(snippet.id)
+                if kind == .copy {
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(text, forType: .string)
+                } else {
+                    try? await Task.sleep(for: .milliseconds(60))
+                    Paster.paste(text)
+                }
+            }
+            return
+        }
         switch kind {
         case .openWith:
+            guard snippet.dynamic == nil else { return }
             model.actions.showSubmenu(title: "Open With", actions: SnippetOpenWith.actions(for: snippet), parentID: .openWith)
             return
         case .delete:
@@ -98,6 +120,9 @@ final class SnippetPanelController {
         case .open(let appURL):
             close()
             SnippetOpenWith.open(snippet, with: appURL)
+        case .export:
+            close()
+            SnippetPackageExporter.export(snippet)
         case .togglePin:
             model.togglePinOfSelected()
         case .edit:

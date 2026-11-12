@@ -19,7 +19,7 @@ struct SnippetListView: View {
 
     private func row(_ snippet: Snippet, isSelected: Bool) -> some View {
         ResultRow(title: snippet.name, isSelected: isSelected) {
-            Image(systemName: "doc.text")
+            Image(systemName: snippet.dynamic == nil ? "doc.text" : "function")
                 .font(.system(size: 14))
                 .foregroundStyle(PanelTheme.secondaryText)
         } trailing: {

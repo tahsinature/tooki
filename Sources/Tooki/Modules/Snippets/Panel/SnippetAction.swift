@@ -4,7 +4,7 @@ import TookiKit
 /// One entry in the snippet panel's ⌘K menu.
 struct SnippetAction: PanelActionItem {
     enum Kind: Hashable {
-        case copy, paste, openWith, togglePin, edit, duplicate, create, delete
+        case copy, paste, openWith, togglePin, edit, duplicate, create, delete, export
         case open(appURL: URL)
         case confirmDelete, cancelDelete
     }
@@ -28,8 +28,9 @@ struct SnippetAction: PanelActionItem {
             SnippetAction(kind: .edit, title: "Edit Snippet", icon: .symbol("pencil"), shortcut: "⌘E"),
             SnippetAction(kind: .duplicate, title: "Duplicate Snippet", icon: .symbol("plus.square.on.square"), shortcut: "⌘D"),
             SnippetAction(kind: .create, title: "Create Snippet", icon: .symbol("plus"), shortcut: "⌘N"),
+            SnippetAction(kind: .export, title: "Export Package…", icon: .symbol("square.and.arrow.up")),
             SnippetAction(kind: .delete, title: "Delete Snippet", icon: .symbol("trash"), shortcut: "⌃X"),
-        ]
+        ].filter { snippet.dynamic == nil || $0.kind != .openWith }
     }
 
     /// Shown in place of the main list before a snippet is deleted. Snippets are written by hand,

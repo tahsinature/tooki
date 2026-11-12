@@ -17,7 +17,11 @@ struct SnippetFormView: View {
                 header(isNew: form.isNew)
                 PanelTheme.separator.frame(height: 1)
                 HStack(alignment: .top, spacing: 20) {
-                    textColumn
+                    if model.form?.draft.dynamic != nil {
+                        DynamicDefinitionEditor(definition: dynamicBinding, snippet: form.draft)
+                    } else {
+                        textColumn
+                    }
                     fieldsColumn
                         .frame(width: 220)
                 }
@@ -85,6 +89,16 @@ struct SnippetFormView: View {
 
     private var fieldsColumn: some View {
         VStack(alignment: .leading, spacing: 14) {
+            Picker("Snippet type", selection: Binding(get: { model.form?.draft.dynamic != nil }, set: { dynamic in
+                if dynamic { model.form?.draft.dynamic = SnippetGalleryExamples.email.dynamic }
+                else { model.form?.draft.dynamic = nil }
+            })) {
+                Text("Text").tag(false)
+                Text("Dynamic").tag(true)
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .accessibilityLabel("Snippet type")
             field("Name") {
                 TextField("Email signature", text: draft.name)
                     .focused($isNameFocused)
@@ -118,13 +132,20 @@ struct SnippetFormView: View {
                     .font(.system(size: 11))
                     .foregroundStyle(.orange)
             } else {
-                Text("Typing the keyword anywhere replaces it with the snippet.")
+                Text(model.form?.draft.dynamic == nil ? "Typing the keyword anywhere replaces it with the snippet." : "Type this prefix, your input, then the completion key. No chooser opens while typing.")
                     .font(.system(size: 11))
                     .foregroundStyle(PanelTheme.tertiaryText)
                     .fixedSize(horizontal: false, vertical: true)
             }
+            if let error = model.draftError {
+                Text(error).font(.caption).foregroundStyle(.orange)
+            }
             Spacer()
         }
+    }
+
+    private var dynamicBinding: Binding<DynamicSnippet> {
+        Binding(get: { model.form?.draft.dynamic ?? DynamicSnippet() }, set: { model.form?.draft.dynamic = $0; model.draftError = nil })
     }
 
     private func label(_ title: String) -> some View {

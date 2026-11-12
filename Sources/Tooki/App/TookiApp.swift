@@ -35,6 +35,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @MainActor
+    func application(_ application: NSApplication, open urls: [URL]) {
+        for url in urls { app.open(url) }
+    }
+
+    @MainActor
     func applicationDidFinishLaunching(_ notification: Notification) {
         TerminationSignals.install()
         Task {

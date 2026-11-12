@@ -24,7 +24,7 @@ struct SnippetPanelView: View {
             footer: ListDetailFooter(
                 title: "Snippets",
                 icon: .symbol("text.quote"),
-                primaryActionTitle: model.selectedSnippet == nil ? "Create Snippet" : "Copy to Clipboard",
+                primaryActionTitle: model.selectedSnippet == nil ? "Create Snippet" : (model.selectedSnippet?.dynamic == nil ? "Copy to Clipboard" : "Run & Copy"),
                 primaryShortcut: model.selectedSnippet == nil ? "⌘N" : "↵",
                 // With nothing selected, creating is already the main action.
                 secondaryAction: model.selectedSnippet == nil ? nil : FooterAction(title: "Create Snippet", shortcut: "⌘N") { onAction(.create) }
@@ -51,7 +51,11 @@ struct SnippetPanelView: View {
             SnippetListView(model: model, onCopy: { onAction(.copy) })
         } detail: {
             if let snippet = model.selectedSnippet {
-                SnippetDetailView(snippet: snippet, usage: model.usage.entry(for: snippet.id))
+                if let definition = snippet.dynamic {
+                    SnippetRunDetail(model: model, snippet: snippet, definition: definition, onRun: { onAction(.copy) })
+                } else {
+                    SnippetDetailView(snippet: snippet, usage: model.usage.entry(for: snippet.id))
+                }
             }
         } emptyState: {
             emptyState

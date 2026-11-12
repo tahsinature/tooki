@@ -45,5 +45,18 @@
 	<true/>
 	<key>NSHighResolutionCapable</key>
 	<true/>
+    <key>CFBundleDocumentTypes</key>
+    <array><dict>
+        <key>CFBundleTypeName</key><string>Tooki Snippet Package</string>
+        <key>CFBundleTypeRole</key><string>Viewer</string>
+        <key>LSItemContentTypes</key><array><string>us.tahsin.tooki.snippet</string></array>
+    </dict></array>
+    <key>UTExportedTypeDeclarations</key>
+    <array><dict>
+        <key>UTTypeIdentifier</key><string>us.tahsin.tooki.snippet</string>
+        <key>UTTypeDescription</key><string>Tooki Snippet Package</string>
+        <key>UTTypeConformsTo</key><array><string>public.json</string></array>
+        <key>UTTypeTagSpecification</key><dict><key>public.filename-extension</key><array><string>tookisnippet</string></array></dict>
+    </dict></array>
 </dict>
 </plist>

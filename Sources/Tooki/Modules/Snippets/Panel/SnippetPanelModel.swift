@@ -19,8 +19,16 @@ final class SnippetPanelModel {
     var collectionFilter: String? {
         didSet { if collectionFilter != oldValue { selectedID = nil } }
     }
-    var selectedID: Snippet.ID?
+    var dynamicInputs: [String: String] = [:]
+    var dynamicConfiguration: [String: String] = [:]
+    var dynamicOutput: String?
+    var dynamicError: String?
+    var isRunning = false
+    var runGeneration = 0
+
+    var selectedID: Snippet.ID? { didSet { if oldValue != selectedID { resetDynamicRun() } } }
     /// Non-nil while the edit form replaces the list.
+    var draftError: String?
     var form: Form?
     let actions = ActionsMenu<SnippetAction>()
 
@@ -104,7 +112,7 @@ final class SnippetPanelModel {
     func startDuplicatingSelected() {
         guard let snippet = selectedSnippet else { return }
         actions.close()
-        let copy = Snippet(name: "\(snippet.name) Copy", collection: snippet.collection, text: snippet.text)
+        let copy = Snippet(name: "\(snippet.name) Copy", collection: snippet.collection, text: snippet.text, dynamic: snippet.dynamic, configuration: snippet.configuration)
         form = Form(draft: copy, isNew: true)
     }
 
@@ -116,12 +124,17 @@ final class SnippetPanelModel {
 
     var canSaveDraft: Bool {
         guard let draft = form?.draft else { return false }
-        return !draft.name.trimmingCharacters(in: .whitespaces).isEmpty && !draft.text.isEmpty
+        return !draft.name.trimmingCharacters(in: .whitespaces).isEmpty && (!draft.text.isEmpty || draft.dynamic != nil)
     }
 
     /// Returns false when the draft is missing a name or text.
     func saveDraft() -> Bool {
         guard canSaveDraft, var draft = form?.draft else { return false }
+        if draftKeywordIsTaken { draftError = "Another snippet already uses this keyword."; return false }
+        if let definition = draft.dynamic {
+            do { try definition.validate() } catch { draftError = error.localizedDescription; return false }
+        }
+        draftError = nil
         let now = Date()
         draft.name = draft.name.trimmingCharacters(in: .whitespaces)
         draft.collection = draft.collection.trimmingCharacters(in: .whitespaces)

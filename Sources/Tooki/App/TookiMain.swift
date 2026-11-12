@@ -6,6 +6,9 @@ enum TookiMain {
     @MainActor
     static func main() {
         let arguments = Array(CommandLine.arguments.dropFirst())
+        if arguments == ["--snippet-worker"] {
+            exit(SnippetScriptWorker.run())
+        }
         if arguments.first == "shelf" {
             exit(TookiCommandLine.runShelf(Array(arguments.dropFirst())))
         }

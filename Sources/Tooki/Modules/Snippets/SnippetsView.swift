@@ -14,6 +14,7 @@ struct SnippetsView: View {
             SettingsSection("Your snippets") {
                 SettingsRow(countText, description: "Search, copy, paste, pin and edit them in the snippets panel.") {
                     HStack(spacing: 8) {
+                        Button("Gallery", systemImage: "square.grid.2x2") { app.snippetGallery.isPresented = true }
                         Button("New Snippet") { app.createSnippet() }
                         Button("Open Snippets") { app.toggleSnippets() }
                     }
@@ -42,6 +43,9 @@ struct SnippetsView: View {
             } footer: {
                 Text("Click a placeholder row to copy its token. Placeholders are filled in when a snippet is copied, pasted or expanded.")
             }
+        }
+        .sheet(isPresented: Bindable(app.snippetGallery).isPresented) {
+            SnippetGalleryView(state: app.snippetGallery, snippets: app.snippets)
         }
     }
 

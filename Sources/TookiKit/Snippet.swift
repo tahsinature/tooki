@@ -7,13 +7,16 @@ public struct Snippet: Codable, Equatable, Identifiable, Sendable {
     public var keyword: String
     public var collection: String
     public var text: String
+    public var dynamic: DynamicSnippet?
+    public var configuration: [String: String]
+    public var package: SnippetPackageIdentity?
     public var isPinned: Bool
     /// `nil` for snippets written by hand or saved before Tooki tracked dates.
     public var createdAt: Date?
     public var modifiedAt: Date?
 
     private enum CodingKeys: String, CodingKey {
-        case id, name, keyword, collection, text, isPinned, createdAt, modifiedAt
+        case id, name, keyword, collection, text, isPinned, createdAt, modifiedAt, dynamic, configuration, package
     }
 
     public init(
@@ -22,6 +25,9 @@ public struct Snippet: Codable, Equatable, Identifiable, Sendable {
         keyword: String = "",
         collection: String = "",
         text: String,
+        dynamic: DynamicSnippet? = nil,
+        configuration: [String: String] = [:],
+        package: SnippetPackageIdentity? = nil,
         isPinned: Bool = false,
         createdAt: Date? = nil,
         modifiedAt: Date? = nil
@@ -31,6 +37,9 @@ public struct Snippet: Codable, Equatable, Identifiable, Sendable {
         self.keyword = keyword
         self.collection = collection
         self.text = text
+        self.dynamic = dynamic
+        self.configuration = configuration
+        self.package = package
         self.isPinned = isPinned
         self.createdAt = createdAt
         self.modifiedAt = modifiedAt
@@ -43,6 +52,9 @@ public struct Snippet: Codable, Equatable, Identifiable, Sendable {
         keyword = try container.decode(.keyword, default: "")
         collection = try container.decode(.collection, default: "")
         text = try container.decode(.text, default: "")
+        dynamic = try container.decodeIfPresent(DynamicSnippet.self, forKey: .dynamic)
+        configuration = try container.decode(.configuration, default: [:])
+        package = try container.decodeIfPresent(SnippetPackageIdentity.self, forKey: .package)
         isPinned = try container.decode(.isPinned, default: false)
         createdAt = try container.decodeIfPresent(Date.self, forKey: .createdAt)
         modifiedAt = try container.decodeIfPresent(Date.self, forKey: .modifiedAt)
@@ -56,6 +68,9 @@ public struct Snippet: Codable, Equatable, Identifiable, Sendable {
         try container.encode(keyword, forKey: .keyword)
         try container.encode(collection, forKey: .collection)
         try container.encode(text, forKey: .text)
+        try container.encodeIfPresent(dynamic, forKey: .dynamic)
+        if !configuration.isEmpty { try container.encode(configuration, forKey: .configuration) }
+        try container.encodeIfPresent(package, forKey: .package)
         if isPinned { try container.encode(isPinned, forKey: .isPinned) }
         try container.encodeIfPresent(createdAt, forKey: .createdAt)
         try container.encodeIfPresent(modifiedAt, forKey: .modifiedAt)
@@ -85,7 +100,7 @@ public enum KeywordMatcher {
     /// Returns the snippet whose keyword the typed text ends with, preferring the longest keyword.
     public static func match(typed: String, in snippets: [Snippet]) -> Snippet? {
         snippets
-            .filter { !$0.keyword.isEmpty && typed.hasSuffix($0.keyword) }
+            .filter { $0.dynamic == nil && !$0.keyword.isEmpty && typed.hasSuffix($0.keyword) }
             .max { $0.keyword.count < $1.keyword.count }
     }
 }

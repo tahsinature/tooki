@@ -10,6 +10,7 @@ final class AppController {
         fileURL: StoragePaths.configDirectory.appending(path: "config.json"),
         initialValue: TookiConfig()
     )
+    let snippetGallery = SnippetGalleryState()
     let snippets = JSONDocument(
         fileURL: StoragePaths.configDirectory.appending(path: "snippets.json"),
         initialValue: Snippet.examples
@@ -110,6 +111,27 @@ final class AppController {
     func open(_ url: URL) {
         guard pendingURLs == nil else {
             pendingURLs?.append(url)
+            return
+        }
+        if url.isFileURL {
+            snippetGallery.importFile(url)
+            showSettings(.snippets)
+            return
+        }
+        if url.host == "snippets", url.path == "/gallery" {
+            snippetGallery.isPresented = true
+            showSettings(.snippets)
+            return
+        }
+        if url.host == "snippets", url.path == "/import" {
+            if let source = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems?.first(where: { $0.name == "url" })?.value,
+               let remote = URL(string: source) {
+                snippetGallery.importRemote(remote)
+            } else {
+                snippetGallery.isPresented = true
+                snippetGallery.error = "The import link is missing a package URL."
+            }
+            showSettings(.snippets)
             return
         }
         switch TookiURLCommand(url) {

@@ -1,3 +1,4 @@
+import AppKit
 import CoreGraphics
 import Foundation
 import TookiKit
@@ -10,7 +11,8 @@ final class SnippetExpander: KeyEventHandler {
     private let snippets: JSONDocument<[Snippet]>
     private let inserter: SnippetInserter
     private let usage: SnippetUsage
-    private var buffer = TypedBuffer()
+    private var buffer = TypedBuffer(maxLength: 512)
+    private var generation = 0
 
     init(snippets: JSONDocument<[Snippet]>, inserter: SnippetInserter, usage: SnippetUsage) {
         self.snippets = snippets
@@ -19,6 +21,7 @@ final class SnippetExpander: KeyEventHandler {
     }
 
     func handle(_ event: CGEvent, type: CGEventType) -> Bool {
+        generation += 1
         guard isEnabled else { return false }
         switch type {
         case .leftMouseDown, .rightMouseDown:
@@ -47,6 +50,24 @@ final class SnippetExpander: KeyEventHandler {
         }
 
         buffer.append(characters)
+        if let match = DynamicKeywordMatcher.match(typed: buffer.text, in: snippets.value) {
+            let version = generation
+            let target = NSWorkspace.shared.frontmostApplication?.processIdentifier
+            Task { [weak self] in
+                let result = await DynamicSnippetRunner.evaluate(match.snippet, inputs: match.inputs)
+                // The completion key is delivered normally. Touch the target only after success,
+                // and only if neither typing, caret interaction nor the frontmost app changed.
+                try? await Task.sleep(for: .milliseconds(60))
+                guard let self, self.isEnabled, self.generation == version,
+                      NSWorkspace.shared.frontmostApplication?.processIdentifier == target,
+                      let text = result.text, result.error == nil else { return }
+                self.buffer.reset()
+                for _ in 0..<match.length { SyntheticEvent.press(KeyCode.delete) }
+                Paster.paste(text)
+                self.usage.record(match.snippet.id)
+            }
+            return false
+        }
         if let snippet = KeywordMatcher.match(typed: buffer.text, in: snippets.value) {
             buffer.reset()
             // The last keyword character is swallowed, so only the earlier ones need deleting.
