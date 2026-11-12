@@ -12,7 +12,7 @@ enum ClipboardOpenWith {
     static func actions(for item: ClipboardItem) -> [ClipboardAction] {
         guard let first = urls(for: item).first else { return [] }
         return OpenWithApps.apps(toOpen: first).map { app in
-            ClipboardAction(kind: .open(appURL: app.url), title: app.name, icon: .image(app.icon), shortcut: app.isDefault ? "Default" : "")
+            ClipboardAction(kind: .open(appURL: app.url), title: app.name, icon: .image(app.icon), detail: app.isDefault ? "Default" : nil)
         }
     }
 

@@ -29,7 +29,7 @@ final class Shelf: Identifiable {
     var dropTarget: ShelfDropTarget?
     /// Copies still being made. They show as "Copying…" and can't be dragged out yet.
     private(set) var copyingIDs: Set<ShelfItem.ID> = []
-    @ObservationIgnored var removeAfterDragOut = true
+    @ObservationIgnored var removeAfterDragOut = false
     /// The item the arrow keys move from: the last one clicked or reached with an arrow.
     private(set) var cursor: ShelfItem.ID?
 

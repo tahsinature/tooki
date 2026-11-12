@@ -10,6 +10,8 @@ struct ResultRow<Leading: View, Trailing: View>: View {
     @ViewBuilder let leading: Leading
     @ViewBuilder let trailing: Trailing
 
+    @ViewState private var isHovered = false
+
     var body: some View {
         HStack(spacing: PanelTheme.rowSpacing) {
             leading
@@ -35,9 +37,13 @@ struct ResultRow<Leading: View, Trailing: View>: View {
                 RoundedRectangle(cornerRadius: PanelTheme.rowRadius)
                     .fill(PanelTheme.selectedBackground)
                     .overlay(RoundedRectangle(cornerRadius: PanelTheme.rowRadius).strokeBorder(PanelTheme.selectedRim))
+            } else if isHovered {
+                RoundedRectangle(cornerRadius: PanelTheme.rowRadius)
+                    .fill(PanelTheme.hoverBackground)
             }
         }
         .contentShape(Rectangle())
+        .onHover { isHovered = $0 }
     }
 }
 

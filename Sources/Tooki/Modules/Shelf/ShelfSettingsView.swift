@@ -27,7 +27,7 @@ struct ShelfSettingsView: View {
                     )
                     SettingsToggleRow(
                         "Remove items after dragging them out",
-                        description: "Turn off to keep items, so you can drag them out again.",
+                        description: "Off by default. File pickers can accept a drop just to navigate, without using the file.",
                         isOn: $config.value.shelf.removeAfterDragOut
                     )
                 }

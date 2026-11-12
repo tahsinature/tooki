@@ -43,6 +43,7 @@ struct SnippetPanelView: View {
                     selection: $model.collectionFilter,
                     isOpen: isFilterOpen,
                     allTitle: "All Collections",
+                    filterTitle: "Filter by Collection",
                     options: model.collections.map { ($0, $0) }
                 )
             }

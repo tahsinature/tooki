@@ -1,11 +1,12 @@
 import AppKit
 import Quartz
 
-/// Previews shelf items in the system Quick Look panel, the same one Finder opens with Space.
-/// The panel asks the key window for its data, so `ShelfPanel` hands it over to this object.
+/// Previews files in the system Quick Look panel, the same one Finder opens with Space.
+/// The owning window hands preview-panel control to this object.
 @MainActor
-final class ShelfQuickLook: NSObject {
+final class QuickLookPreview: NSObject {
     private var urls: [URL] = []
+    private(set) var isOpening = false
     /// ↑ and ↓ pressed while the preview is open. They move the shelf's selection,
     /// and the preview follows through `update(_:)`.
     var onArrowKey: (NSEvent) -> Bool = { _ in false }
@@ -23,10 +24,19 @@ final class ShelfQuickLook: NSObject {
         }
         guard !urls.isEmpty else { return NSSound.beep() }
         self.urls = urls
+        isOpening = true
+        defer { isOpening = false }
         // Tooki works in the background; Quick Look only takes keys (Space, arrows) when it's active.
         NSApp.activate()
         panel?.makeKeyAndOrderFront(nil)
         panel?.reloadData()
+    }
+
+    /// Closing a window must not close another window's preview.
+    func close() {
+        guard QLPreviewPanel.sharedPreviewPanelExists(),
+              let panel = QLPreviewPanel.shared(), panel.dataSource === self else { return }
+        panel.orderOut(nil)
     }
 
     /// Shows these files instead, if the preview is open.
@@ -49,7 +59,7 @@ final class ShelfQuickLook: NSObject {
     }
 }
 
-extension ShelfQuickLook: @preconcurrency QLPreviewPanelDataSource {
+extension QuickLookPreview: @preconcurrency QLPreviewPanelDataSource {
     func numberOfPreviewItems(in panel: QLPreviewPanel!) -> Int {
         urls.count
     }
@@ -59,9 +69,13 @@ extension ShelfQuickLook: @preconcurrency QLPreviewPanelDataSource {
     }
 }
 
-extension ShelfQuickLook: @preconcurrency QLPreviewPanelDelegate {
+extension QuickLookPreview: @preconcurrency QLPreviewPanelDelegate {
     /// Up and Down go to the shelf; everything else (Left, Right, Space, Esc) stays with Quick Look.
     func previewPanel(_ panel: QLPreviewPanel!, handle event: NSEvent!) -> Bool {
+        if event.type == .keyDown, event.keyCode == 16, event.modifierFlags.contains(.command) {
+            close()
+            return true
+        }
         let upAndDown: Set<UInt16> = [125, 126]
         guard event.type == .keyDown, upAndDown.contains(event.keyCode) else { return false }
         return onArrowKey(event)

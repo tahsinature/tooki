@@ -22,6 +22,7 @@ struct GroupedPanelList<Item: Identifiable, Row: View>: View {
     let selectedID: Item.ID?
     let onSelect: (Item.ID) -> Void
     let onDoubleClick: () -> Void
+    let onShowActions: () -> Void
     @ViewBuilder let row: (_ item: Item, _ isSelected: Bool) -> Row
 
     var body: some View {
@@ -40,6 +41,12 @@ struct GroupedPanelList<Item: Identifiable, Row: View>: View {
                                 row(item, item.id == selectedID)
                                     .onTapGesture(count: 2, perform: onDoubleClick)
                                     .simultaneousGesture(TapGesture().onEnded { onSelect(item.id) })
+                                    .overlay {
+                                        SecondaryClickArea {
+                                            onSelect(item.id)
+                                            onShowActions()
+                                        }
+                                    }
                             }
                         }
                         .frame(height: entry.height)
@@ -51,7 +58,16 @@ struct GroupedPanelList<Item: Identifiable, Row: View>: View {
             // Margins, not padding, so scrolling to the last row keeps space below it.
             .contentMargins(.vertical, PanelTheme.listInset, for: .scrollContent)
             .onChange(of: selectedID) { _, newValue in
-                if let newValue { proxy.scrollTo(Entry.itemID(newValue)) }
+                guard let newValue else { return }
+                if newValue == sections.first(where: { !$0.items.isEmpty })?.items.first?.id,
+                   let firstEntry = entries.first {
+                    // Include the first section heading when navigating back to the top.
+                    proxy.scrollTo(firstEntry.id, anchor: .top)
+                } else if newValue == sections.last(where: { !$0.items.isEmpty })?.items.last?.id {
+                    proxy.scrollTo(Entry.itemID(newValue), anchor: .bottom)
+                } else {
+                    proxy.scrollTo(Entry.itemID(newValue))
+                }
             }
         }
     }

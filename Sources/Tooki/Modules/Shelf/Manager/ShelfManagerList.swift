@@ -12,6 +12,7 @@ struct ShelfManagerList: View {
                 selectedID: model.selectedItem?.id,
                 onSelect: { model.selectedItemID = $0 },
                 onDoubleClick: onDoubleClick,
+                onShowActions: model.actions.open,
                 row: itemRow
             )
         } else {
@@ -20,6 +21,7 @@ struct ShelfManagerList: View {
                 selectedID: model.selectedShelf?.id,
                 onSelect: { model.selectedShelfID = $0 },
                 onDoubleClick: onDoubleClick,
+                onShowActions: model.actions.open,
                 row: shelfRow
             )
         }

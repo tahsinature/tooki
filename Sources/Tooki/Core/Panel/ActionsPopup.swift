@@ -6,7 +6,13 @@ protocol PanelActionItem: Identifiable {
     var icon: PanelIcon { get }
     /// Shown as key caps at the end of the row, e.g. "⌘↵". Empty shows none.
     var shortcut: String { get }
+    /// Descriptive text at the end of the row, such as "Default" or "7 items".
+    var detail: String? { get }
     var isDestructive: Bool { get }
+}
+
+extension PanelActionItem {
+    var detail: String? { nil }
 }
 
 /// The ⌘K popup: a short list of actions with a filter field at the bottom.
@@ -83,6 +89,12 @@ struct ActionsPopup<Action: PanelActionItem>: View {
             PanelIconView(icon: action.icon, size: PanelTheme.rowIconSize)
                 .foregroundStyle(color)
         } trailing: {
+            if let detail = action.detail, !detail.isEmpty {
+                Text(detail)
+                    .font(PanelTheme.labelFont)
+                    .foregroundStyle(PanelTheme.secondaryText)
+                    .lineLimit(1)
+            }
             if !action.shortcut.isEmpty {
                 Keycap(shortcut: action.shortcut)
             }

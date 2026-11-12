@@ -9,22 +9,23 @@ struct ClipboardView: View {
         SettingsScrollPage {
             SettingsSection("Clipboard History") {
                 SettingsToggleRow("Record clipboard history", isOn: $config.value.clipboard.enabled)
-                SettingsRow("Keep last") {
-                    SettingsStepper(
+                SettingsRow("Keep last", description: "Unpinned entries. Pinned items are always kept.") {
+                    SettingsIntegerField(
                         title: "Keep last",
                         value: $config.value.clipboard.maxItems,
                         range: 10...2000,
                         step: 10,
-                        valueLabel: "\(config.value.clipboard.maxItems) items"
+                        unit: "items"
                     )
                 }
-                SettingsRow("Of which images") {
-                    SettingsStepper(
+                SettingsRow("Of which images", description: "Included in the history limit above.") {
+                    SettingsIntegerField(
                         title: "Of which images",
                         value: $config.value.clipboard.maxImages,
                         range: 0...500,
                         step: 10,
-                        valueLabel: config.value.clipboard.maxImages == 0 ? "Off" : "\(config.value.clipboard.maxImages)"
+                        unit: "images",
+                        zeroHint: "0 is off"
                     )
                 }
                 SettingsToggleRow("Remember history after restart", isOn: $config.value.clipboard.persistHistory)

@@ -12,6 +12,7 @@ struct SnippetListView: View {
             selectedID: model.selectedSnippet?.id,
             onSelect: { model.selectedID = $0 },
             onDoubleClick: onCopy,
+            onShowActions: model.actions.open,
             row: row
         )
     }

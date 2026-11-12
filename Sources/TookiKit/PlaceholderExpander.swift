@@ -19,7 +19,7 @@ public struct ExpansionResult: Equatable, Sendable {
 }
 
 /// Replaces snippet placeholders:
-/// `{date}`, `{date:FORMAT}`, `{time}`, `{time:FORMAT}`, `{clipboard}`, `{cursor}`, `{argument:name}`.
+/// Dates, times, UUIDs, clipboard text, cursor position and named arguments.
 /// Unknown placeholders are left untouched.
 public enum PlaceholderExpander {
     private nonisolated(unsafe) static let pattern = /\{([a-zA-Z]+)(?::([^}]*))?\}/
@@ -59,11 +59,17 @@ public enum PlaceholderExpander {
 
     private static func value(for name: String, option: String?, context: ExpansionContext) -> String? {
         switch name {
-        case "date": format(context.now, option ?? "yyyy-MM-dd")
-        case "time": format(context.now, option ?? "HH:mm")
-        case "clipboard": context.clipboard
-        case "argument": option.flatMap { context.arguments[$0] } ?? ""
-        default: nil
+        case "date": return format(context.now, option ?? "yyyy-MM-dd")
+        case "time": return format(context.now, option ?? "HH:mm")
+        case "datetime": return option.map { format(context.now, $0) }
+            ?? context.now.formatted(date: .abbreviated, time: .shortened)
+        case "uuid":
+            guard option == nil || option == "lowercase" else { return nil }
+            let uuid = UUID().uuidString
+            return option == "lowercase" ? uuid.lowercased() : uuid
+        case "clipboard": return context.clipboard
+        case "argument": return option.flatMap { context.arguments[$0] } ?? ""
+        default: return nil
         }
     }
 

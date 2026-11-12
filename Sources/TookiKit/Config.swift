@@ -215,8 +215,8 @@ public struct ShelfConfig: Codable, Equatable, Sendable {
     public var enabled = true
     /// Holding Shift while dragging something shows the shelf next to the pointer.
     public var shiftDragOpens = true
-    /// Items leave the shelf once they're dragged somewhere else.
-    public var removeAfterDragOut = true
+    /// Optional cleanup after any accepted drop. Off by default because file pickers also accept navigation drops.
+    public var removeAfterDragOut = false
 
     public init() {}
 

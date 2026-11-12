@@ -36,6 +36,12 @@ final class ClipboardPanelModel {
     /// Items in the order they are shown: pinned first.
     var orderedResults: [ClipboardItem] { pinned + recent }
 
+    var itemCountLabel: String {
+        let total = history.items.count.formatted()
+        let isFiltering = typeFilter != nil || !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        return isFiltering ? "\(results.count.formatted()) of \(total)" : total
+    }
+
     var selectedItem: ClipboardItem? {
         let ordered = orderedResults
         return ordered.first { $0.id == selectedID } ?? ordered.first

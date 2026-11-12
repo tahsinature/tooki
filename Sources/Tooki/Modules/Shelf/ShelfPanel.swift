@@ -10,7 +10,7 @@ final class ShelfPanel: NSPanel {
     /// Esc going down and coming back up, so a tap and a hold can do different things.
     var onEscapeKey: (NSEvent) -> Void = { _ in }
     var onFocusChange: (Bool) -> Void = { _ in }
-    let quickLook = ShelfQuickLook()
+    let quickLook = QuickLookPreview()
 
     init(shelf: Shelf, content: some View) {
         super.init(

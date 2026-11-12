@@ -13,6 +13,7 @@ struct ClipboardListView: View {
             selectedID: model.selectedItem?.id,
             onSelect: { model.selectedID = $0 },
             onDoubleClick: onCopy,
+            onShowActions: model.actions.open,
             row: row
         )
     }

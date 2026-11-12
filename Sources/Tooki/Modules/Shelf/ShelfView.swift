@@ -220,7 +220,7 @@ private struct ShelfStack: View {
                     onDropped: { shelf.didDragOut($0) }
                 )
             )
-            .help("Drag to move every item")
+            .help("Drag every item into another app")
             .onHover { hovering in
                 guard hovering != isHovered else { return }
                 isHovered = hovering

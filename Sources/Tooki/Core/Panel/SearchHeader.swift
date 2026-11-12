@@ -31,7 +31,8 @@ struct SearchHeader<Accessory: View>: View {
         }
         .padding(.horizontal, 16)
         .frame(height: PanelTheme.headerHeight)
-        .overlay(alignment: .bottom) {
+        // Keep the separator behind the Filter Menu when its popup overlaps the header.
+        .background(alignment: .bottom) {
             PanelTheme.separator.frame(height: 1)
         }
     }

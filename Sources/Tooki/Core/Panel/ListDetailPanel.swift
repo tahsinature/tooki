@@ -8,6 +8,7 @@ struct ListDetailFooter {
     let primaryActionTitle: String?
     var primaryShortcut = "↵"
     var secondaryAction: FooterAction?
+    var accessory: AnyView?
 }
 
 /// A Raycast-style panel: search on top, list and detail side by side, actions along the bottom,
@@ -57,7 +58,8 @@ struct ListDetailPanel<Action: PanelActionItem, Accessory: View, ListContent: Vi
                 primaryShortcut: footer.primaryShortcut,
                 onPrimaryAction: { onReturn(false) },
                 secondaryAction: footer.secondaryAction,
-                onShowActions: hasItems ? { actions.toggle() } : nil
+                onShowActions: hasItems ? { actions.toggle() } : nil,
+                accessory: footer.accessory
             )
         }
         .actionsPopup(isPresented: actions.isShowing && hasItems, onDismiss: actions.close) {

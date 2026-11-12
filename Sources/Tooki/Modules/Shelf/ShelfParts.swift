@@ -115,7 +115,10 @@ private struct ShelfRow: View {
         .padding(.horizontal, 8)
         .frame(maxHeight: .infinity)
         .foregroundStyle(isSelected ? .white : .primary)
-        .background(isSelected ? Color.accentColor : .clear, in: RoundedRectangle(cornerRadius: 6))
+        .background(
+            isSelected ? Color.accentColor : (isHovered ? PanelTheme.hoverBackground : .clear),
+            in: RoundedRectangle(cornerRadius: 6)
+        )
         .overlay(
             ShelfDragArea(
                 items: { shelf.itemsToDrag(startingAt: item) },

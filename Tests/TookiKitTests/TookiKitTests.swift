@@ -70,6 +70,22 @@ struct KeywordMatcherTests {
 }
 
 struct ConfigTests {
+    @Test func shelfKeepsItemsByDefaultIncludingOlderConfigs() throws {
+        #expect(!ShelfConfig().removeAfterDragOut)
+        for json in ["{}", #"{"shelf":{}}"#] {
+            let config = try JSONDecoder().decode(TookiConfig.self, from: Data(json.utf8))
+            #expect(!config.shelf.removeAfterDragOut)
+        }
+    }
+
+    @Test func shelfHonorsExplicitAutomaticRemovalPreference() throws {
+        for enabled in [true, false] {
+            let json = "{\"shelf\":{\"removeAfterDragOut\":\(enabled)}}"
+            let config = try JSONDecoder().decode(TookiConfig.self, from: Data(json.utf8))
+            #expect(config.shelf.removeAfterDragOut == enabled)
+        }
+    }
+
     @Test func missingFieldsUseDefaults() throws {
         let json = #"{ "hyperKey": { "enabled": false }, "keepAwake": { "mode": "system" } }"#
         let config = try JSONDecoder().decode(TookiConfig.self, from: Data(json.utf8))

@@ -4,21 +4,11 @@ import TookiKit
 /// The right column: a preview of the item, then its details.
 struct ClipboardDetailView: View {
     let item: ClipboardItem
-    /// Runs when the item was dragged into another app.
-    let onDropped: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             ClipboardPreview(item: item)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                .overlay(alignment: .topTrailing) {
-                    // A finished drop works like a paste, so the panel closes.
-                    ClipboardDragButton(item: item, onDropped: onDropped)
-                        .frame(width: 28, height: 28)
-                        .background(PanelTheme.tertiaryBackground, in: RoundedRectangle(cornerRadius: 8))
-                        .disabled(!item.canBeUsed)
-                        .padding(10)
-                }
             MetadataList(title: "Information", items: ClipboardMetadata.items(for: item))
         }
     }

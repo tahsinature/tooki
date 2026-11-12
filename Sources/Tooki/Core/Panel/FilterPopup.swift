@@ -11,6 +11,7 @@ struct FilterPopup: View {
 
     @ViewState private var query = ""
     @ViewState private var highlighted = 0
+    @ViewState private var hoveredIndex: Int?
     @ViewState private var rowsHeight: CGFloat = 0
     @FocusState private var isQueryFocused: Bool
 
@@ -60,7 +61,10 @@ struct FilterPopup: View {
             highlighted = visible.firstIndex(of: current) ?? 0
             isQueryFocused = true
         }
-        .onChange(of: query) { highlighted = 0 }
+        .onChange(of: query) {
+            highlighted = 0
+            hoveredIndex = nil
+        }
         // Clicking anywhere else in the panel closes it.
         .onChange(of: isQueryFocused) { _, isFocused in
             if !isFocused { onClose() }
@@ -103,8 +107,18 @@ struct FilterPopup: View {
         .foregroundStyle(isCurrent ? PanelTheme.accent : PanelTheme.primaryText)
         .padding(.horizontal, 7)
         .frame(height: Self.rowHeight)
-        .background(isHighlighted ? PanelTheme.selectedBackground : .clear, in: RoundedRectangle(cornerRadius: 6))
+        .background(
+            isHighlighted ? PanelTheme.selectedBackground : (hoveredIndex == index ? PanelTheme.hoverBackground : .clear),
+            in: RoundedRectangle(cornerRadius: 6)
+        )
         .contentShape(Rectangle())
+        .onHover { isHovered in
+            if isHovered {
+                hoveredIndex = index
+            } else if hoveredIndex == index {
+                hoveredIndex = nil
+            }
+        }
     }
 
     private func handleKey(_ press: KeyPress) -> KeyPress.Result {

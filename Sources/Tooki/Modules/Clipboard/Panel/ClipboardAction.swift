@@ -4,7 +4,7 @@ import TookiKit
 /// One entry in the ⌘K actions menu.
 struct ClipboardAction: PanelActionItem {
     enum Kind: Hashable {
-        case paste, copy, openWith, togglePin, delete
+        case paste, copy, copyPath, preview, openWith, togglePin, delete
         case open(appURL: URL)
         /// Opens the list of shelves.
         case addToShelf
@@ -16,7 +16,8 @@ struct ClipboardAction: PanelActionItem {
     let kind: Kind
     let title: String
     let icon: PanelIcon
-    let shortcut: String
+    var shortcut = ""
+    var detail: String? = nil
 
     var id: Kind { kind }
     var isDestructive: Bool { kind == .delete }
@@ -29,6 +30,11 @@ struct ClipboardAction: PanelActionItem {
                 ClipboardAction(kind: .copy, title: "Copy to Clipboard", icon: .symbol("doc.on.doc"), shortcut: "↵"),
                 ClipboardAction(kind: .paste, title: "Paste to \(targetAppName ?? "Active App")", icon: .symbol("arrow.up.forward.app"), shortcut: "⌘↵"),
             ]
+        }
+        let fileURLs = ClipboardFileURLs.urls(for: item)
+        if !fileURLs.isEmpty {
+            actions.append(ClipboardAction(kind: .copyPath, title: fileURLs.count == 1 ? "Copy Path" : "Copy Paths", icon: .symbol("link"), shortcut: ""))
+            actions.append(ClipboardAction(kind: .preview, title: "Preview", icon: .symbol("eye"), shortcut: "⌘Y"))
         }
         if item.canBeUsed, ClipboardOpenWith.canOpen(item) {
             actions.append(ClipboardAction(kind: .openWith, title: "Open With…", icon: .symbol("arrow.up.forward.app"), shortcut: "⌘O"))
@@ -48,7 +54,7 @@ extension ClipboardAction {
     @MainActor
     static func shelves(in library: ShelfLibrary) -> [ClipboardAction] {
         ShelfDestinationChoices.all(in: library).map {
-            ClipboardAction(kind: .addTo($0.destination), title: $0.title, icon: $0.icon, shortcut: $0.detail)
+            ClipboardAction(kind: .addTo($0.destination), title: $0.title, icon: $0.icon, detail: $0.detail)
         }
     }
 

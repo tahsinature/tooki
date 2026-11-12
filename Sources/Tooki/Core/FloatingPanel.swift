@@ -1,10 +1,13 @@
 import AppKit
+import Quartz
 import SwiftUI
 import TookiKit
 
 /// A borderless floating panel (like Spotlight) that takes keyboard input
 /// without activating Tooki, so the app you were typing in stays frontmost.
 final class FloatingPanel: NSPanel {
+    /// Set by panels that offer Preview. Other panels keep their usual dismiss-on-blur behavior.
+    var quickLook: QuickLookPreview?
     init<Content: View>(size: CGSize, @ViewBuilder content: () -> Content) {
         super.init(
             contentRect: CGRect(origin: .zero, size: size),
@@ -51,7 +54,28 @@ final class FloatingPanel: NSPanel {
     /// Clicking anywhere else dismisses the panel.
     override func resignKey() {
         super.resignKey()
+        if quickLook?.isOpening == true { return }
+        if QLPreviewPanel.sharedPreviewPanelExists(),
+           let preview = QLPreviewPanel.shared(), preview.isVisible,
+           let quickLook, preview.dataSource === quickLook { return }
         close()
+    }
+
+    override func close() {
+        quickLook?.close()
+        super.close()
+    }
+
+    override func acceptsPreviewPanelControl(_ panel: QLPreviewPanel!) -> Bool {
+        MainActor.assumeIsolated { quickLook != nil }
+    }
+
+    override func beginPreviewPanelControl(_ panel: QLPreviewPanel!) {
+        MainActor.assumeIsolated { quickLook?.takeControl(of: panel) }
+    }
+
+    override func endPreviewPanelControl(_ panel: QLPreviewPanel!) {
+        MainActor.assumeIsolated { quickLook?.releaseControl(of: panel) }
     }
 
     func present() {

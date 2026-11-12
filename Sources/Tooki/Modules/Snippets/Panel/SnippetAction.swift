@@ -13,6 +13,7 @@ struct SnippetAction: PanelActionItem {
     let title: String
     let icon: PanelIcon
     var shortcut = ""
+    var detail: String? = nil
 
     var id: Kind { kind }
     var isDestructive: Bool { kind == .delete || kind == .confirmDelete }

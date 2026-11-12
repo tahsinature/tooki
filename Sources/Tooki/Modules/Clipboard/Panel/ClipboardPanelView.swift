@@ -15,11 +15,7 @@ struct ClipboardPanelView: View {
             placeholder: "Search clipboard…",
             query: $model.query,
             actions: model.actions,
-            footer: ListDetailFooter(
-                title: "Clipboard History",
-                icon: .symbol("doc.on.clipboard"),
-                primaryActionTitle: model.selectedItem?.canBeUsed == true ? "Copy to Clipboard" : nil
-            ),
+            footer: footer,
             hasItems: model.selectedItem != nil,
             onMove: model.moveSelection,
             onReturn: { isCommand in onAction(isCommand ? .paste : .copy) },
@@ -31,17 +27,33 @@ struct ClipboardPanelView: View {
                 selection: $model.typeFilter,
                 isOpen: isFilterOpen,
                 allTitle: "All Types",
+                filterTitle: "Filter by Type",
                 options: ClipboardContentType.allCases.map { ($0, $0.pluralLabel) }
             )
         } list: {
             ClipboardListView(model: model, onCopy: { onAction(.copy) })
         } detail: {
             if let item = model.selectedItem {
-                ClipboardDetailView(item: item, onDropped: onClose)
+                ClipboardDetailView(item: item)
             }
         } emptyState: {
             emptyState
         }
+    }
+
+    private var footer: ListDetailFooter {
+        var footer = ListDetailFooter(
+            title: "Clipboard History · \(model.itemCountLabel)",
+            icon: .symbol("doc.on.clipboard"),
+            primaryActionTitle: model.selectedItem?.canBeUsed == true ? "Copy to Clipboard" : nil
+        )
+        if let item = model.selectedItem {
+            footer.accessory = AnyView(
+                ClipboardDragButton(item: item, onDropped: onClose)
+                    .disabled(!item.canBeUsed)
+            )
+        }
+        return footer
     }
 
     @ViewBuilder
@@ -67,6 +79,8 @@ struct ClipboardPanelView: View {
         if press.key == .rightArrow, model.actions.isShowing, model.actions.query.isEmpty,
            let kind = model.actions.selectedAction?.kind, kind == .openWith || kind == .addToShelf {
             onAction(kind)
+        } else if command, key == "y" {
+            onAction(.preview)
         } else if command, key == "s" {
             onAction(.addToShelf)
         } else if command, key == "o" {

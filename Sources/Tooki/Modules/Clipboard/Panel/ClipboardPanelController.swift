@@ -41,6 +41,7 @@ final class ClipboardPanelController {
         panel.onEscape = { [weak self, weak model] in
             if model?.actions.dismiss() != true { self?.dismiss() }
         }
+        panel.quickLook = QuickLookPreview()
         self.panel = panel
         panel.present()
     }
@@ -59,7 +60,7 @@ final class ClipboardPanelController {
     private func perform(_ kind: ClipboardAction.Kind, model: ClipboardPanelModel) {
         guard let item = model.selectedItem else { return }
         let needsUsableItem = switch kind {
-        case .paste, .copy, .open, .openWith, .addToShelf, .addTo, .add: true
+        case .paste, .copy, .copyPath, .preview, .open, .openWith, .addToShelf, .addTo, .add: true
         case .togglePin, .delete: false
         }
         if needsUsableItem, !item.canBeUsed {
@@ -78,6 +79,14 @@ final class ClipboardPanelController {
         }
         model.actions.close()
         switch kind {
+        case .preview:
+            panel?.quickLook?.toggle(ClipboardFileURLs.urls(for: item))
+        case .copyPath:
+            let paths = ClipboardFileURLs.urls(for: item).map(\.path)
+            guard !paths.isEmpty else { return }
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(paths.joined(separator: "\n"), forType: .string)
+            close()
         case .paste:
             close()
             Task {

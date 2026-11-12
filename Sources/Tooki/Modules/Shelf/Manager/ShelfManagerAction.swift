@@ -17,6 +17,7 @@ struct ShelfManagerAction: PanelActionItem {
     let title: String
     let icon: PanelIcon
     var shortcut = ""
+    var detail: String? = nil
 
     var id: Kind { kind }
     var isDestructive: Bool { [.closeShelf, .confirmClose, .remove].contains(kind) }
@@ -73,7 +74,7 @@ struct ShelfManagerAction: PanelActionItem {
     @MainActor
     static func openWith(_ item: ShelfItem) -> [ShelfManagerAction] {
         OpenWithApps.apps(toOpen: item.url).map { app in
-            ShelfManagerAction(kind: .openIn(appURL: app.url), title: app.name, icon: .image(app.icon), shortcut: app.isDefault ? "Default" : "")
+            ShelfManagerAction(kind: .openIn(appURL: app.url), title: app.name, icon: .image(app.icon), detail: app.isDefault ? "Default" : nil)
         }
     }
 }

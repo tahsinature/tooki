@@ -26,6 +26,7 @@ struct SearchView: View {
                         selection: $model.groupFilter,
                         isOpen: $isFilterMenuOpen,
                         allTitle: "All",
+                        filterTitle: "Filter by Group",
                         options: model.filterGroups.map { ($0, $0.rawValue) }
                     )
                 }
@@ -179,6 +180,14 @@ private struct SearchResultList: View {
             }
         }
         .id(item.id)
+        .overlay {
+            SecondaryClickArea {
+                if let index = model.results.firstIndex(where: { $0.id == item.id }) {
+                    model.selection = index
+                    model.isShowingActions = true
+                }
+            }
+        }
         .onTapGesture {
             if let index = model.results.firstIndex(where: { $0.id == item.id }) { model.selection = index }
             onRun()

@@ -14,6 +14,8 @@ struct BottomActionBar: View {
     let onShowActions: (() -> Void)?
     /// Makes the icon and title on the left a button, e.g. to open Settings from search.
     var badgeAction: FooterAction?
+    /// An optional control immediately before the primary action, such as Clipboard History's Drag button.
+    var accessory: AnyView?
 
     var body: some View {
         HStack(spacing: 8) {
@@ -29,6 +31,7 @@ struct BottomActionBar: View {
                 BarButton(title: secondaryAction.title, shortcut: secondaryAction.shortcut, isPrimary: false, action: secondaryAction.run)
                 if primaryActionTitle != nil || onShowActions != nil { separator }
             }
+            if let accessory { accessory }
             if let primaryActionTitle {
                 BarButton(title: primaryActionTitle, shortcut: primaryShortcut, isPrimary: true, action: onPrimaryAction)
             }

@@ -8,7 +8,7 @@ enum SnippetOpenWith {
     static func actions(for snippet: Snippet) -> [SnippetAction] {
         let apps = link(in: snippet).map(OpenWithApps.apps(toOpen:)) ?? OpenWithApps.apps(toOpen: .plainText)
         return apps.map { app in
-            SnippetAction(kind: .open(appURL: app.url), title: app.name, icon: .image(app.icon), shortcut: app.isDefault ? "Default" : "")
+            SnippetAction(kind: .open(appURL: app.url), title: app.name, icon: .image(app.icon), detail: app.isDefault ? "Default" : nil)
         }
     }
 

@@ -99,15 +99,18 @@ final class ShelfDragSourceView: NSView, NSDraggingSource, NSViewToolTipOwner {
         draggedItems = items
 
         let start = convert(event.locationInWindow, from: nil)
+        let picture = ShelfDragPreview.image(for: items, appearance: effectiveAppearance)
+        let frame = CGRect(
+            x: start.x - 24, y: start.y - picture.size.height + 16,
+            width: picture.size.width, height: picture.size.height
+        )
         let draggingItems = items.enumerated().map { index, item in
             let draggingItem = NSDraggingItem(pasteboardWriter: ShelfDragContent.writer(for: item))
-            // Stack the first few slightly so they read as a pile.
-            let offset = CGFloat(min(index, 3)) * 4
-            let frame = CGRect(x: start.x - 24 + offset, y: start.y - 24 - offset, width: 48, height: 48)
-            draggingItem.setDraggingFrame(frame, contents: item.icon)
+            // Hide additional images while delivering every item to the destination.
+            draggingItem.setDraggingFrame(frame, contents: index == 0 ? picture : nil)
             return draggingItem
         }
-        beginDraggingSession(with: draggingItems, event: event, source: self).draggingFormation = .pile
+        beginDraggingSession(with: draggingItems, event: event, source: self)
     }
 
     // Copy, move or link, as the destination decides; Finder applies its usual rules, as it would for a Finder drag.
