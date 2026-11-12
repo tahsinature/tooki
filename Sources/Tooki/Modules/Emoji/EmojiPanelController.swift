@@ -2,8 +2,8 @@ import AppKit
 import TookiKit
 
 enum EmojiAction: String, CaseIterable, PanelActionItem {
-    case paste
     case copy
+    case paste
     case copyShortcode
 
     var id: String { rawValue }
@@ -27,14 +27,14 @@ enum EmojiAction: String, CaseIterable, PanelActionItem {
 
     var shortcut: String {
         switch self {
-        case .paste: "↵"
-        case .copy: "⌘↵"
+        case .copy: "↵"
+        case .paste: "⌘↵"
         case .copyShortcode: ""
         }
     }
 }
 
-/// Shows the emoji picker and pastes the chosen emoji into the app you were using.
+/// Shows the emoji picker and copies the chosen emoji, or pastes it into the app you were using.
 @MainActor
 final class EmojiPanelController {
     private var panel: FloatingPanel?

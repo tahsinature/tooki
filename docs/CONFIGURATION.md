@@ -49,7 +49,7 @@ How often and when each snippet was last used is stored privately in `~/Library/
 
 ### Emoji picker
 
-Bind the `emoji` action to open a searchable emoji grid. Search matches names, keywords and shortcodes, so "like" finds 👍. Arrow keys move through it, Page Up and Page Down jump a screenful, Home and End go to the ends, ↵ pastes, ⌘↵ copies, and ⌘K offers Copy Shortcode. Recently used emoji are listed first. With snippet keywords on, typing an emoji's code between colons, such as `:rocket:`, replaces it with the emoji. Codes are GitHub-style shortcodes like `:+1:` or `:thumbsup:`, and the name with underscores also works, for example `:thumbs_up:`.
+Bind the `emoji` action to open a searchable emoji grid. Search matches names, keywords and shortcodes, so "like" finds 👍. With snippet keywords on, typing an emoji's code between colons, such as `:rocket:`, replaces it with the emoji. Codes are GitHub-style shortcodes like `:+1:` or `:thumbsup:`, and the name with underscores also works, for example `:thumbs_up:`.
 
 Emoji data comes from [emojibase](https://emojibase.dev) and ships inside the app. Emoji that this macOS version can't draw yet are hidden, and appear once macOS supports them. To pick up a new Unicode release, run `scripts/update-emoji.py`, which regenerates `Sources/TookiKit/Emoji/EmojiData.swift`.
 

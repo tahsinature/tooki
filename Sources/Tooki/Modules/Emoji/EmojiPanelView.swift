@@ -21,8 +21,8 @@ struct EmojiPanelView: View {
             BottomActionBar(
                 title: model.selected?.name.capitalized ?? "Emoji",
                 icon: .symbol("face.smiling"),
-                primaryActionTitle: model.selected == nil ? nil : "Paste Emoji",
-                onPrimaryAction: { onRun(.paste) },
+                primaryActionTitle: model.selected == nil ? nil : "Copy Emoji",
+                onPrimaryAction: { onRun(.copy) },
                 onShowActions: { model.isShowingActions.toggle() }
             )
         }
@@ -52,7 +52,7 @@ struct EmojiPanelView: View {
         if model.results.isEmpty {
             ContentUnavailableView.search(text: model.query)
         } else {
-            EmojiGrid(model: model, onPaste: { onRun(.paste) })
+            EmojiGrid(model: model, onPick: { onRun(.copy) })
         }
     }
 
@@ -87,7 +87,7 @@ struct EmojiPanelView: View {
             if model.isShowingActions {
                 onRun(EmojiAction.allCases[model.actionSelection])
             } else {
-                onRun(press.modifiers.contains(.command) ? .copy : .paste)
+                onRun(press.modifiers.contains(.command) ? .paste : .copy)
             }
         default:
             guard press.modifiers.contains(.command), press.characters.lowercased() == "k" else { return .ignored }
@@ -99,7 +99,7 @@ struct EmojiPanelView: View {
 
 private struct EmojiGrid: View {
     let model: EmojiPanelModel
-    let onPaste: () -> Void
+    let onPick: () -> Void
 
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 4), count: EmojiPanelModel.columns)
 
@@ -158,7 +158,7 @@ private struct EmojiGrid: View {
             .id(cellID(emoji, in: sectionID))
             .onTapGesture {
                 if let index = flatIndex(of: emoji, in: sectionID) { model.selection = index }
-                onPaste()
+                onPick()
             }
     }
 
