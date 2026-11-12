@@ -34,6 +34,21 @@ enum SettingsPage: String, CaseIterable, Identifiable {
         }
     }
 
+    /// The color of the page's toolbar icon tile.
+    var tileColor: Color {
+        switch self {
+        case .general: .gray
+        case .hyperKey: .orange
+        case .snippets: .purple
+        case .clipboard: .blue
+        case .shelf: .teal
+        case .menuBar: .indigo
+        case .keepAwake: .brown
+        case .shortcuts: .pink
+        case .about: .gray
+        }
+    }
+
     /// The toolbar label. Shorter than the title so nine items fit.
     var toolbarLabel: String {
         self == .about ? "About" : title

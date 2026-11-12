@@ -26,10 +26,9 @@ final class SettingsToolbar: NSObject, NSToolbarDelegate {
     /// Puts a dot on the About icon, so a new version is noticed from any page.
     func showUpdateBadge(_ isVisible: Bool) {
         let about = toolbar.items.first { $0.itemIdentifier == Self.identifier(for: .about) }
-        about?.image = Self.image(for: .about, badged: isVisible)
-        buttons[.about]?.image = about?.image
         about?.toolTip = isVisible ? "A new version of \(BuildInfo.appName) is available" : SettingsPage.about.title
         buttons[.about]?.toolTip = about?.toolTip
+        buttons[.about]?.showsBadge = isVisible
     }
 
     func toolbarDefaultItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
@@ -53,10 +52,13 @@ final class SettingsToolbar: NSObject, NSToolbarDelegate {
         let item = NSToolbarItem(itemIdentifier: identifier)
         item.label = page.toolbarLabel
         item.toolTip = page.title
-        item.image = Self.image(for: page, badged: false)
+        item.image = NSImage(systemSymbolName: page.icon, accessibilityDescription: page.title)
         item.target = self
         item.action = #selector(itemClicked(_:))
-        let button = SettingsToolbarButton(title: page.toolbarLabel, image: item.image, target: self, action: #selector(buttonClicked(_:)))
+        let button = SettingsToolbarButton(
+            title: page.toolbarLabel, tile: SettingsToolbarTile.image(for: page),
+            target: self, action: #selector(buttonClicked(_:))
+        )
         button.identifier = NSUserInterfaceItemIdentifier(page.rawValue)
         button.toolTip = page.title
         button.state = page == selectedPage ? .on : .off
@@ -79,23 +81,5 @@ final class SettingsToolbar: NSObject, NSToolbarDelegate {
 
     private static func identifier(for page: SettingsPage) -> NSToolbarItem.Identifier {
         NSToolbarItem.Identifier(page.rawValue)
-    }
-
-    private static func image(for page: SettingsPage, badged: Bool) -> NSImage? {
-        guard let symbol = NSImage(systemSymbolName: page.icon, accessibilityDescription: page.title)?
-            .withSymbolConfiguration(.init(pointSize: 20, weight: .regular)) else { return nil }
-        guard badged else { return symbol }
-        // Drawn when shown, so the label color matches light or dark mode.
-        let badge = NSImage(size: symbol.size, flipped: false) { rect in
-            symbol.draw(in: rect)
-            NSColor.labelColor.set()
-            rect.fill(using: .sourceAtop)
-            let dot = CGRect(x: rect.maxX - 6, y: rect.maxY - 6, width: 6, height: 6)
-            NSColor.systemRed.setFill()
-            NSBezierPath(ovalIn: dot).fill()
-            return true
-        }
-        badge.isTemplate = false
-        return badge
     }
 }
