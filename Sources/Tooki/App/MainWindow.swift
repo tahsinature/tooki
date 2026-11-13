@@ -1,79 +1,28 @@
 import AppKit
 import SwiftUI
 
-enum SettingsPage: String, CaseIterable, Identifiable {
-    case general, hyperKey, snippets, clipboard, shelf, menuBar, keepAwake, shortcuts, about
-
-    var id: Self { self }
-
-    var title: String {
-        switch self {
-        case .hyperKey: "Hyper Key"
-        case .snippets: "Snippets"
-        case .clipboard: "Clipboard"
-        case .shelf: "Shelf"
-        case .menuBar: "Menu Bar"
-        case .keepAwake: "Keep Awake"
-        case .shortcuts: "Shortcuts"
-        case .general: "General"
-        case .about: "About \(BuildInfo.appName)"
-        }
-    }
-
-    var icon: String {
-        switch self {
-        case .hyperKey: "bolt.fill"
-        case .snippets: "text.cursor"
-        case .clipboard: "list.clipboard.fill"
-        case .shelf: "tray.full.fill"
-        case .menuBar: "menubar.rectangle"
-        case .keepAwake: "cup.and.saucer.fill"
-        case .shortcuts: "command"
-        case .general: "gearshape.fill"
-        case .about: "info.circle.fill"
-        }
-    }
-
-    /// The color of the page's toolbar icon tile.
-    var tileColor: Color {
-        switch self {
-        case .general: .gray
-        case .hyperKey: .orange
-        case .snippets: .purple
-        case .clipboard: .blue
-        case .shelf: .teal
-        case .menuBar: .indigo
-        case .keepAwake: .brown
-        case .shortcuts: .pink
-        case .about: .gray
-        }
-    }
-
-    /// The toolbar label. Shorter than the title so nine items fit.
-    var toolbarLabel: String {
-        self == .about ? "About" : title
-    }
-}
-
-/// The page the settings window shows. Shared so hotkeys and the menu bar can pick one.
-@MainActor
-@Observable
-final class SettingsNavigation {
-    var page: SettingsPage = .general
-}
-
-/// The selected settings page. The window's toolbar picks the page.
+/// Search filters the sidebar independently of the currently displayed settings page.
 struct MainView: View {
     let app: AppController
     @Bindable var navigation: SettingsNavigation
     let onPageChange: (SettingsPage) -> Void
-    let onUpdateAvailabilityChange: (Bool) -> Void
 
     var body: some View {
-        page
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .onChange(of: navigation.page, initial: true) { onPageChange(navigation.page) }
-            .onChange(of: app.updater.shouldPrompt, initial: true) { onUpdateAvailabilityChange(app.updater.shouldPrompt) }
+        HStack(spacing: 0) {
+            SettingsSidebar(navigation: navigation,
+                            needsAttention: !app.hasAccessibility || !app.loadErrors.isEmpty,
+                            hasUpdate: app.updater.shouldPrompt)
+            VStack(spacing: 0) {
+                SettingsNavigationBar(navigation: navigation)
+                page
+                    .id(navigation.page)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+            .background(SettingsTheme.contentBackground)
+        }
+        .frame(minWidth: 840, minHeight: 560)
+        .ignoresSafeArea()
+        .onChange(of: navigation.page, initial: true) { onPageChange(navigation.page) }
     }
 
     @ViewBuilder
@@ -98,17 +47,19 @@ final class MainWindowController {
     private let app: AppController
     private let navigation = SettingsNavigation()
     private var window: NSWindow?
-    private lazy var toolbar = SettingsToolbar { [weak self] page in self?.navigation.page = page }
 
-    private static let width: CGFloat = 720
-    private static let heightRange: ClosedRange<CGFloat> = 480...900
+    private static let defaultSize = CGSize(width: 1000, height: 740)
+    private static let minimumSize = CGSize(width: 840, height: 560)
 
     init(app: AppController) {
         self.app = app
     }
 
     func show(page: SettingsPage?) {
-        if let page { navigation.page = page }
+        if let page {
+            navigation.query = ""
+            navigation.page = page
+        }
         let window = window ?? makeWindow()
         self.window = window
         // A regular app while the window is open, so it shows in ⌘-Tab and the Dock.
@@ -121,40 +72,35 @@ final class MainWindowController {
 
     private func makeWindow() -> NSWindow {
         let window = NSWindow(
-            contentRect: CGRect(x: 0, y: 0, width: Self.width, height: 640),
-            styleMask: [.titled, .closable, .miniaturizable, .resizable],
+            contentRect: CGRect(origin: .zero, size: Self.defaultSize),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
             backing: .buffered,
             defer: false
         )
         window.isReleasedWhenClosed = false
         window.collectionBehavior.insert(.fullScreenNone)
-        window.toolbar = toolbar.toolbar
-        window.toolbarStyle = .preference
+        window.titlebarAppearsTransparent = true
+        window.titleVisibility = .hidden
+        window.isMovableByWindowBackground = true
+        window.backgroundColor = NSColor.windowBackgroundColor
         let rootView = MainView(
             app: app,
             navigation: navigation,
-            onPageChange: { [weak self, weak window] page in
-                window?.title = page.title
-                self?.toolbar.select(page)
-            },
-            onUpdateAvailabilityChange: { [weak self] in self?.toolbar.showUpdateBadge($0) }
+            onPageChange: { [weak window] page in
+                window?.title = "\(page.title) · \(BuildInfo.appName)"
+            }
         )
         let hostingController = NSHostingController(rootView: rootView)
         // Keep page fitting sizes from changing the window's resizing limits.
         hostingController.sizingOptions = []
         window.contentViewController = hostingController
-        // NSWindow.contentMinSize is ignored with Auto Layout. Constrain the hosted view instead.
-        // A fixed width, like System Settings: only the height can change.
+        // Auto Layout supplies the true minimum; the sidebar and content can resize together.
         NSLayoutConstraint.activate([
-            hostingController.view.widthAnchor.constraint(equalToConstant: Self.width),
-            hostingController.view.heightAnchor.constraint(greaterThanOrEqualToConstant: Self.heightRange.lowerBound),
-            hostingController.view.heightAnchor.constraint(lessThanOrEqualToConstant: Self.heightRange.upperBound),
+            hostingController.view.widthAnchor.constraint(greaterThanOrEqualToConstant: Self.minimumSize.width),
+            hostingController.view.heightAnchor.constraint(greaterThanOrEqualToConstant: Self.minimumSize.height),
         ])
-        window.standardWindowButton(.zoomButton)?.isEnabled = false
         window.center()
-        window.setFrameAutosaveName("TookiMainWindow")
-        let height = min(max(window.contentLayoutRect.height, Self.heightRange.lowerBound), Self.heightRange.upperBound)
-        window.setContentSize(CGSize(width: Self.width, height: height))
+        window.setFrameAutosaveName("TookiSidebarSettingsWindow")
         // Back to a menu bar only app once the window closes.
         NotificationCenter.default.addObserver(forName: NSWindow.willCloseNotification, object: window, queue: .main) { _ in
             MainActor.assumeIsolated { _ = NSApp.setActivationPolicy(.accessory) }

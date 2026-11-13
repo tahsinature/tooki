@@ -1,17 +1,23 @@
 import SwiftUI
 
-/// A page of settings sections, drawn as a grouped form like System Settings.
+/// Scrollable grouped cards, sharing the settings window's continuous content surface.
 struct SettingsScrollPage<Content: View>: View {
     @ViewBuilder let content: Content
 
     var body: some View {
-        Form {
-            content
+        ScrollView {
+            VStack(alignment: .leading, spacing: 26) { content }
+                .frame(maxWidth: 920, alignment: .leading)
+                .padding(.horizontal, 28)
+                .padding(.top, 26)
+                .padding(.bottom, 36)
+                .frame(maxWidth: .infinity, alignment: .top)
         }
-        .formStyle(.grouped)
+        .background(SettingsTheme.contentBackground)
+        .font(SettingsTheme.rowTitleFont)
         .buttonStyle(InteractionButtonStyle(
-            restingFill: Color.primary.opacity(0.07),
-            horizontalPadding: 12, verticalPadding: 6
+            restingFill: Color.primary.opacity(0.065),
+            horizontalPadding: 11, verticalPadding: 6
         ))
     }
 }
@@ -29,16 +35,20 @@ struct SettingsSection<Content: View, Footer: View>: View {
     }
 
     var body: some View {
-        Section {
-            content
-        } header: {
-            if let title { Text(title) }
-        } footer: {
+        VStack(alignment: .leading, spacing: 10) {
+            if let title {
+                Text(title)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(SettingsTheme.primaryText)
+                    .padding(.horizontal, 12)
+            }
+            SettingsGroupCard { content }
             footer
                 .font(SettingsTheme.rowDescriptionFont)
                 .foregroundStyle(SettingsTheme.secondaryText)
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 12)
         }
     }
 }
@@ -49,7 +59,7 @@ extension SettingsSection where Footer == EmptyView {
     }
 }
 
-/// A form row holding custom content. The form draws the padding and the separators.
+/// A row holding custom content. SettingsGroupCard supplies its padding and separator.
 struct SettingsCardRow<Content: View>: View {
     @ViewBuilder let content: Content
 
@@ -127,7 +137,7 @@ struct SettingsToggleRow: View {
                 .controlSize(.small)
                 .accessibilityHint(description ?? "")
         }
-        .padding(4)
+        .padding(.vertical, 1)
         .modifier(InteractionHover())
     }
 }
