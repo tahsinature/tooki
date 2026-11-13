@@ -28,12 +28,11 @@ struct ShortcutsView: View {
                 Text("Click a hotkey to record a new one. Right-click to remove it.")
             }
 
-            SettingsSection("Apps") {
+            SettingsSection("Apps", action: SettingsSectionAction(
+                title: "Add App Shortcut…", symbol: "plus", run: addApps
+            ), hasContent: !appActions.isEmpty) {
                 ForEach(appActions, id: \.self) { action in
                     row(for: action) { removeShortcuts(for: action) }
-                }
-                SettingsCardRow {
-                    Button("Add App Shortcut…", systemImage: "plus", action: addApps)
                 }
             } footer: {
                 Text("Open an app, or hide it if it's already in front.")

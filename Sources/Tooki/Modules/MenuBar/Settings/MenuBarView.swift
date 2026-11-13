@@ -26,7 +26,7 @@ struct MenuBarView: View {
                 Text("Icons left of the second divider stay hidden until you show all icons (⌥-click the menu bar, or use the button below).")
             }
 
-            SettingsSection {
+            SettingsSection("Visibility") {
                 SettingsRow("Hidden icons") {
                     HStack {
                         Button(organizer.isCollapsed ? "Show" : "Hide") { organizer.toggle() }

@@ -1,7 +1,7 @@
 import AppKit
 import SwiftUI
 
-/// A copy target with a reserved confirmation slot, so feedback never shifts the row.
+/// A flat copy row. The small indicator has a fixed slot, so feedback never moves its content.
 struct CopyButton<Content: View>: View {
     let text: String
     let label: String
@@ -9,26 +9,23 @@ struct CopyButton<Content: View>: View {
     @ViewState private var copied = false
     @ViewState private var copyGeneration = 0
     @ViewState private var isHovered = false
+    @FocusState private var isFocused: Bool
 
     var body: some View {
-        Button {
-            NSPasteboard.general.clearContents()
-            copied = NSPasteboard.general.setString(text, forType: .string)
-            copyGeneration += 1
-        } label: {
+        Button(action: copy) {
             HStack(spacing: 8) {
                 content
-                HStack(spacing: 4) {
-                    Image(systemName: copied ? "checkmark" : "doc.on.doc")
-                    Text("Copied").opacity(copied ? 1 : 0)
-                }
-                .font(.caption)
-                .foregroundStyle(copied ? Color.green : Color.secondary)
-                .opacity(copied || isHovered ? 1 : 0)
-                .accessibilityHidden(true)
+                Image(systemName: copied ? "checkmark" : "doc.on.doc")
+                    .font(SettingsTheme.rowDescriptionFont)
+                    .foregroundStyle(copied ? Color.green : SettingsTheme.secondaryText)
+                    .frame(width: 16, height: 16)
+                    .opacity(copied || isHovered || isFocused ? 1 : 0)
+                    .accessibilityHidden(true)
             }
+            .contentShape(Rectangle())
         }
-        .buttonStyle(InteractionButtonStyle(horizontalPadding: 6, verticalPadding: 5))
+        .buttonStyle(.plain)
+        .focused($isFocused)
         .onHover { isHovered = $0 }
         .help("Copy \(label)")
         .accessibilityLabel("Copy \(label)")
@@ -38,5 +35,11 @@ struct CopyButton<Content: View>: View {
             do { try await Task.sleep(for: .seconds(1.5)) } catch { return }
             copied = false
         }
+    }
+
+    private func copy() {
+        NSPasteboard.general.clearContents()
+        copied = NSPasteboard.general.setString(text, forType: .string)
+        copyGeneration += 1
     }
 }

@@ -28,10 +28,10 @@ struct GeneralView: View {
 
             PanelNavigationSettings(app: app)
 
-            SettingsSection("Configuration") {
+            SettingsSection("Configuration", footerTitle: "Configuration notes") {
                 SettingsRow("Folder") {
                     Text(StoragePaths.configDirectory.path(percentEncoded: false))
-                        .font(.body.monospaced())
+                        .font(SettingsTheme.controlFont.monospaced())
                         .multilineTextAlignment(.trailing)
                         .textSelection(.enabled)
                 }

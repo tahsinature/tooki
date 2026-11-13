@@ -6,6 +6,5 @@ extension View {
         pickerStyle(.menu)
             .labelsHidden()
             .fixedSize()
-            .modifier(InteractionHover())
     }
 }

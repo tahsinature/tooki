@@ -28,7 +28,7 @@ struct SettingsIntegerField: View {
                 TextField("", text: $draft.text)
                     .labelsHidden()
                     .textFieldStyle(.plain)
-                    .font(.body.monospacedDigit().weight(.medium))
+                    .font(SettingsTheme.controlFont.monospacedDigit())
                     .multilineTextAlignment(.trailing)
                     .focused($isFocused)
                     .onSubmit(commit)
@@ -48,10 +48,10 @@ struct SettingsIntegerField: View {
                     .accessibilityLabel(title)
                     .accessibilityHint("Enter a whole number from \(draft.range.lowerBound) to \(draft.range.upperBound)")
                 Text(unit)
-                    .font(.callout)
+                    .font(SettingsTheme.controlFont)
                     .foregroundStyle(.secondary)
                     .accessibilityHidden(true)
-                Divider().frame(height: 20)
+                Divider().frame(height: 16)
                 VStack(spacing: 0) {
                     SettingsStepButton(title: "Increase \(title)", symbol: "chevron.up") { adjust(by: step) }
                         .disabled(currentValue >= draft.range.upperBound)
@@ -59,14 +59,14 @@ struct SettingsIntegerField: View {
                     SettingsStepButton(title: "Decrease \(title)", symbol: "chevron.down") { adjust(by: -step) }
                         .disabled(currentValue <= draft.range.lowerBound)
                 }
-                .frame(width: 26, height: 30)
+                .frame(width: 22, height: 24)
             }
-            .padding(.leading, 12)
+            .padding(.leading, 9)
             .padding(.trailing, 3)
-            .frame(width: 180, height: 38)
-            .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 9))
+            .frame(width: 148, height: 28)
+            .background(SettingsTheme.searchBackground, in: RoundedRectangle(cornerRadius: SettingsTheme.controlRadius))
             .overlay {
-                RoundedRectangle(cornerRadius: 9)
+                RoundedRectangle(cornerRadius: SettingsTheme.controlRadius)
                     .strokeBorder(borderColor, lineWidth: isFocused ? 1.5 : 1)
             }
             .shadow(color: .black.opacity(0.06), radius: 2, y: 1)
@@ -78,7 +78,7 @@ struct SettingsIntegerField: View {
             }
             .onHover { isHovered = $0 }
             Text(hasError ? "Enter \(rangeLabel)" : rangeLabel)
-                .font(.caption)
+                .font(SettingsTheme.metadataFont)
                 .foregroundStyle(hasError ? Color.red : Color.secondary)
                 .accessibilityLabel(hasError ? "Enter a whole number from \(rangeLabel)" : "Allowed range: \(rangeLabel)")
         }
@@ -103,7 +103,7 @@ struct SettingsIntegerField: View {
     private var borderColor: Color {
         if hasError { return .red.opacity(0.75) }
         if isFocused { return .accentColor }
-        return Color(nsColor: .separatorColor).opacity(isHovered ? 0.8 : 0.45)
+        return SettingsTheme.cardBorder.opacity(isHovered ? 1 : 0.7)
     }
 
     private func commit() {

@@ -9,28 +9,28 @@ struct SettingsSidebar: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             // Reserve room for the native traffic lights in the unified title bar.
-            Color.clear.frame(height: 54)
-            searchField.padding(.horizontal, 12).padding(.bottom, 16)
+            Color.clear.frame(height: SettingsTheme.navigationHeight)
+            searchField.padding(.horizontal, 8).padding(.bottom, 8)
             if navigation.query.isEmpty {
                 SettingsAppIdentity(updater: updater) { navigation.page = .about }
-                    .padding(.horizontal, 10)
-                    .padding(.bottom, 23)
+                    .padding(.horizontal, 8)
+                    .padding(.bottom, 10)
             }
             ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: 8) {
                     if navigation.filteredPages.isEmpty {
                         Text("No settings found")
-                            .font(.system(size: 12)).foregroundStyle(.secondary)
+                            .font(SettingsTheme.sidebarFont).foregroundStyle(SettingsTheme.secondaryText)
                             .padding(.horizontal, 12).padding(.top, 3)
                     } else {
                         ForEach(SettingsPage.Group.allCases, id: \.self) { group in
                             let pages = navigation.filteredPages.filter { $0.group == group }
                             if !pages.isEmpty {
-                                VStack(alignment: .leading, spacing: 3) {
+                                VStack(alignment: .leading, spacing: 0) {
                                     if navigation.query.isEmpty, !group.rawValue.isEmpty {
                                         Text(group.rawValue)
-                                            .font(.system(size: 10, weight: .medium)).foregroundStyle(.tertiary)
-                                            .padding(.leading, 10).padding(.bottom, 4)
+                                            .font(SettingsTheme.metadataFont).foregroundStyle(SettingsTheme.tertiaryText)
+                                            .padding(.leading, 8).padding(.top, 2).padding(.bottom, 5)
                                     }
                                     ForEach(pages) { page in
                                         SettingsSidebarRow(page: page, isSelected: navigation.page == page,
@@ -42,13 +42,13 @@ struct SettingsSidebar: View {
                         }
                     }
                 }
-                .padding(.horizontal, 10)
-                .padding(.bottom, 20)
+                .padding(.horizontal, 8)
+                .padding(.bottom, 12)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
             Spacer(minLength: 0)
         }
-        .frame(width: 228)
+        .frame(width: SettingsTheme.sidebarWidth)
         .background(SettingsTheme.sidebarBackground)
         .overlay(alignment: .trailing) { Rectangle().fill(SettingsTheme.separator).frame(width: 1) }
     }
@@ -70,10 +70,10 @@ struct SettingsSidebar: View {
                     .labelStyle(.iconOnly).buttonStyle(.plain).foregroundStyle(.tertiary)
             }
         }
-        .font(.system(size: 12))
-        .padding(.horizontal, 11)
-        .frame(height: 34)
-        .background(SettingsTheme.searchBackground, in: Capsule())
-        .overlay(Capsule().strokeBorder(isSearchFocused ? Color.accentColor.opacity(0.5) : SettingsTheme.separator))
+        .font(SettingsTheme.sidebarFont)
+        .padding(.horizontal, 10)
+        .frame(height: 28)
+        .background(SettingsTheme.searchBackground, in: RoundedRectangle(cornerRadius: 7))
+        .overlay(RoundedRectangle(cornerRadius: 7).strokeBorder(isSearchFocused ? Color.accentColor.opacity(0.5) : SettingsTheme.separator))
     }
 }

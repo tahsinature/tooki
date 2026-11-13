@@ -10,31 +10,31 @@ struct SettingsSidebarRow: View {
 
     var body: some View {
         Button(action: select) {
-            HStack(spacing: 10) {
+            HStack(spacing: 8) {
                 Image(systemName: page.icon)
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.system(size: 10, weight: .semibold))
                     .foregroundStyle(.white.opacity(0.95))
-                    .frame(width: 23, height: 23)
-                    .background(page.tileColor.gradient, in: RoundedRectangle(cornerRadius: 6))
+                    .frame(width: 19, height: 19)
+                    .background(page.tileColor.gradient, in: RoundedRectangle(cornerRadius: 5))
                     .accessibilityHidden(true)
                 Text(page.title)
-                    .font(.system(size: 13, weight: isSelected ? .medium : .regular))
+                    .font(SettingsTheme.font(11, weight: isSelected ? .medium : .regular))
                     .foregroundStyle(isSelected ? SettingsTheme.primaryText : SettingsTheme.secondaryText)
                     .lineLimit(1)
                 Spacer(minLength: 2)
                 if hasWarning {
                     Image(systemName: "exclamationmark.triangle").foregroundStyle(.yellow)
-                        .font(.system(size: 12)).help("Some settings need your attention")
+                        .font(.system(size: 10)).help("Some settings need your attention")
                 }
                 if hasUpdate {
                     Circle().fill(.blue).frame(width: 6, height: 6).help("An update is available")
                 }
             }
-            .padding(.horizontal, 9)
-            .frame(height: 36)
+            .padding(.horizontal, 8)
+            .frame(height: 28)
             .background(isSelected ? SettingsTheme.sidebarSelection : isHovered ? Color.primary.opacity(0.035) : .clear,
-                        in: RoundedRectangle(cornerRadius: 8))
-            .contentShape(RoundedRectangle(cornerRadius: 8))
+                        in: RoundedRectangle(cornerRadius: 7))
+            .contentShape(RoundedRectangle(cornerRadius: 7))
         }
         .buttonStyle(.plain)
         .onHover { isHovered = $0 }

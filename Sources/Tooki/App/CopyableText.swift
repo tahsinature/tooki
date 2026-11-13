@@ -8,7 +8,7 @@ struct CopyableText: View {
     var body: some View {
         CopyButton(text: text, label: label) {
             Text(label)
-                .font(.body.monospaced())
+                .font(SettingsTheme.controlFont.monospaced())
                 .multilineTextAlignment(.leading)
             Spacer(minLength: 0)
         }

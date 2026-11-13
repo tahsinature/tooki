@@ -4,7 +4,7 @@ struct SettingsNavigationBar: View {
     let navigation: SettingsNavigation
 
     var body: some View {
-        HStack(spacing: 14) {
+        HStack(spacing: 10) {
             HStack(spacing: 0) {
                 Button("Back", systemImage: "chevron.left", action: navigation.goBack)
                     .disabled(navigation.backHistory.isEmpty)
@@ -16,14 +16,11 @@ struct SettingsNavigationBar: View {
             }
             .labelStyle(.iconOnly)
             .buttonStyle(SettingsHistoryButtonStyle())
-            .padding(3)
-            .background(SettingsTheme.searchBackground, in: Capsule())
-            .overlay(Capsule().strokeBorder(SettingsTheme.separator))
-            Text(navigation.page.title).font(.system(size: 12, weight: .medium)).foregroundStyle(.secondary)
+            Text(navigation.page.title).font(SettingsTheme.sidebarFont).foregroundStyle(SettingsTheme.secondaryText)
             Spacer()
         }
-        .padding(.horizontal, 22)
-        .frame(height: 54)
+        .padding(.horizontal, 18)
+        .frame(height: SettingsTheme.navigationHeight)
         .overlay(alignment: .bottom) { Rectangle().fill(SettingsTheme.separator).frame(height: 1) }
     }
 }
@@ -31,8 +28,8 @@ struct SettingsNavigationBar: View {
 private struct SettingsHistoryButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.system(size: 13, weight: .medium))
-            .frame(width: 26, height: 26)
+            .font(.system(size: 11, weight: .medium))
+            .frame(width: 22, height: 24)
             .background(configuration.isPressed ? Color.primary.opacity(0.08) : .clear, in: Circle())
             .contentShape(Circle())
     }

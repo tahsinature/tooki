@@ -62,7 +62,7 @@ struct StringListEditor: View {
         ForEach(items, id: \.self) { item in
             SettingsCardRow {
                 HStack {
-                    Text(item).font(.body.monospaced())
+                    Text(item).font(SettingsTheme.controlFont.monospaced())
                     Spacer()
                     Button("Remove", systemImage: "minus.circle") { items.removeAll { $0 == item } }
                         .labelStyle(.iconOnly)
@@ -74,7 +74,7 @@ struct StringListEditor: View {
             HStack {
                 TextField(placeholder, text: $newItem)
                     .textFieldStyle(.roundedBorder)
-                    .font(.body.monospaced())
+                    .font(SettingsTheme.controlFont.monospaced())
                     .onSubmit(add)
                 Button("Add", action: add).disabled(newItem.isEmpty)
             }

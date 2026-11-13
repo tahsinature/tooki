@@ -6,7 +6,7 @@ struct PanelNavigationSettings: View {
 
     var body: some View {
         @Bindable var config = app.config
-        SettingsSection("Panel navigation") {
+        SettingsSection("Panel navigation", footerTitle: "How panel navigation works") {
             SettingsRow("Main shortcut opens") {
                 Picker("Main shortcut opens", selection: $config.value.panelNavigation.resumeLastPanel) {
                     Text("Last used panel").tag(true)

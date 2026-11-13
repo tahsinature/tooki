@@ -4,7 +4,7 @@ import TookiKit
 /// Lists every `tooki://` link other apps and scripts can use. Click a row to copy it.
 struct URLSchemeSection: View {
     var body: some View {
-        SettingsSection("URL Scheme: Shelf") {
+        SettingsSection("URL Scheme: Shelf", collapsible: true, footerTitle: "Using shelf links") {
             ForEach(Self.shelfLinks) { link in
                 SettingsCardRow { URLSchemeRow(link: link) }
             }
@@ -12,7 +12,7 @@ struct URLSchemeSection: View {
             Text("Click a link to copy it, or ⓘ for what it does and examples. Run links with `open -g \"<link>\"` and quote them in zsh. Unknown links beep.")
         }
 
-        SettingsSection("URL Scheme: Actions") {
+        SettingsSection("URL Scheme: Actions", collapsible: true, footerTitle: "Using action links") {
             ForEach(HotkeyAction.builtIns, id: \.self) { action in
                 SettingsCardRow { URLSchemeRow(link: Self.actionLink(action)) }
             }

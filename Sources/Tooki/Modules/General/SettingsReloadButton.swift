@@ -15,7 +15,7 @@ struct SettingsReloadButton: View {
                 generation += 1
             }
             Label(succeeded ? "Reloaded" : "Check errors", systemImage: succeeded ? "checkmark.circle" : "exclamationmark.triangle")
-                .font(.subheadline)
+                .font(SettingsTheme.controlFont)
                 .foregroundStyle(succeeded ? Color.secondary : Color.orange)
                 .frame(minWidth: 96, alignment: .leading)
                 .opacity(showsResult ? 1 : 0)

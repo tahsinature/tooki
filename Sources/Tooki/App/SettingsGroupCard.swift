@@ -11,19 +11,20 @@ struct SettingsGroupCard<Content: View>: View {
                 Group(subviews: content) { rows in
                     VStack(spacing: 0) {
                         ForEach(rows) { row in
-                            row.padding(.horizontal, 16).padding(.vertical, 13)
+                            row.padding(.horizontal, 12).padding(.vertical, 7)
                             if row.id != rows.last?.id {
-                                Rectangle().fill(SettingsTheme.separator).frame(height: 1).padding(.horizontal, 16)
+                                Rectangle().fill(SettingsTheme.separator).frame(height: 1).padding(.horizontal, 12)
                             }
                         }
                     }
                 }
             } else {
-                VStack(alignment: .leading, spacing: 18) { content }.padding(16)
+                VStack(alignment: .leading, spacing: 14) { content }
+                    .padding(.horizontal, 12).padding(.vertical, 7)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(SettingsTheme.cardBackground, in: RoundedRectangle(cornerRadius: 12))
-        .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(SettingsTheme.cardBorder))
+        .background(SettingsTheme.cardBackground, in: RoundedRectangle(cornerRadius: SettingsTheme.cardRadius))
+        .overlay(RoundedRectangle(cornerRadius: SettingsTheme.cardRadius).strokeBorder(SettingsTheme.cardBorder))
     }
 }

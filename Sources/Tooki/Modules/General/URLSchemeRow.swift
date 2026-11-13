@@ -43,11 +43,11 @@ private struct URLSchemeInfo: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(link.title).font(.headline)
+            Text(link.title).font(SettingsTheme.font(12, weight: .medium))
             Text(link.details)
                 .fixedSize(horizontal: false, vertical: true)
             Text(link.examples.count == 1 ? "Example" : "Examples")
-                .font(.subheadline.weight(.semibold))
+                .font(SettingsTheme.sectionFont)
                 .foregroundStyle(.secondary)
             ForEach(link.examples, id: \.self) { example in
                 CopyableText(text: example, label: example)
@@ -56,9 +56,10 @@ private struct URLSchemeInfo: View {
                     .background(.quaternary.opacity(0.5), in: .rect(cornerRadius: 6))
             }
             Text("Click any example to copy it.")
-                .font(.caption)
+                .font(SettingsTheme.rowDescriptionFont)
                 .foregroundStyle(.secondary)
         }
+        .font(SettingsTheme.rowTitleFont)
         .padding(14)
         .frame(width: 420)
     }

@@ -20,7 +20,10 @@ struct MainView: View {
             }
             .background(SettingsTheme.contentBackground)
         }
-        .frame(minWidth: 840, minHeight: 560)
+        .frame(minWidth: SettingsTheme.windowSize.width, minHeight: SettingsTheme.windowSize.height)
+        .font(SettingsTheme.rowTitleFont)
+        .foregroundStyle(SettingsTheme.primaryText)
+        .background { SettingsGlassBackground() }
         .ignoresSafeArea()
         .onChange(of: navigation.page, initial: true) { onPageChange(navigation.page) }
     }
@@ -48,8 +51,8 @@ final class MainWindowController {
     private let navigation = SettingsNavigation()
     private var window: NSWindow?
 
-    private static let defaultSize = CGSize(width: 1000, height: 740)
-    private static let minimumSize = CGSize(width: 840, height: 560)
+    private static let defaultSize = SettingsTheme.windowSize
+    private static let minimumSize = SettingsTheme.windowSize
 
     init(app: AppController) {
         self.app = app
@@ -82,7 +85,8 @@ final class MainWindowController {
         window.titlebarAppearsTransparent = true
         window.titleVisibility = .hidden
         window.isMovableByWindowBackground = true
-        window.backgroundColor = NSColor.windowBackgroundColor
+        window.isOpaque = false
+        window.backgroundColor = .clear
         let rootView = MainView(
             app: app,
             navigation: navigation,
@@ -100,7 +104,7 @@ final class MainWindowController {
             hostingController.view.heightAnchor.constraint(greaterThanOrEqualToConstant: Self.minimumSize.height),
         ])
         window.center()
-        window.setFrameAutosaveName("TookiSidebarSettingsWindow")
+        window.setFrameAutosaveName("TookiCompactSettingsWindow")
         // Back to a menu bar only app once the window closes.
         NotificationCenter.default.addObserver(forName: NSWindow.willCloseNotification, object: window, queue: .main) { _ in
             MainActor.assumeIsolated { _ = NSApp.setActivationPolicy(.accessory) }

@@ -76,7 +76,7 @@ enum SettingsPage: String, CaseIterable, Identifiable {
         case .menuBar: "menubar status icons hidden shown organizer layout appearance tint thaw bar reveal notch"
         case .keepAwake: "coffee caffeine sleep display power battery plugged duration timer apps menu bar icon"
         case .shortcuts: "hotkeys keyboard bindings apps detective record conflict"
-        case .about: "tooki version updates release credits license source github install homebrew"
+        case .about: "tooki version updates release credits license source github"
         }
     }
 }

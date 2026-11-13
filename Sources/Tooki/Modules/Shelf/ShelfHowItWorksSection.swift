@@ -75,7 +75,7 @@ private struct ShelfKindTable: View {
 
     private func cell(_ text: String) -> some View {
         Text(text)
-            .font(.callout)
+            .font(SettingsTheme.controlFont)
             .foregroundStyle(SettingsTheme.primaryText)
             .fixedSize(horizontal: false, vertical: true)
             .frame(maxWidth: .infinity, alignment: .leading)

@@ -60,7 +60,7 @@ struct ShortcutDetectiveSection: View {
                         .foregroundStyle(.indigo)
                         .symbolEffect(.pulse)
                     Text("Listening…")
-                        .font(.title3.weight(.semibold))
+                        .font(SettingsTheme.rowTitleFont.weight(.medium))
                     Text("Switch to any app and press a shortcut.")
                         .foregroundStyle(.secondary)
                 }
@@ -105,11 +105,11 @@ private struct DetectiveModeCard: View {
                     .foregroundStyle(isSelected ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary))
                 VStack(alignment: .leading, spacing: 4) {
                     Label(title, systemImage: symbol)
-                        .font(.body.weight(.medium))
+                        .font(SettingsTheme.rowTitleFont.weight(.medium))
                     Text(pro).foregroundStyle(.secondary)
                     Text(con).foregroundStyle(.secondary)
                 }
-                .font(.callout)
+                .font(SettingsTheme.controlFont)
                 Spacer(minLength: 0)
             }
             .padding(10)
