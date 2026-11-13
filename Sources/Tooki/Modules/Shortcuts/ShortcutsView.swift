@@ -75,6 +75,9 @@ struct ShortcutsView: View {
         if combo.isReservedBySystem {
             return "\(combo.symbols.joined()) is a standard macOS shortcut"
         }
+        if KeyCombo(config.value.panelNavigation.rootSearchShortcut) == combo {
+            return "Already used by Return to Root Search in panels"
+        }
         let other = config.value.shortcuts.first { $0.action != action && KeyCombo($0.keys) == combo }
         return other.map { "Already used by \(ShortcutActionInfo(action: $0.action).title)" }
     }

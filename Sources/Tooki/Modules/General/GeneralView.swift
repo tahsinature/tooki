@@ -26,6 +26,8 @@ struct GeneralView: View {
                     .onChange(of: launchAtLogin) { _, enabled in setLaunchAtLogin(enabled) }
             }
 
+            PanelNavigationSettings(app: app)
+
             SettingsSection("Configuration") {
                 SettingsRow("Folder") {
                     Text(StoragePaths.configDirectory.path(percentEncoded: false))

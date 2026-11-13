@@ -115,14 +115,14 @@ struct SearchItems {
         return [
             command("keep-awake", app.keepAwake.manualUntil == nil ? "Turn On Keep Awake" : "Turn Off Keep Awake",
                     icon: "cup.and.saucer") { app.keepAwake.toggle() },
-            command("clipboard", "Clipboard History", icon: "doc.on.clipboard") { app.toggleClipboard(fromSearch: true) },
-            command("snippets", "Search Snippets", icon: "text.cursor") { app.toggleSnippets(fromSearch: true) },
-            command("emoji", "Emoji Picker", icon: "face.smiling") { app.toggleEmoji(fromSearch: true) },
-            command("shelf-manager", "Shelf Manager", icon: "tray.2") { app.toggleShelfManager(fromSearch: true) },
+            command("clipboard", "Clipboard History", icon: "doc.on.clipboard") { app.toggleClipboard() },
+            command("snippets", "Search Snippets", icon: "text.cursor") { app.toggleSnippets() },
+            command("emoji", "Emoji Picker", icon: "face.smiling") { app.toggleEmoji() },
+            command("shelf-manager", "Shelf Manager", icon: "tray.2") { app.toggleShelfManager() },
             command("menu-bar", app.menuBar.isCollapsed ? "Show Hidden Menu Bar Icons" : "Hide Menu Bar Icons",
                     icon: "menubar.rectangle") { app.menuBar.toggle() },
             command("menu-bar-search", "Search Menu Bar Items", icon: "magnifyingglass") {
-                Task { await app.toggleMenuBarSearch(fromSearch: true) }
+                Task { await app.toggleMenuBarSearch() }
             },
         ]
     }

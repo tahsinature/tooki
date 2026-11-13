@@ -18,7 +18,7 @@ struct SearchHeader<Accessory: View>: View {
                 .frame(width: PanelTheme.rowIconSize, height: PanelTheme.rowIconSize)
             TextField(
                 "",
-                text: $query,
+                text: $query.ignoringUnchangedValues(),
                 prompt: Text(placeholder).foregroundStyle(PanelTheme.tertiaryText)
             )
             .textFieldStyle(.plain)

@@ -14,11 +14,11 @@ struct SearchSection: Identifiable {
 @Observable
 final class SearchModel {
     var query = "" {
-        didSet { rebuild() }
+        didSet { if query != oldValue { rebuild() } }
     }
     /// Shows only this group. `nil` shows everything.
     var groupFilter: SearchItem.Group? {
-        didSet { rebuild() }
+        didSet { if groupFilter != oldValue { rebuild() } }
     }
     /// The groups offered in the filter menu. Empty hides the menu.
     let filterGroups: [SearchItem.Group]
@@ -28,18 +28,22 @@ final class SearchModel {
     var selection = 0
 
     var isShowingActions = false {
-        didSet { menuQuery = "" }
+        didSet {
+            guard isShowingActions != oldValue else { return }
+            menuQuery = ""
+            actionSelection = 0
+        }
     }
     var menuQuery = "" {
-        didSet { actionSelection = 0 }
+        didSet { if menuQuery != oldValue { actionSelection = 0 } }
     }
     var actionSelection = 0
 
     let placeholder: String
     let title: String
     let icon: PanelIcon
-    private let items: [SearchItem]
-    private let history: LaunchHistory
+    private var items: [SearchItem]
+    private var history: LaunchHistory
     private let calculate: (String) -> SearchItem?
 
     init(
@@ -59,6 +63,15 @@ final class SearchModel {
         self.history = history
         self.calculate = calculate
         rebuild()
+    }
+
+    /// Refresh dynamic entries without resetting the query, filter, menu or selected identity.
+    func refresh(items: [SearchItem], history: LaunchHistory) {
+        let selectedID = selectedItem?.id
+        self.items = items
+        self.history = history
+        updateResults()
+        selection = results.firstIndex { $0.id == selectedID } ?? 0
     }
 
     var selectedItem: SearchItem? {
@@ -97,6 +110,10 @@ final class SearchModel {
     private func rebuild() {
         selection = 0
         isShowingActions = false
+        updateResults()
+    }
+
+    private func updateResults() {
         let trimmed = query.trimmingCharacters(in: .whitespaces)
         sections = trimmed.isEmpty ? browsingSections() : searchSections(for: trimmed)
         results = sections.flatMap(\.items)

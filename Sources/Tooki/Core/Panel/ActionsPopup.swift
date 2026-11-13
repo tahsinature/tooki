@@ -45,16 +45,15 @@ struct ActionsPopup<Action: PanelActionItem>: View {
                 .onChange(of: selection, initial: true) { proxy.scrollTo(selection) }
             }
             PanelTheme.popupDivider.frame(height: 1)
-            TextField("", text: $query, prompt: Text(searchPrompt).foregroundStyle(PanelTheme.tertiaryText))
+            TextField("", text: $query.ignoringUnchangedValues(), prompt: Text(searchPrompt).foregroundStyle(PanelTheme.tertiaryText))
                 .textFieldStyle(.plain)
                 .font(.system(size: 13))
                 .foregroundStyle(PanelTheme.primaryText)
-                .focused($isQueryFocused)
+                .focusOnPresentation($isQueryFocused)
                 .onKeyPress(phases: [.down, .repeat], action: onKey)
                 .padding(.horizontal, 12)
                 .frame(height: 41)
         }
-        .onAppear { isQueryFocused = true }
         .frame(width: Self.width)
         .popupSurface()
     }

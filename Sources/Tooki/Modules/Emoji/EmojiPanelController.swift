@@ -36,16 +36,18 @@ enum EmojiAction: String, CaseIterable, PanelActionItem {
 
 /// Shows the emoji picker and copies the chosen emoji, or pastes it into the app you were using.
 @MainActor
-final class EmojiPanelController {
-    private var panel: FloatingPanel?
+final class EmojiPanelController: ResumablePanelController {
+    var panel: FloatingPanel?
     /// Runs after Esc closes the panel, e.g. to go back to root search. Set before each `show()`.
     var onBack: (() -> Void)?
     private var recent = RecentEmojiFile.load()
 
-    var isShowing: Bool { panel?.isVisible == true }
-
     func toggle() {
-        isShowing ? close() : show()
+        if isShowing {
+            close()
+        } else if !resume() {
+            show()
+        }
     }
 
     func show() {
@@ -58,19 +60,26 @@ final class EmojiPanelController {
                     guard let emoji = model?.selected else { return }
                     self?.perform(action, on: emoji)
                 },
-                onCancel: { [weak self] in self?.dismiss() }
+                onCancel: { [weak self, weak model] in
+                    if let model { self?.escape(model) }
+                }
             )
         }
         panel.onEscape = { [weak self, weak model] in
-            if model?.isShowingActions == true { model?.isShowingActions = false } else { self?.dismiss() }
+            if let model { self?.escape(model) }
         }
         self.panel = panel
         panel.present()
     }
 
-    func close() {
-        panel?.close()
-        panel = nil
+    private func escape(_ model: EmojiPanelModel) {
+        if model.isShowingActions {
+            model.isShowingActions = false
+        } else if !model.query.isEmpty {
+            model.query = ""
+        } else {
+            dismiss()
+        }
     }
 
     /// Esc with nothing left to back out of.

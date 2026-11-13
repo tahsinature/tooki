@@ -99,11 +99,7 @@ struct SearchView: View {
         guard press.phase == .down else { return .ignored }
         switch press.key {
         case .escape:
-            if model.isShowingActions {
-                model.isShowingActions = false
-            } else {
-                onCancel()
-            }
+            onCancel()
         case .return:
             if model.isShowingActions {
                 if let action = model.selectedMenuAction, let item = model.selectedItem { onRun(action, item) }

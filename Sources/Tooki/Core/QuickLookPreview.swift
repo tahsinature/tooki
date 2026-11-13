@@ -32,6 +32,13 @@ final class QuickLookPreview: NSObject {
         panel?.reloadData()
     }
 
+    /// Returning to a Tooki panel also leaves any preview owned by Tooki.
+    static func closeCurrent() {
+        guard QLPreviewPanel.sharedPreviewPanelExists(),
+              let owner = QLPreviewPanel.shared()?.dataSource as? QuickLookPreview else { return }
+        owner.close()
+    }
+
     /// Closing a window must not close another window's preview.
     func close() {
         guard QLPreviewPanel.sharedPreviewPanelExists(),

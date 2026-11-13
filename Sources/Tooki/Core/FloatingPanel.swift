@@ -11,6 +11,7 @@ final class FloatingPanel: NSPanel {
     /// Converters remain available while a temporary result is open in another app.
     var keepsOpenOnBlur = false
     var onClose: (() -> Void)?
+    var onPresent: (() -> Void)?
     init<Content: View>(size: CGSize, @ViewBuilder content: () -> Content) {
         super.init(
             contentRect: CGRect(origin: .zero, size: size),
@@ -37,18 +38,6 @@ final class FloatingPanel: NSPanel {
     var onEscape: (() -> Void)?
 
     override var canBecomeKey: Bool { true }
-
-    /// On ⌘Esc in any panel, closes it and runs `action` (the app opens root search).
-    /// An app-wide monitor sees the key before any view can treat it as a plain Esc or a shortcut.
-    @MainActor static func onCommandEscape(_ action: @escaping () -> Void) {
-        NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
-            guard event.keyCode == KeyCode.escape, event.modifierFlags.contains(.command),
-                  let panel = NSApp.keyWindow as? FloatingPanel else { return event }
-            panel.close()
-            action()
-            return nil
-        }
-    }
 
     override func cancelOperation(_ sender: Any?) {
         if let onEscape { onEscape() } else { close() }
@@ -83,8 +72,9 @@ final class FloatingPanel: NSPanel {
         MainActor.assumeIsolated { quickLook?.releaseControl(of: panel) }
     }
 
-    func present() {
-        if let screen = NSScreen.main {
+    func present(restoring: Bool = false) {
+        onPresent?()
+        if !restoring, let screen = NSScreen.main {
             let visible = screen.visibleFrame
             let origin = CGPoint(
                 x: visible.midX - frame.width / 2,

@@ -3,6 +3,7 @@ import Foundation
 /// The whole user configuration, stored as `config.json`.
 /// Every field is optional in the file; missing fields fall back to defaults.
 public struct TookiConfig: Codable, Equatable, Sendable {
+    public var panelNavigation = PanelNavigationConfig()
     public var hyperKey = HyperKeyConfig()
     public var shortcuts = Shortcut.defaults
     public var snippets = SnippetsConfig()
@@ -17,6 +18,7 @@ public struct TookiConfig: Codable, Equatable, Sendable {
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let defaults = TookiConfig()
+        panelNavigation = try container.decode(.panelNavigation, default: defaults.panelNavigation)
         hyperKey = try container.decode(.hyperKey, default: defaults.hyperKey)
         shortcuts = try container.decodeIfPresent([Shortcut].self, forKey: .shortcuts)
             ?? container.decodeIfPresent(LegacyHyperKeyConfig.self, forKey: .hyperKey)?.shortcuts

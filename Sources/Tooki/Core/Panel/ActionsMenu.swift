@@ -16,7 +16,7 @@ final class ActionsMenu<Action: PanelActionItem> {
     private(set) var submenu: Submenu?
     /// Filters the rows. Separate from the panel's search, so typing here never changes the list behind.
     var query = "" {
-        didSet { selection = 0 }
+        didSet { if query != oldValue { selection = 0 } }
     }
     var selection = 0
 
@@ -45,6 +45,7 @@ final class ActionsMenu<Action: PanelActionItem> {
         guard !rootActions().isEmpty else { return }
         submenu = nil
         query = ""
+        selection = 0
         isShowing = true
     }
 
@@ -52,12 +53,14 @@ final class ActionsMenu<Action: PanelActionItem> {
         isShowing = false
         submenu = nil
         query = ""
+        selection = 0
     }
 
     func showSubmenu(title: String, actions: [Action], parentID: Action.ID? = nil) {
         isShowing = true
         submenu = Submenu(title: title, actions: actions, parentID: parentID)
         query = ""
+        selection = 0
     }
 
     /// Esc steps back one level: from a submenu to the main list, then closes the popup.

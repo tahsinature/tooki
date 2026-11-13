@@ -2,8 +2,8 @@ import AppKit
 
 /// Shows the shelf manager and carries out the chosen action.
 @MainActor
-final class ShelfManagerController {
-    private var panel: FloatingPanel?
+final class ShelfManagerController: ResumablePanelController {
+    var panel: FloatingPanel?
     private let quickLook = QuickLookPreview()
     /// Runs after Esc closes the panel, e.g. to go back to root search. Set before each `show()`.
     var onBack: (() -> Void)?
@@ -13,10 +13,12 @@ final class ShelfManagerController {
         self.windows = windows
     }
 
-    var isShowing: Bool { panel?.isVisible == true }
-
     func toggle(library: ShelfLibrary) {
-        isShowing ? close() : show(library: library)
+        if isShowing {
+            close()
+        } else if !resume() {
+            show(library: library)
+        }
     }
 
     func show(library: ShelfLibrary) {
@@ -36,7 +38,12 @@ final class ShelfManagerController {
             )
         }
         panel.quickLook = quickLook
-        panel.onClose = { [weak model] in model?.imageConversion?.discard() }
+        panel.onClose = { [weak model] in
+            guard let model else { return }
+            model.selectedShelfID = model.selectedShelf?.id
+            model.selectedItemID = model.selectedItem?.id
+            model.imageConversion?.discard()
+        }
         panel.onEscape = { [weak self, weak model] in
             guard let model, !model.actions.dismiss() else { return }
             self?.back(model)
@@ -45,17 +52,14 @@ final class ShelfManagerController {
         panel.present()
     }
 
-    func close() {
-        panel?.close()
-        panel = nil
-    }
-
     /// Esc leaves an open shelf first, then closes the panel.
     private func back(_ model: ShelfManagerModel) {
         if model.isShowingConversion {
             model.imageConversion?.back()
         } else if model.renamingShelf != nil {
             model.finishRenaming(save: false)
+        } else if !model.query.isEmpty {
+            model.query = ""
         } else if model.openShelf != nil {
             model.closeOpenShelf()
         } else {

@@ -23,7 +23,7 @@ struct BottomActionBar: View {
         HStack(spacing: 8) {
             if let badgeAction {
                 Button(action: badgeAction.run) { badge }
-                    .buttonStyle(InteractionButtonStyle())
+                    .buttonStyle(InteractionButtonStyle(horizontalPadding: 8, verticalPadding: 4))
                     .help("\(badgeAction.title) (\(badgeAction.shortcut))")
             } else {
                 badge

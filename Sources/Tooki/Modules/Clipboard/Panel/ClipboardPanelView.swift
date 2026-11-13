@@ -5,7 +5,7 @@ import TookiKit
 struct ClipboardPanelView: View {
     @Bindable var model: ClipboardPanelModel
     let onAction: (ClipboardAction.Kind) -> Void
-    /// Esc with nothing left to back out of.
+    /// Esc after the actions menu has handled its own back navigation.
     let onCancel: () -> Void
     /// Closes the panel after an entry is dragged out.
     let onClose: () -> Void

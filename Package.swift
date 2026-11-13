@@ -8,5 +8,6 @@ let package = Package(
         .target(name: "TookiKit"),
         .executableTarget(name: "Tooki", dependencies: ["TookiKit"]),
         .testTarget(name: "TookiKitTests", dependencies: ["TookiKit"]),
+        .testTarget(name: "TookiTests", dependencies: ["Tooki"]),
     ]
 )

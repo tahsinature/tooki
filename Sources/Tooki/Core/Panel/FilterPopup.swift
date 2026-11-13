@@ -35,12 +35,12 @@ struct FilterPopup: View {
                     .font(.system(size: 10, weight: .semibold))
                     .foregroundStyle(PanelTheme.tertiaryText)
                     .frame(width: 11)
-                TextField("", text: $query, prompt: Text("Search…").foregroundStyle(PanelTheme.tertiaryText))
+                TextField("", text: $query.ignoringUnchangedValues(), prompt: Text("Search…").foregroundStyle(PanelTheme.tertiaryText))
                     .textFieldStyle(.plain)
                     .font(.system(size: 12))
                     .foregroundStyle(PanelTheme.primaryText)
                     .tint(PanelTheme.accent)
-                    .focused($isQueryFocused)
+                    .focusOnPresentation($isQueryFocused)
                     .onKeyPress(phases: [.down, .repeat], action: handleKey)
             }
             .padding(.horizontal, Self.listPadding + 7)
@@ -59,7 +59,6 @@ struct FilterPopup: View {
         .popupSurface(cornerRadius: 10)
         .onAppear {
             highlighted = visible.firstIndex(of: current) ?? 0
-            isQueryFocused = true
         }
         .onChange(of: query) {
             highlighted = 0

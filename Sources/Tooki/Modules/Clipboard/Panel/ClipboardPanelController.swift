@@ -3,8 +3,8 @@ import TookiKit
 
 /// Shows the clipboard history panel and carries out the chosen action.
 @MainActor
-final class ClipboardPanelController {
-    private var panel: FloatingPanel?
+final class ClipboardPanelController: ResumablePanelController {
+    var panel: FloatingPanel?
     /// Runs after Esc closes the panel, e.g. to go back to root search. Set before each `show()`.
     var onBack: (() -> Void)?
     private let history: ClipboardHistory
@@ -15,10 +15,12 @@ final class ClipboardPanelController {
         self.shelves = shelves
     }
 
-    var isShowing: Bool { panel?.isVisible == true }
-
     func toggle() {
-        isShowing ? close() : show()
+        if isShowing {
+            close()
+        } else if !resume() {
+            show()
+        }
     }
 
     func show() {
@@ -34,21 +36,35 @@ final class ClipboardPanelController {
                     guard let model else { return }
                     self?.perform(kind, model: model)
                 },
-                onCancel: { [weak self] in self?.dismiss() },
+                onCancel: { [weak self, weak model] in
+                    if let model { self?.escape(model) }
+                },
                 onClose: { [weak self] in self?.close() }
             )
         }
         panel.onEscape = { [weak self, weak model] in
-            if model?.actions.dismiss() != true { self?.dismiss() }
+            if let model { self?.escape(model) }
         }
         panel.quickLook = QuickLookPreview()
+        panel.onPresent = { [weak model] in
+            if let app = NSWorkspace.shared.frontmostApplication, app.processIdentifier != ProcessInfo.processInfo.processIdentifier {
+                model?.targetAppName = app.localizedName
+            }
+        }
+        panel.onClose = { [weak model] in
+            model?.selectedID = model?.selectedItem?.id
+        }
         self.panel = panel
         panel.present()
     }
 
-    func close() {
-        panel?.close()
-        panel = nil
+    private func escape(_ model: ClipboardPanelModel) {
+        if model.actions.dismiss() { return }
+        if !model.query.isEmpty {
+            model.query = ""
+        } else {
+            dismiss()
+        }
     }
 
     /// Esc with nothing left to back out of.

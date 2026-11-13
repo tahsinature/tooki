@@ -68,7 +68,7 @@ enum SettingsPage: String, CaseIterable, Identifiable {
 
     private var searchTerms: String {
         switch self {
-        case .general: "permissions accessibility startup login launch configuration config reload folder url scheme"
+        case .general: "permissions accessibility startup login launch configuration config reload folder url scheme panel navigation resume restore last search root shortcut"
         case .hyperKey: "caps lock keyboard modifier remap escape hyper"
         case .snippets: "text expansion keyword placeholders templates variables paste"
         case .clipboard: "history retention images text links ignored apps passwords sensitive copy paste"

@@ -19,14 +19,14 @@ final class ClipboardPanelModel {
 
     let history: ClipboardHistory
     /// The app that was in front when the panel opened; pasting goes there.
-    let targetAppName: String?
+    var targetAppName: String?
 
     init(history: ClipboardHistory, targetAppName: String?) {
         self.history = history
         self.targetAppName = targetAppName
         actions.rootActions = { [weak self] in
             guard let self, let item = selectedItem else { return [] }
-            return ClipboardAction.all(for: item, targetAppName: targetAppName)
+            return ClipboardAction.all(for: item, targetAppName: self.targetAppName)
         }
     }
 

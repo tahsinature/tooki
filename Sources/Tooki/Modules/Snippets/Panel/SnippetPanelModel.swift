@@ -27,7 +27,7 @@ final class SnippetPanelModel {
     let snippets: JSONDocument<[Snippet]>
     let usage: SnippetUsage
     /// The app that was in front when the panel opened; pasting goes there.
-    let targetAppName: String?
+    var targetAppName: String?
 
     init(snippets: JSONDocument<[Snippet]>, usage: SnippetUsage, targetAppName: String?) {
         self.snippets = snippets
@@ -35,7 +35,7 @@ final class SnippetPanelModel {
         self.targetAppName = targetAppName
         actions.rootActions = { [weak self] in
             guard let self, let snippet = selectedSnippet else { return [] }
-            return SnippetAction.all(for: snippet, targetAppName: targetAppName)
+            return SnippetAction.all(for: snippet, targetAppName: self.targetAppName)
         }
     }
 

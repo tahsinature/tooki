@@ -3,8 +3,8 @@ import TookiKit
 
 /// Shows the snippets panel and carries out the chosen action.
 @MainActor
-final class SnippetPanelController {
-    private var panel: FloatingPanel?
+final class SnippetPanelController: ResumablePanelController {
+    var panel: FloatingPanel?
     /// Runs after Esc closes the panel, e.g. to go back to root search. Set before each `show()`.
     var onBack: (() -> Void)?
     private let snippets: JSONDocument<[Snippet]>
@@ -17,10 +17,12 @@ final class SnippetPanelController {
         self.inserter = inserter
     }
 
-    var isShowing: Bool { panel?.isVisible == true }
-
     func toggle() {
-        isShowing ? close() : show()
+        if isShowing {
+            close()
+        } else if !resume() {
+            show()
+        }
     }
 
     /// - Parameter creating: opens straight into the create form.
@@ -39,24 +41,36 @@ final class SnippetPanelController {
                     guard let model else { return }
                     self?.perform(kind, model: model)
                 },
-                onCancel: { [weak self] in self?.dismiss() }
+                onCancel: { [weak self, weak model] in
+                    if let model { self?.escape(model) }
+                }
             )
         }
         panel.onEscape = { [weak self, weak model] in
-            guard let model else { return }
-            if model.form != nil {
-                model.form = nil
-            } else if !model.actions.dismiss() {
-                self?.dismiss()
+            if let model { self?.escape(model) }
+        }
+        panel.onPresent = { [weak model] in
+            if let app = NSWorkspace.shared.frontmostApplication, app.processIdentifier != ProcessInfo.processInfo.processIdentifier {
+                model?.targetAppName = app.localizedName
             }
+        }
+        panel.onClose = { [weak model] in
+            model?.selectedID = model?.selectedSnippet?.id
         }
         self.panel = panel
         panel.present()
     }
 
-    func close() {
-        panel?.close()
-        panel = nil
+    private func escape(_ model: SnippetPanelModel) {
+        if model.form != nil {
+            model.form = nil
+        } else if model.actions.dismiss() {
+            return
+        } else if !model.query.isEmpty {
+            model.query = ""
+        } else {
+            dismiss()
+        }
     }
 
     /// Esc with nothing left to back out of.

@@ -48,6 +48,7 @@ final class AppController {
     @ObservationIgnored private lazy var snippetExpander = SnippetExpander(snippets: snippets, inserter: snippetInserter, usage: snippetUsage)
     @ObservationIgnored private lazy var keyboardMonitor = KeyboardMonitor(handlers: [hyperKey, detective, shortcuts, snippetExpander])
     @ObservationIgnored private lazy var mainWindow = MainWindowController(app: self)
+    @ObservationIgnored private var lastPanel: (any ResumablePanelController)?
     @ObservationIgnored private var pollTimer: Timer?
     /// `tooki://` links that arrived while Tooki was still starting up.
     @ObservationIgnored private var pendingURLs: [URL]? = []
@@ -67,7 +68,10 @@ final class AppController {
         clipboard.load()
         config.onChange = { [weak self] in self?.apply($0) }
         shortcuts.onAction = { [weak self] in self?.perform($0) }
-        FloatingPanel.onCommandEscape { [weak self] in self?.showSearch(.everything) }
+        PanelShortcutRouter.onRootSearchShortcut(combo: { [weak self] in
+            guard let self, !shortcuts.isPaused else { return nil }
+            return KeyCombo(config.value.panelNavigation.rootSearchShortcut)
+        }) { [weak self] in self?.showSearch(.everything) }
         apply(config.value)
         startShelf()
         Task { await appCatalog.refresh() }
@@ -137,6 +141,15 @@ final class AppController {
     }
 
     func toggleSearch(_ mode: SearchPanelController.Mode) {
+        if mode == .everything, PanelShortcutRouter.hideShelf(NSApp.keyWindow) { return }
+        if mode == .everything, config.value.panelNavigation.resumeLastPanel, let lastPanel {
+            if lastPanel.panel?.isKeyWindow == true {
+                lastPanel.close()
+                return
+            }
+            closePanels(except: lastPanel)
+            if lastPanel.resume() { return }
+        }
         presentSearch(mode, toggling: true)
     }
 
@@ -147,8 +160,13 @@ final class AppController {
 
     private func presentSearch(_ mode: SearchPanelController.Mode, toggling: Bool) {
         closePanels(except: searchPanel)
+        lastPanel = searchPanel
         searchPanel.onBack = nil
         let items = SearchItems(app: self)
+        searchPanel.refreshItems = { [weak self] in
+            guard let self else { return [] }
+            return SearchItems(app: self).all()
+        }
         if toggling {
             searchPanel.toggle(mode, items: items.all(), calculate: items.calculation)
         } else {
@@ -159,41 +177,53 @@ final class AppController {
         Task { await currencyRates.refreshIfStale() }
     }
 
-    /// - Parameter fromSearch: Esc goes back to root search instead of just closing.
-    func toggleSnippets(fromSearch: Bool = false) {
+    func toggleSnippets() {
         closePanels(except: snippetPanel)
-        snippetPanel.onBack = backToSearch(fromSearch)
+        lastPanel = snippetPanel
+        snippetPanel.onBack = backToSearch()
         snippetPanel.toggle()
     }
 
     func createSnippet() {
         closePanels(except: snippetPanel)
-        snippetPanel.onBack = nil
+        lastPanel = snippetPanel
+        snippetPanel.onBack = backToSearch()
         snippetPanel.show(creating: true)
     }
 
-    func toggleClipboard(fromSearch: Bool = false) {
+    func toggleClipboard() {
         closePanels(except: clipboardPanel)
-        clipboardPanel.onBack = backToSearch(fromSearch)
+        lastPanel = clipboardPanel
+        clipboardPanel.onBack = backToSearch()
         clipboardPanel.toggle()
     }
 
-    func toggleShelfManager(fromSearch: Bool = false) {
+    func toggleShelfManager() {
         closePanels(except: shelfManager)
-        shelfManager.onBack = backToSearch(fromSearch)
+        lastPanel = shelfManager
+        shelfManager.onBack = backToSearch()
         shelfManager.toggle(library: shelves)
     }
 
-    func toggleEmoji(fromSearch: Bool = false) {
+    func toggleEmoji() {
         closePanels(except: emojiPanel)
-        emojiPanel.onBack = backToSearch(fromSearch)
+        lastPanel = emojiPanel
+        emojiPanel.onBack = backToSearch()
         emojiPanel.toggle()
     }
 
-    /// What Esc does after closing a panel opened from root search.
-    private func backToSearch(_ fromSearch: Bool) -> (() -> Void)? {
-        guard fromSearch else { return nil }
-        return { [weak self] in self?.toggleSearch(.everything) }
+    /// Managers return to the saved parent query, even when opened by a dedicated shortcut.
+    private func backToSearch() -> () -> Void {
+        return { [weak self] in self?.returnToRootSearch() }
+    }
+
+    private func returnToRootSearch() {
+        closePanels(except: searchPanel)
+        lastPanel = searchPanel
+        searchPanel.onBack = nil
+        if !searchPanel.resume(.everything) {
+            presentSearch(.everything, toggling: false)
+        }
     }
 
     /// Only one floating panel shows at a time.
@@ -205,14 +235,19 @@ final class AppController {
         if kept !== shelfManager { shelfManager.close() }
     }
 
-    func toggleMenuBarSearch(fromSearch: Bool = false) async {
+    func toggleMenuBarSearch() async {
+        lastPanel = searchPanel
         closePanels(except: searchPanel)
         if searchPanel.isShowing(.menuBar) {
             searchPanel.close()
             return
         }
         let items = await SearchItems(app: self).menuBarItems()
-        searchPanel.onBack = backToSearch(fromSearch)
+        searchPanel.refreshMenuBarItems = { [weak self] in
+            guard let self else { return [] }
+            return await SearchItems(app: self).menuBarItems()
+        }
+        searchPanel.onBack = backToSearch()
         searchPanel.show(.menuBar, items: items)
     }
 

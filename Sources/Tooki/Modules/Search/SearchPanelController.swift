@@ -3,8 +3,8 @@ import TookiKit
 
 /// Shows the floating launcher and runs the chosen item in the app you were using.
 @MainActor
-final class SearchPanelController {
-    enum Mode {
+final class SearchPanelController: ResumablePanelController {
+    enum Mode: Hashable {
         case everything
         case menuBar
 
@@ -37,16 +37,31 @@ final class SearchPanelController {
         }
     }
 
-    private var panel: FloatingPanel?
+    var panel: FloatingPanel?
     /// Runs after Esc closes the panel, e.g. to go back to root search. Set before each `show()`.
     var onBack: (() -> Void)?
     /// Runs on ⌘, after the panel closes.
     var onOpenSettings: (() -> Void)?
+    var refreshItems: (() -> [SearchItem])?
+    var refreshMenuBarItems: (() async -> [SearchItem])?
     private var shownMode: Mode?
+    private var savedPanels: [Mode: FloatingPanel] = [:]
     private var history = LaunchHistoryFile.load()
 
     func isShowing(_ mode: Mode) -> Bool {
         panel?.isVisible == true && shownMode == mode
+    }
+
+    /// Back navigation restores the parent search; an explicit show starts a fresh one.
+    @discardableResult
+    func resume(_ mode: Mode) -> Bool {
+        guard let saved = savedPanels[mode] else { return false }
+        panel?.close()
+        panel = saved
+        shownMode = mode
+        QuickLookPreview.closeCurrent()
+        saved.present(restoring: true)
+        return true
     }
 
     /// Pressing the same hotkey again while the panel is open closes it.
@@ -73,8 +88,13 @@ final class SearchPanelController {
         let panel = FloatingPanel(size: SearchView.size) {
             SearchView(
                 model: model,
-                onRun: { [weak self] action, item in self?.run(action, of: item) },
-                onCancel: { [weak self] in self?.dismiss() },
+                onRun: { [weak self, weak model] action, item in
+                    model?.isShowingActions = false
+                    self?.run(action, of: item)
+                },
+                onCancel: { [weak self, weak model] in
+                    if let model { self?.escape(model) }
+                },
                 onOpenSettings: { [weak self] in
                     self?.close()
                     self?.onOpenSettings?()
@@ -83,15 +103,38 @@ final class SearchPanelController {
         }
         // Esc closes the ⌘K popup first, like in the clipboard panel.
         panel.onEscape = { [weak self, weak model] in
-            if model?.isShowingActions == true { model?.isShowingActions = false } else { self?.dismiss() }
+            if let model { self?.escape(model) }
+        }
+        if mode == .everything {
+            panel.onPresent = { [weak self, weak model] in
+                guard let self, let items = refreshItems?() else { return }
+                model?.refresh(items: items, history: history)
+            }
+        } else {
+            panel.onPresent = { [weak self, weak model, weak panel] in
+                guard let refresh = self?.refreshMenuBarItems else { return }
+                Task { [weak self, weak model, weak panel] in
+                    let items = await refresh()
+                    guard let self, let panel, self.panel === panel, panel.isVisible else { return }
+                    model?.refresh(items: items, history: history)
+                }
+            }
         }
         self.panel = panel
+        savedPanels[mode] = panel
         panel.present()
     }
 
-    func close() {
-        panel?.close()
-        panel = nil
+    private func escape(_ model: SearchModel) {
+        if model.isShowingActions {
+            model.isShowingActions = false
+        } else if !model.query.isEmpty {
+            model.query = ""
+        } else if model.groupFilter != nil {
+            model.groupFilter = nil
+        } else {
+            dismiss()
+        }
     }
 
     /// Esc with nothing left to back out of.
