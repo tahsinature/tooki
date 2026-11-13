@@ -39,6 +39,7 @@ struct KeepAwakeView: View {
                     }
                     .settingsMenuPicker()
                 }
+                SettingsToggleRow("Show coffee icon in the menu bar while awake", isOn: $config.value.keepAwake.showMenuBarIcon)
                 SettingsToggleRow("Only while plugged in", isOn: $config.value.keepAwake.onlyOnPower)
             }
 

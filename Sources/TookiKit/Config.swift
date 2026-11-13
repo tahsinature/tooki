@@ -180,6 +180,7 @@ public enum KeepAwakeMode: String, Codable, CaseIterable, Sendable {
 }
 
 public struct KeepAwakeConfig: Codable, Equatable, Sendable {
+    public var showMenuBarIcon = false
     public var mode = KeepAwakeMode.display
     /// Duration used by the toggle shortcut. 0 means until turned off.
     public var defaultDurationMinutes = 0
@@ -192,6 +193,7 @@ public struct KeepAwakeConfig: Codable, Equatable, Sendable {
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let defaults = KeepAwakeConfig()
+        showMenuBarIcon = try container.decode(.showMenuBarIcon, default: defaults.showMenuBarIcon)
         mode = try container.decode(.mode, default: defaults.mode)
         defaultDurationMinutes = try container.decode(.defaultDurationMinutes, default: defaults.defaultDurationMinutes)
         onlyOnPower = try container.decode(.onlyOnPower, default: defaults.onlyOnPower)

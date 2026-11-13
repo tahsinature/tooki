@@ -24,6 +24,9 @@ enum PanelTheme {
     static let popupDivider = adaptive(dark: (255, 255, 255, 0.07), light: (60, 60, 67, 0.11))
     static let keycapBorder = adaptive(dark: (255, 255, 255, 0.22), light: (0, 0, 0, 0.2))
     static let selectedRim = adaptive(dark: (255, 255, 255, 0.03), light: (0, 0, 0, 0.025))
+    static let selectionIndicator = adaptive(dark: (140, 165, 248, 1), light: (42, 85, 214, 1))
+    static let compactTint = adaptive(dark: (41, 41, 44, 0.94), light: (245, 245, 247, 0.94))
+    static let compactListBackground = adaptive(dark: (37, 37, 40, 0.8), light: (235, 235, 240, 0.65))
 
     static let accent = Color(red: 0, green: 122 / 255, blue: 1)
     static let accentFill = Color(red: 0, green: 113 / 255, blue: 237 / 255)
@@ -47,7 +50,7 @@ enum PanelTheme {
 
     // MARK: Fonts
 
-    static let queryFont = Font.system(size: 20, weight: .medium)
+    static let queryFont = Font.system(size: 16, weight: .medium)
     static let queryTracking: CGFloat = -0.28
     static let rowTitleFont = Font.system(size: 13, weight: .medium)
     static let labelFont = Font.system(size: 12, weight: .medium)

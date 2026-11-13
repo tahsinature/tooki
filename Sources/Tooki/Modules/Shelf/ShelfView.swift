@@ -73,12 +73,14 @@ struct ShelfView: View {
     private var content: some View {
         VStack(spacing: 0) {
             ShelfHeader(shelf: shelf, onHide: onHide, onDelete: onDelete, onClear: onClear)
-            if shelf.isEmpty {
+            if shelf.isEmpty && !shelf.isShowingConversion {
                 ShelfEmptyView()
             } else if shelf.isExpanded {
                 ShelfPages(shelf: shelf, namespace: namespace)
-                Divider()
-                ShelfFooter(shelf: shelf, onClear: onClear)
+                if !shelf.isShowingConversion {
+                    Divider()
+                    ShelfFooter(shelf: shelf, onClear: onClear)
+                }
             } else {
                 ShelfStack(shelf: shelf, namespace: namespace)
                 ShelfShowAllBar(shelf: shelf, onClear: onClear)
@@ -86,19 +88,20 @@ struct ShelfView: View {
         }
         .frame(width: ShelfMotion.width)
         .animation(ShelfMotion.spring, value: shelf.isExpanded)
+        .animation(ShelfMotion.spring, value: shelf.isShowingConversion)
     }
 }
 
 /// The list and an item's details side by side, like pages: → slides the details in from the
 /// right, ← slides back. The height springs to fit whichever page is showing.
-private struct ShelfPages: View {
+private struct ShelfItemPages: View {
     let shelf: Shelf
     let namespace: Namespace.ID
 
     private var isShowingDetail: Bool { shelf.detailItem != nil }
 
     var body: some View {
-        ShelfPagesLayout(page: isShowingDetail ? 1 : 0) {
+        SlidingPagesLayout(page: isShowingDetail ? 1 : 0, width: ShelfMotion.width) {
             ShelfRows(shelf: shelf, namespace: namespace)
                 .allowsHitTesting(!isShowingDetail)
             Group {
@@ -114,33 +117,22 @@ private struct ShelfPages: View {
     }
 }
 
-/// Places its subviews in a row, each one shelf wide, scrolled to `page`. Its height is the
-/// shown page's height, blended between pages while `page` animates.
-private struct ShelfPagesLayout: Layout {
-    var page: CGFloat
+/// Converters use the same sliding layout as item details, with the previous page kept alive.
+private struct ShelfPages: View {
+    let shelf: Shelf
+    let namespace: Namespace.ID
 
-    var animatableData: CGFloat {
-        get { page }
-        set { page = newValue }
-    }
-
-    private var width: CGFloat { ShelfMotion.width }
-
-    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
-        let heights = subviews.map { $0.sizeThatFits(ProposedViewSize(width: width, height: nil)).height }
-        guard !heights.isEmpty else { return CGSize(width: width, height: 0) }
-        let lower = min(Int(page), heights.count - 1)
-        let upper = min(lower + 1, heights.count - 1)
-        let fraction = page - CGFloat(lower)
-        let height = heights[lower] + (heights[upper] - heights[lower]) * fraction
-        return CGSize(width: width, height: height)
-    }
-
-    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-        for (index, subview) in subviews.enumerated() {
-            let x = bounds.minX + (CGFloat(index) - page) * width
-            subview.place(at: CGPoint(x: x, y: bounds.minY), proposal: ProposedViewSize(width: width, height: nil))
+    var body: some View {
+        SlidingPagesLayout(page: shelf.isShowingConversion ? 1 : 0, width: ShelfMotion.width) {
+            ShelfItemPages(shelf: shelf, namespace: namespace)
+                .allowsHitTesting(!shelf.isShowingConversion)
+            if let model = shelf.imageConversion {
+                ShelfImageConversionView(model: model)
+                    .allowsHitTesting(shelf.isShowingConversion)
+            }
         }
+        .clipped()
+        .animation(ShelfMotion.spring, value: shelf.isShowingConversion)
     }
 }
 

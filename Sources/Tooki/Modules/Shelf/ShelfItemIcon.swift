@@ -23,8 +23,10 @@ struct ShelfItemIcon: View {
         }
         .frame(width: size, height: size)
         // A copy still being made has no file yet, so try again once it's there.
-        .task(id: "\(item.path) \(item.exists)") {
-            preview = await ShelfPreviews.image(of: item.url, size: size)
+        .task(id: "\(item.path) \(item.exists) \(item.conversionRevision?.uuidString ?? "")") {
+            let image = await ShelfPreviews.image(of: item.url, size: size, revision: item.conversionRevision)
+            guard !Task.isCancelled else { return }
+            preview = image
         }
     }
 }
@@ -33,10 +35,10 @@ struct ShelfItemIcon: View {
 private enum ShelfPreviews {
     private static let cache = NSCache<NSString, NSImage>()
 
-    static func image(of url: URL, size: CGFloat) async -> NSImage? {
+    static func image(of url: URL, size: CGFloat, revision: UUID?) async -> NSImage? {
         let type = try? url.resourceValues(forKeys: [.contentTypeKey]).contentType
         guard type?.conforms(to: .image) == true else { return nil }
-        let key = "\(url.path) \(size)" as NSString
+        let key = "\(url.path) \(size) \(revision?.uuidString ?? "")" as NSString
         if let cached = cache.object(forKey: key) { return cached }
         let request = QLThumbnailGenerator.Request(
             fileAt: url,

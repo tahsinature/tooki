@@ -35,6 +35,7 @@ final class ShelfLibrary {
 
     /// Takes the shelf away for good. Tooki's own copies on it are deleted.
     func remove(_ shelf: Shelf) {
+        shelf.imageConversion?.discard()
         shelf.clear()
         shelves.removeAll { $0.id == shelf.id }
         save()

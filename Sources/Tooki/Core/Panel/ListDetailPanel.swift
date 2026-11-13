@@ -18,6 +18,7 @@ struct ListDetailFooter {
 /// (or the popup), ↵ runs the main action (⌘↵ the second one), ⌘K toggles the popup, ← leaves a
 /// submenu, ⌘P opens the filter menu and Esc closes one level at a time. Anything else goes to `onShortcut`.
 struct ListDetailPanel<Action: PanelActionItem, Accessory: View, ListContent: View, Detail: View, Empty: View>: View {
+    @Environment(\.compactPanelLayout) private var isCompact
     let placeholder: String
     @Binding var query: String
     let actions: ActionsMenu<Action>
@@ -74,7 +75,7 @@ struct ListDetailPanel<Action: PanelActionItem, Accessory: View, ListContent: Vi
             )
         }
         .frame(width: PanelTheme.listDetailSize.width, height: PanelTheme.listDetailSize.height)
-        .panelSurface()
+        .panelSurface(tint: isCompact ? PanelTheme.compactTint : PanelTheme.tint)
         // The panel isn't key yet when this appears, so focus once it is.
         .onAppear { Task { isSearchFocused = true } }
         .onChange(of: actions.isShowing) { _, isShowing in
@@ -89,7 +90,8 @@ struct ListDetailPanel<Action: PanelActionItem, Accessory: View, ListContent: Vi
     private var content: some View {
         if hasItems {
             HStack(spacing: 0) {
-                list.frame(width: PanelTheme.listWidth)
+                list.frame(width: isCompact ? 250 : PanelTheme.listWidth)
+                    .background(isCompact ? PanelTheme.compactListBackground : .clear)
                 PanelTheme.separator.frame(width: 1)
                 detail
             }

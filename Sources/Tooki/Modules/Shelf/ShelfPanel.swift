@@ -99,13 +99,13 @@ private final class ShelfDropView: NSView {
 
     override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation {
         // Items dragged out of the shelf don't land back on it.
-        guard !(sender.draggingSource is ShelfDragSourceView) else { return [] }
+        guard !shelf.isShowingConversion, !(sender.draggingSource is ShelfDragSourceView) else { return [] }
         shelf.dropTarget = target(for: sender)
         return .copy
     }
 
     override func draggingUpdated(_ sender: NSDraggingInfo) -> NSDragOperation {
-        guard !(sender.draggingSource is ShelfDragSourceView) else { return [] }
+        guard !shelf.isShowingConversion, !(sender.draggingSource is ShelfDragSourceView) else { return [] }
         shelf.dropTarget = target(for: sender)
         return .copy
     }
@@ -115,6 +115,7 @@ private final class ShelfDropView: NSView {
     }
 
     override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
+        guard !shelf.isShowingConversion else { return false }
         let mode: ShelfAddMode = shelf.dropTarget == .files(.copy) ? .copy : .original
         shelf.dropTarget = nil
         return shelf.add(from: sender.draggingPasteboard, mode: mode)

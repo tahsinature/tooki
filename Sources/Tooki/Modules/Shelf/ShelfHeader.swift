@@ -23,8 +23,9 @@ struct ShelfHeader: View {
             .padding(.leading, 12)
             .frame(maxHeight: .infinity)
             .shelfWindowDragArea()
-            if !shelf.isEmpty { ShelfViewSwitch(shelf: shelf) }
+            if !shelf.isEmpty { ShelfViewSwitch(shelf: shelf).disabled(shelf.isShowingConversion) }
             ShelfMoreMenu(shelf: shelf, onRename: { isRenaming = true }, onClear: onClear, onDelete: onDelete)
+                .disabled(shelf.isShowingConversion)
             ShelfHideButton(shelf: shelf, onHide: onHide, onDelete: onDelete)
         }
         .padding(.trailing, 12)

@@ -9,7 +9,7 @@ struct ClipboardDetailView: View {
         VStack(alignment: .leading, spacing: 0) {
             ClipboardPreview(item: item)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            MetadataList(title: "Information", items: ClipboardMetadata.items(for: item))
+            ClipboardSummaryView(item: item)
         }
     }
 }

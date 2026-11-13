@@ -84,6 +84,7 @@ final class ShelfPanelController {
         )
         let panel = ShelfPanel(shelf: shelf, content: view)
         shelf.onQuickLook = { [weak panel] urls in panel?.quickLook.toggle(urls) }
+        shelf.onCloseQuickLook = { [weak panel] in panel?.quickLook.close() }
         panel.onEscapeKey = { [weak self] event in self?.handleEscape(event) }
         panel.onFocusChange = { [weak self] focused in
             self?.shelf.isFocused = focused
@@ -97,6 +98,10 @@ final class ShelfPanelController {
     /// A tap on Esc steps back: from an item's details to the list, then folds the list, then
     /// hides the shelf. Holding it deletes the shelf; letting go too soon springs it back.
     private func handleEscape(_ event: NSEvent) {
+        if shelf.isShowingConversion, let model = shelf.imageConversion {
+            if event.type == .keyDown, !event.isARepeat { model.back() }
+            return
+        }
         if event.type == .keyDown {
             guard !event.isARepeat, escapeHold == nil else { return }
             if shelf.armed != nil { return shelf.disarm() }
@@ -143,6 +148,18 @@ final class ShelfPanelController {
     }
 
     private func handleKey(_ event: NSEvent) -> Bool {
+        if shelf.isShowingConversion, let model = shelf.imageConversion {
+            if event.keyCode == 49 || (event.modifierFlags.contains(.command) && event.charactersIgnoringModifiers == "y") {
+                model.quickLook()
+                return true
+            }
+            if model.phase == .review, [123, 124, 125, 126].contains(event.keyCode) {
+                model.moveReview(by: [123, 126].contains(event.keyCode) ? -1 : 1)
+                panel.quickLook.update(model.reviewURLs)
+                return true
+            }
+            return false
+        }
         // While the name is being edited, keys belong to the text field.
         if panel.firstResponder is NSText { return false }
         let key = event.charactersIgnoringModifiers?.lowercased()

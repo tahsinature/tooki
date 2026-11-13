@@ -6,8 +6,10 @@ import Foundation
 ///
 /// An item is either a link to your original file, or a copy Tooki keeps in its own storage.
 /// Dragging an original out can move it; dragging a copy out never touches the original.
-struct ShelfItem: Codable, Identifiable, Equatable {
+struct ShelfItem: Codable, Identifiable, Equatable, Sendable {
     var id = UUID()
+    /// Invalidates previews after replacing a file at the same path. Optional for older saved shelves.
+    var conversionRevision: UUID?
     private(set) var path: String
     /// Dropped text or a link. Dragging the item out offers this as well as the saved file.
     var text: String?

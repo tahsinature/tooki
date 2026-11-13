@@ -1,29 +1,36 @@
 import Foundation
 import TookiKit
 
-/// The rows of the clipboard detail's "Information" list.
+/// Formats the clipboard preview's compact summary.
 @MainActor
 enum ClipboardMetadata {
-    static func items(for item: ClipboardItem) -> [MetadataItem] {
-        let source = SourceApp.named(item.sourceApp)
-        let isText = item.contentType == .text || item.contentType == .link
-        return [
-            MetadataItem(label: "Source", value: source?.name, icon: source?.icon),
-            MetadataItem(label: "Type", value: item.contentType.label),
-            MetadataItem(label: "Dimensions", value: item.image.map { "\($0.width) × \($0.height)" }),
-            MetadataItem(label: "Size", value: fileSize(of: item)),
-            MetadataItem(label: "Characters", value: isText ? item.text.count.formatted() : nil),
-            MetadataItem(label: "Words", value: isText ? wordCount(item.text).formatted() : nil),
-            MetadataItem(label: "Times Copied", value: item.timesCopied > 1 ? item.timesCopied.formatted() : nil,
-                         help: "First copied \(item.firstCopiedAt.formatted(date: .abbreviated, time: .shortened))"),
-            MetadataItem(label: "Copied", value: relativeFormatter.localizedString(for: item.copiedAt, relativeTo: Date()),
-                         help: item.copiedAt.formatted(date: .abbreviated, time: .shortened)),
-        ]
+    static func detail(for item: ClipboardItem) -> String? {
+        switch item.contentType {
+        case .image:
+            item.image.map { "\($0.width) × \($0.height) px" }
+        case .text, .link:
+            "\(item.text.count.formatted()) characters · \(wordCount(item.text).formatted()) words"
+        case .file:
+            item.files.map { $0.count == 1 ? "1 file" : "\($0.count.formatted()) files" }
+        case .color:
+            HexColor(item.text)?.rgbDescription
+        }
+    }
+
+    static func copiedDescription(for item: ClipboardItem) -> String {
+        if abs(item.copiedAt.timeIntervalSinceNow) < 1 { return "Just now" }
+        return relativeFormatter.localizedString(for: item.copiedAt, relativeTo: Date())
+    }
+
+    static func copyHistory(for item: ClipboardItem) -> String {
+        let copied = "Copied \(item.copiedAt.formatted(date: .abbreviated, time: .shortened))"
+        guard item.timesCopied > 1 else { return copied }
+        return "\(copied)\n\(item.timesCopied.formatted()) times copied\nFirst copied \(item.firstCopiedAt.formatted(date: .abbreviated, time: .shortened))"
     }
 
     private static let relativeFormatter: RelativeDateTimeFormatter = {
         let formatter = RelativeDateTimeFormatter()
-        formatter.unitsStyle = .full
+        formatter.unitsStyle = .abbreviated
         return formatter
     }()
 
@@ -31,12 +38,22 @@ enum ClipboardMetadata {
         text.split { $0.isWhitespace || $0.isNewline }.count
     }
 
-    private static func fileSize(of item: ClipboardItem) -> String? {
-        guard let files = item.files else { return nil }
-        let bytes = files.compactMap { path in
-            (try? FileManager.default.attributesOfItem(atPath: path)[.size] as? NSNumber)?.int64Value
-        }.reduce(0, +)
-        let size = ByteCountFormatter.string(fromByteCount: bytes, countStyle: .file)
-        return files.count == 1 ? size : "\(size) in \(files.count) files"
+    /// Reads file attributes rather than decoding or loading the image's bytes.
+    static func fileSize(of item: ClipboardItem) -> String? {
+        let urls: [URL]
+        if let image = item.image {
+            urls = [ClipboardImageStore.url(for: image)]
+        } else if let files = item.files, !files.isEmpty {
+            urls = files.map { URL(filePath: $0) }
+        } else {
+            return nil
+        }
+        var bytes: Int64 = 0
+        for url in urls {
+            guard let values = try? url.resourceValues(forKeys: [.fileSizeKey, .isDirectoryKey]),
+                  values.isDirectory != true, let size = values.fileSize else { return nil }
+            bytes += Int64(size)
+        }
+        return ByteCountFormatter.string(fromByteCount: bytes, countStyle: .file)
     }
 }

@@ -42,7 +42,8 @@ struct SearchView: View {
                 primaryActionTitle: model.selectedItem?.actionTitle,
                 onPrimaryAction: { runSelected(copyOnly: false) },
                 onShowActions: { model.isShowingActions.toggle() },
-                badgeAction: FooterAction(title: "Open Tooki Settings", shortcut: "⌘,", run: onOpenSettings)
+                badgeAction: FooterAction(title: "Open Tooki Settings", shortcut: "⌘,", run: onOpenSettings),
+                blendsWithPanel: true
             )
         }
         .actionsPopup(isPresented: model.isShowingActions, onDismiss: { model.isShowingActions = false }) {

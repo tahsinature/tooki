@@ -4,10 +4,14 @@ struct TookiApp: App {
     @NSApplicationDelegateAdaptor private var delegate: AppDelegate
 
     var body: some Scene {
+        @Bindable var app = delegate.app
         MenuBarExtra {
             MenuBarMenu(app: delegate.app)
         } label: {
             MenuBarLabel()
+        }
+        MenuBarExtra("Keep Awake", systemImage: "cup.and.saucer.fill", isInserted: $app.isCoffeeIconInserted) {
+            KeepAwakeMenu(keepAwake: app.keepAwake) { app.showSettings(.keepAwake) }
         }
     }
 }

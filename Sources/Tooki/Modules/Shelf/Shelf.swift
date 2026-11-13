@@ -1,5 +1,6 @@
 import AppKit
 import Observation
+import TookiKit
 
 /// One shelf: its items, and which are selected. `ShelfLibrary` keeps every shelf and saves them.
 @MainActor
@@ -11,6 +12,9 @@ final class Shelf: Identifiable {
     private(set) var lastUsed: Date
     private(set) var items: [ShelfItem]
     var selection: Set<ShelfItem.ID> = []
+    /// Presented by ShelfView. The model keeps only a weak reference back to this shelf.
+    var imageConversion: ShelfImageConversionModel?
+    var isShowingConversion = false
     var isExpanded = false {
         didSet { if !isExpanded { isShowingDetail = false } }
     }
@@ -34,6 +38,7 @@ final class Shelf: Identifiable {
     private(set) var cursor: ShelfItem.ID?
 
     /// Opens Quick Look for these files. Set by the shelf's panel, which owns the preview.
+    @ObservationIgnored var onCloseQuickLook: () -> Void = {}
     @ObservationIgnored var onQuickLook: ([URL]) -> Void = { _ in }
     /// Runs whenever something worth saving changed.
     @ObservationIgnored var onChange: () -> Void = {}
@@ -108,6 +113,39 @@ final class Shelf: Identifiable {
         try FileManager.default.moveItem(at: item.url, to: destination)
         items[index].relocate(to: destination)
         save()
+    }
+
+    /// Commit only if the exact item is still on the shelf. No suspension between the
+    /// file operation and updating its row, so removal cannot leave an orphaned result.
+    @discardableResult
+    func applyImageConversion(
+        _ prepared: PreparedImageConversion, to item: ShelfItem, output: ImageConversionOptions.Output
+    ) throws -> UUID {
+        guard let index = items.firstIndex(where: { $0 == item }) else {
+            throw ImageConversionError.itemRemoved
+        }
+        let url = try prepared.commit()
+        var resultID = item.id
+        if output == .replace {
+            items[index].relocate(to: url)
+            items[index].conversionRevision = UUID()
+        } else {
+            let converted = ShelfItem(savedFile: url, text: nil, isLink: false)
+            items.insert(converted, at: index + 1)
+            selection.remove(item.id)
+            selection.insert(converted.id)
+            cursor = converted.id
+            resultID = converted.id
+        }
+        lastUsed = Date()
+        save()
+        return resultID
+    }
+
+    func selectConverted(_ ids: [UUID]) {
+        guard let first = ids.first else { return }
+        selection = Set(ids)
+        cursor = first
     }
 
     /// The items a right-click acts on: the selection if the clicked item is in it, otherwise

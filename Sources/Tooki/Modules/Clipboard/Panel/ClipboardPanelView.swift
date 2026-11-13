@@ -39,13 +39,14 @@ struct ClipboardPanelView: View {
         } emptyState: {
             emptyState
         }
+        .environment(\.compactPanelLayout, true)
     }
 
     private var footer: ListDetailFooter {
         var footer = ListDetailFooter(
-            title: "Clipboard History · \(model.itemCountLabel)",
+            title: model.itemCountLabel,
             icon: .symbol("doc.on.clipboard"),
-            primaryActionTitle: model.selectedItem?.canBeUsed == true ? "Copy to Clipboard" : nil
+            primaryActionTitle: model.selectedItem?.canBeUsed == true ? "Copy" : nil
         )
         if let item = model.selectedItem {
             footer.accessory = AnyView(

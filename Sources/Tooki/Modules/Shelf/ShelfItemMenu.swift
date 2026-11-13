@@ -37,6 +37,14 @@ enum ShelfItemMenu {
         }
         menu.addItem(.separator())
 
+        if shelf.imageConversion == nil, shelf.canConvertImages(items) {
+            menu.addItem(action(items.count == 1 ? "Convert Image…" : "Convert Images…") {
+                shelf.beginImageConversion(items)
+                NSApp.activate()
+            })
+            menu.addItem(.separator())
+        }
+
         menu.addItem(action("Rename…", enabled: ready.count == 1 && items.count == 1) {
             if let item = ready.first { ShelfRenamePrompt.run(for: item, on: shelf) }
         })
