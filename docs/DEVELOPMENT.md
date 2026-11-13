@@ -7,7 +7,7 @@ Requires macOS 14 or later and Swift 6. Apple's Command Line Tools (`xcode-selec
 ```sh
 make test      # unit tests
 make app       # builds and signs build/Tooki.app
-make run       # builds and opens it, replacing any running copy
+make dev       # builds and opens it, replacing any running copy
 make install   # copies it to /Applications
 make dmg       # builds build/Tooki.dmg
 make info      # builds the app and shows its size, version, and requirements

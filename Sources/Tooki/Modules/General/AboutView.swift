@@ -24,11 +24,14 @@ struct AboutView: View {
             }
 
             SettingsSection("Links") {
-                SettingsRow("Project links", description: "Source code, release notes and the issue tracker.") {
-                    HStack(spacing: 6) {
-                        link("Source Code", symbol: "chevron.left.forwardslash.chevron.right", path: "")
-                        link("Release Notes", symbol: "sparkles", path: "/releases")
-                        link("Report an Issue", symbol: "ladybug", path: "/issues/new")
+                SettingsCardRow {
+                    VStack(alignment: .leading, spacing: 8) {
+                        SettingsRowLabel(title: "Project links", description: "Source code, release notes and the issue tracker.")
+                        HStack(spacing: 6) {
+                            link("Source Code", symbol: "chevron.left.forwardslash.chevron.right", path: "")
+                            link("Release Notes", symbol: "sparkles", path: "/releases")
+                            link("Report an Issue", symbol: "ladybug", path: "/issues/new")
+                        }
                     }
                 }
             }

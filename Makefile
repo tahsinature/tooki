@@ -11,7 +11,7 @@ SIGN_ID ?= $(shell bash scripts/signing-identity.sh "$(CHANNEL)")
 # Set ARCHS="arm64 x86_64" for a universal build.
 ARCHS ?= $(shell uname -m)
 # Only inspect SDKs for targets that compile Swift, so clean and icon work without a toolchain.
-ifneq ($(filter build app run install dmg info test,$(or $(MAKECMDGOALS),build)),)
+ifneq ($(filter build app dev install dmg info test,$(or $(MAKECMDGOALS),build)),)
 MACOS_SDK := $(shell bash scripts/select-macos-sdk.sh)
 ifeq ($(MACOS_SDK),)
 $(error No compatible macOS SDK found. See the SDK diagnostic above)
@@ -23,7 +23,7 @@ COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null)$(shell git diff --quie
 MIN_MACOS := $(shell /usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' Resources/Info.plist)
 SDK_VERSION = $(shell /usr/libexec/PlistBuddy -c 'Print :Version' "$(MACOS_SDK)/SDKSettings.plist")
 
-.PHONY: build app run install dmg info icon test clean
+.PHONY: build app dev install dmg info icon test clean
 
 build:
 	$(SWIFT_BUILD)
@@ -51,7 +51,7 @@ endif
 		-output "$(APP)/Contents/MacOS/$(APP_NAME)" "$(APP)/Contents/MacOS/$(APP_NAME)"
 	codesign --force --sign "$(SIGN_ID)" "$(APP)"
 
-run: app
+dev: app
 	open -n "$(APP)"
 
 install: app
