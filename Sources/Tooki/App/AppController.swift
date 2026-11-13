@@ -53,8 +53,7 @@ final class AppController {
     @ObservationIgnored private var pendingURLs: [URL]? = []
 
     var isCoffeeIconInserted: Bool {
-        get { config.value.keepAwake.showMenuBarIcon && keepAwake.isActive }
-        set { config.value.keepAwake.showMenuBarIcon = newValue }
+        config.value.keepAwake.showMenuBarIcon && keepAwake.isActive
     }
 
     var loadErrors: [String] {
