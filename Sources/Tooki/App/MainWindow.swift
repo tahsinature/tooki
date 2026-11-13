@@ -10,8 +10,8 @@ struct MainView: View {
     var body: some View {
         HStack(spacing: 0) {
             SettingsSidebar(navigation: navigation,
-                            needsAttention: !app.hasAccessibility || !app.loadErrors.isEmpty,
-                            hasUpdate: app.updater.shouldPrompt)
+                            updater: app.updater,
+                            needsAttention: !app.hasAccessibility || !app.loadErrors.isEmpty)
             VStack(spacing: 0) {
                 SettingsNavigationBar(navigation: navigation)
                 page

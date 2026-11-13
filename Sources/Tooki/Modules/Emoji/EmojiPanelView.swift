@@ -7,17 +7,15 @@ struct EmojiPanelView: View {
     let onRun: (EmojiAction) -> Void
     let onCancel: () -> Void
 
-    @FocusState private var isSearchFocused: Bool
-
-    static let size = CGSize(width: 750, height: 480)
-
     var body: some View {
-        VStack(spacing: 0) {
-            SearchHeader(placeholder: "Search emoji…", query: $model.query, isFocused: $isSearchFocused, onKey: handleKey) {
+        PanelLayout {
+            SearchHeader(placeholder: "Search emoji…", query: $model.query,
+                         isSearchActive: !(model.isShowingActions && model.selected != nil), onKey: handleKey) {
                 EmptyView()
             }
+        } content: {
             content
-                .frame(maxHeight: .infinity)
+        } footer: {
             BottomActionBar(
                 title: model.selected?.name.capitalized ?? "Emoji",
                 icon: .symbol("face.smiling"),
@@ -38,12 +36,6 @@ struct EmojiPanelView: View {
                     onRun: onRun
                 )
             }
-        }
-        .frame(width: Self.size.width, height: Self.size.height)
-        .panelSurface()
-        .onAppear { Task { isSearchFocused = true } }
-        .onChange(of: model.isShowingActions) { _, isShowing in
-            if !isShowing { isSearchFocused = true }
         }
     }
 
@@ -115,7 +107,7 @@ private struct EmojiGrid: View {
                                 cell(emoji, sectionID: section.id)
                             }
                         } header: {
-                            SectionHeader(title: section.title, isFirst: index == 0, isCompact: true)
+                            SectionHeader(title: section.title, isFirst: index == 0)
                         }
                     }
                 }
@@ -148,9 +140,9 @@ private struct EmojiGrid: View {
             .frame(maxWidth: .infinity, minHeight: 56)
             .background {
                 if isSelected {
-                    RoundedRectangle(cornerRadius: 10)
+                    RoundedRectangle(cornerRadius: PanelTheme.rowRadius)
                         .fill(PanelTheme.selectedBackground)
-                        .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(PanelTheme.selectedRim))
+                        .overlay(RoundedRectangle(cornerRadius: PanelTheme.rowRadius).strokeBorder(PanelTheme.selectedRim))
                 }
             }
             .contentShape(Rectangle())

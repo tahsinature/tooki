@@ -53,7 +53,7 @@ final class EmojiPanelController: ResumablePanelController {
     func show() {
         panel?.close()
         let model = EmojiPanelModel(recentCharacters: recent)
-        let panel = FloatingPanel(size: EmojiPanelView.size) {
+        let panel = FloatingPanel(size: PanelTheme.size) {
             EmojiPanelView(
                 model: model,
                 onRun: { [weak self, weak model] action in

@@ -5,7 +5,7 @@ struct ShelfManagerConversionDetail: View {
     let model: ShelfManagerModel
     let shelf: Shelf
 
-    private var width: CGFloat { PanelTheme.listDetailSize.width - PanelTheme.listWidth - 1 }
+    private var width: CGFloat { PanelTheme.size.width - PanelTheme.listWidth - 1 }
 
     var body: some View {
         GeometryReader { geometry in

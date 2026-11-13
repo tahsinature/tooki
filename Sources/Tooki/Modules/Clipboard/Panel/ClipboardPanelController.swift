@@ -29,7 +29,7 @@ final class ClipboardPanelController: ResumablePanelController {
             history: history,
             targetAppName: NSWorkspace.shared.frontmostApplication?.localizedName
         )
-        let panel = FloatingPanel(size: PanelTheme.listDetailSize) {
+        let panel = FloatingPanel(size: PanelTheme.size) {
             ClipboardPanelView(
                 model: model,
                 onAction: { [weak self, weak model] kind in

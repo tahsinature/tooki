@@ -7,18 +7,16 @@ struct SearchView: View {
     let onCancel: () -> Void
     let onOpenSettings: () -> Void
 
-    @FocusState private var isSearchFocused: Bool
     @ViewState private var isFilterMenuOpen = false
 
-    static let size = CGSize(width: 750, height: 480)
     private static let pageSize = 8
 
     var body: some View {
-        VStack(spacing: 0) {
+        PanelLayout {
             SearchHeader(
                 placeholder: model.placeholder,
                 query: $model.query,
-                isFocused: $isSearchFocused,
+                isSearchActive: !(model.isShowingActions && model.selectedItem != nil) && !isFilterMenuOpen,
                 onKey: handleKey
             ) {
                 if !model.filterGroups.isEmpty {
@@ -31,19 +29,17 @@ struct SearchView: View {
                     )
                 }
             }
-            // Keeps the filter popup above the results.
-            .zIndex(1)
+        } content: {
             content
-                .frame(maxHeight: .infinity)
                 .simultaneousGesture(TapGesture().onEnded { isFilterMenuOpen = false })
+        } footer: {
             BottomActionBar(
                 title: model.title,
                 icon: model.icon,
                 primaryActionTitle: model.selectedItem?.actionTitle,
                 onPrimaryAction: { runSelected(copyOnly: false) },
                 onShowActions: { model.isShowingActions.toggle() },
-                badgeAction: FooterAction(title: "Open Tooki Settings", shortcut: "⌘,", run: onOpenSettings),
-                blendsWithPanel: true
+                badgeAction: FooterAction(title: "Open Tooki Settings", shortcut: "⌘,", run: onOpenSettings)
             )
         }
         .actionsPopup(isPresented: model.isShowingActions, onDismiss: { model.isShowingActions = false }) {
@@ -58,15 +54,6 @@ struct SearchView: View {
                     onRun: { onRun($0, item) }
                 )
             }
-        }
-        .frame(width: Self.size.width, height: Self.size.height)
-        .panelSurface()
-        .onAppear { Task { isSearchFocused = true } }
-        .onChange(of: model.isShowingActions) { _, isShowing in
-            if !isShowing { isSearchFocused = true }
-        }
-        .onChange(of: isFilterMenuOpen) { _, isOpen in
-            if !isOpen { isSearchFocused = true }
         }
     }
 
@@ -140,7 +127,7 @@ private struct SearchResultList: View {
             ScrollView {
                 LazyVStack(spacing: 0) {
                     ForEach(Array(model.sections.enumerated()), id: \.element.id) { sectionIndex, section in
-                        SectionHeader(title: section.title, isFirst: sectionIndex == 0, isCompact: true)
+                        SectionHeader(title: section.title, isFirst: sectionIndex == 0)
                         ForEach(section.items) { item in
                             row(item)
                         }

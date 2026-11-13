@@ -34,7 +34,7 @@ final class SnippetPanelController: ResumablePanelController {
             targetAppName: NSWorkspace.shared.frontmostApplication?.localizedName
         )
         if creating { model.startCreating() }
-        let panel = FloatingPanel(size: PanelTheme.listDetailSize) {
+        let panel = FloatingPanel(size: PanelTheme.size) {
             SnippetPanelView(
                 model: model,
                 onAction: { [weak self, weak model] kind in

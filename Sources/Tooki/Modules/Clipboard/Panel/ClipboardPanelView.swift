@@ -39,7 +39,6 @@ struct ClipboardPanelView: View {
         } emptyState: {
             emptyState
         }
-        .environment(\.compactPanelLayout, true)
     }
 
     private var footer: ListDetailFooter {

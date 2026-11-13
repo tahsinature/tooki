@@ -24,7 +24,7 @@ final class ShelfManagerController: ResumablePanelController {
     func show(library: ShelfLibrary) {
         panel?.close()
         let model = ShelfManagerModel(library: library)
-        let panel = FloatingPanel(size: PanelTheme.listDetailSize) {
+        let panel = FloatingPanel(size: PanelTheme.size) {
             ShelfManagerView(
                 model: model,
                 onAction: { [weak self, weak model] kind in

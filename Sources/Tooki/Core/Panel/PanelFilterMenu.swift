@@ -4,7 +4,6 @@ import SwiftUI
 /// with a ⌘P hint on hover. Clicking it, or setting `isOpen`, shows a `FilterPopup` below it.
 /// `nil` selects everything.
 struct PanelFilterMenu<Value: Hashable>: View {
-    @Environment(\.compactPanelLayout) private var isCompact
     @Binding var selection: Value?
     @Binding var isOpen: Bool
     let allTitle: String
@@ -49,16 +48,16 @@ struct PanelFilterMenu<Value: Hashable>: View {
     private var button: some View {
         Button { isOpen.toggle() } label: {
             HStack(spacing: 6) {
-                if !isCompact { Image(systemName: "list.bullet") }
+                Image(systemName: "list.bullet")
                 Text(selectedTitle)
                 Image(systemName: "chevron.down")
                     .font(.system(size: 9, weight: .semibold))
             }
-            .font(isCompact ? .system(size: 11, weight: .medium) : PanelTheme.labelFont)
+            .font(PanelTheme.labelFont)
             .foregroundStyle(isHovered || isOpen ? PanelTheme.primaryText : PanelTheme.secondaryText)
             .padding(.horizontal, 10)
             .frame(height: Self.buttonHeight)
-            .background(isHovered || isOpen ? PanelTheme.hoverBackground : PanelTheme.tertiaryBackground, in: RoundedRectangle(cornerRadius: isCompact ? 6 : 8))
+            .background(isHovered || isOpen ? PanelTheme.hoverBackground : PanelTheme.tertiaryBackground, in: RoundedRectangle(cornerRadius: PanelTheme.rowRadius))
             .contentShape(RoundedRectangle(cornerRadius: 8))
         }
         .buttonStyle(.plain)

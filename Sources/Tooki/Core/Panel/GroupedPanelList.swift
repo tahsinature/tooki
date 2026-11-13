@@ -18,7 +18,6 @@ struct PanelListSection<Item: Identifiable> {
 /// The left column of a list-and-detail panel: section headers and selectable rows.
 /// Keeps the selected row scrolled into view.
 struct GroupedPanelList<Item: Identifiable, Row: View>: View {
-    @Environment(\.compactPanelLayout) private var isCompact
     let sections: [PanelListSection<Item>]
     let selectedID: Item.ID?
     let onSelect: (Item.ID) -> Void
@@ -37,7 +36,7 @@ struct GroupedPanelList<Item: Identifiable, Row: View>: View {
                         VStack(alignment: .leading, spacing: 0) {
                             switch entry.kind {
                             case .header(let title, let isFirst):
-                                SectionHeader(title: title, isFirst: isFirst, isCompact: isCompact)
+                                SectionHeader(title: title, isFirst: isFirst)
                             case .item(let item):
                                 row(item, item.id == selectedID)
                                     .onTapGesture(count: 2, perform: onDoubleClick)
@@ -50,7 +49,7 @@ struct GroupedPanelList<Item: Identifiable, Row: View>: View {
                                     }
                             }
                         }
-                        .frame(height: entry.height(isCompact: isCompact))
+                        .frame(height: entry.height)
                         .id(entry.id)
                     }
                 }
@@ -99,10 +98,10 @@ struct GroupedPanelList<Item: Identifiable, Row: View>: View {
             }
         }
 
-        func height(isCompact: Bool) -> CGFloat {
+        var height: CGFloat {
             switch kind {
-            case .header(_, let isFirst): isFirst ? (isCompact ? 28 : 24) : (isCompact ? 32 : 36)
-            case .item: isCompact ? 36 : PanelTheme.rowHeight
+            case .header(_, let isFirst): isFirst ? 24 : 36
+            case .item: PanelTheme.rowHeight
             }
         }
     }

@@ -1,14 +1,16 @@
 import SwiftUI
 
 extension View {
-    /// Focus an inserted popup's field after SwiftUI has mounted it, rather than during onAppear.
+    /// Focus when the field's window is ready, including when a retained panel reopens.
+    /// Pause this for the main search while a popup owns keyboard input.
     @MainActor
-    func focusOnPresentation(_ focus: FocusState<Bool>.Binding) -> some View {
+    func focusOnPresentation(_ focus: FocusState<Bool>.Binding, when isEnabled: Bool = true) -> some View {
         focused(focus)
-            .task {
-                await Task.yield()
-                guard !Task.isCancelled else { return }
-                focus.wrappedValue = true
+            .background {
+                PresentationFocusObserver(isEnabled: isEnabled) { focus.wrappedValue = $0 }
+                    .frame(width: 0, height: 0)
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
             }
     }
 }

@@ -13,16 +13,16 @@ struct SnippetFormView: View {
 
     var body: some View {
         if let form = model.form {
-            VStack(spacing: 0) {
+            PanelLayout {
                 header(isNew: form.isNew)
-                PanelTheme.separator.frame(height: 1)
+            } content: {
                 HStack(alignment: .top, spacing: 20) {
                     textColumn
                     fieldsColumn
                         .frame(width: 220)
                 }
                 .padding(16)
-                .frame(maxHeight: .infinity)
+            } footer: {
                 BottomActionBar(
                     title: form.isNew ? "Create Snippet" : "Edit Snippet",
                     icon: .symbol("doc.text"),
@@ -32,8 +32,6 @@ struct SnippetFormView: View {
                     onShowActions: nil
                 )
             }
-            .frame(width: PanelTheme.listDetailSize.width, height: PanelTheme.listDetailSize.height)
-            .panelSurface()
             .background {
                 // Invisible, only here for the shortcut.
                 Button("Save", action: onSave)
@@ -62,7 +60,6 @@ struct SnippetFormView: View {
             Spacer()
         }
         .padding(.horizontal, 16)
-        .frame(height: PanelTheme.headerHeight)
     }
 
     private var textColumn: some View {

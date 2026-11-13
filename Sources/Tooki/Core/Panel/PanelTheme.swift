@@ -25,8 +25,6 @@ enum PanelTheme {
     static let keycapBorder = adaptive(dark: (255, 255, 255, 0.22), light: (0, 0, 0, 0.2))
     static let selectedRim = adaptive(dark: (255, 255, 255, 0.03), light: (0, 0, 0, 0.025))
     static let selectionIndicator = adaptive(dark: (140, 165, 248, 1), light: (42, 85, 214, 1))
-    static let compactTint = adaptive(dark: (41, 41, 44, 0.94), light: (245, 245, 247, 0.94))
-    static let compactListBackground = adaptive(dark: (37, 37, 40, 0.8), light: (235, 235, 240, 0.65))
 
     static let accent = Color(red: 0, green: 122 / 255, blue: 1)
     static let accentFill = Color(red: 0, green: 113 / 255, blue: 237 / 255)
@@ -35,8 +33,8 @@ enum PanelTheme {
     // MARK: Sizes
 
     static let cornerRadius: CGFloat = 20
-    /// Fixed, so a list-and-detail panel doesn't shrink around "No Matching Entries" and stay small afterwards.
-    static let listDetailSize = CGSize(width: 750, height: 480)
+    /// Shared by tool views and their windows, including panels showing an empty state.
+    static let size = CGSize(width: 750, height: 480)
     static let listWidth: CGFloat = 260
     static let headerHeight: CGFloat = 56
     static let footerHeight: CGFloat = 40

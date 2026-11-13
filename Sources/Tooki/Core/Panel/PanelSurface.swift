@@ -3,11 +3,11 @@ import SwiftUI
 
 extension View {
     /// The frosted, rounded background of a floating panel: HUD blur with a translucent tint over it.
-    func panelSurface(tint: Color = PanelTheme.tint) -> some View {
+    func panelSurface() -> some View {
         background {
             ZStack {
                 VisualEffectBackground(material: .hudWindow)
-                tint
+                PanelTheme.tint
             }
         }
         .clipShape(RoundedRectangle(cornerRadius: PanelTheme.cornerRadius, style: .continuous))

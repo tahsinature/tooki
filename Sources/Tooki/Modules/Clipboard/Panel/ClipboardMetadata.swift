@@ -1,7 +1,7 @@
 import Foundation
 import TookiKit
 
-/// Formats the clipboard preview's compact summary.
+/// Formats the clipboard preview's information.
 @MainActor
 enum ClipboardMetadata {
     static func detail(for item: ClipboardItem) -> String? {

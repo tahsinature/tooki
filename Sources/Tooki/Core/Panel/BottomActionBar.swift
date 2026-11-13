@@ -16,14 +16,12 @@ struct BottomActionBar: View {
     var badgeAction: FooterAction?
     /// An optional control immediately before the primary action, such as Clipboard History's Drag button.
     var accessory: AnyView?
-    /// Search shares one surface across its results and actions.
-    var blendsWithPanel = false
 
     var body: some View {
         HStack(spacing: 8) {
             if let badgeAction {
                 Button(action: badgeAction.run) { badge }
-                    .buttonStyle(InteractionButtonStyle(horizontalPadding: 8, verticalPadding: 4))
+                    .buttonStyle(InteractionButtonStyle(verticalPadding: 4))
                     .help("\(badgeAction.title) (\(badgeAction.shortcut))")
             } else {
                 badge
@@ -44,10 +42,7 @@ struct BottomActionBar: View {
         }
         .padding(.horizontal, 16)
         .frame(height: PanelTheme.footerHeight)
-        .background(blendsWithPanel ? Color.primary.opacity(0.025) : PanelTheme.barBackground)
-        .overlay(alignment: .top) {
-            if blendsWithPanel { Rectangle().fill(PanelTheme.popupDivider).frame(height: 0.5) }
-        }
+        .background(PanelTheme.barBackground)
     }
 
     private var separator: some View {

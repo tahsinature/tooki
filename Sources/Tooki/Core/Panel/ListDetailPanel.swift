@@ -12,13 +12,12 @@ struct ListDetailFooter {
 }
 
 /// A Raycast-style panel: search on top, list and detail side by side, actions along the bottom,
-/// and a ⌘K popup. Clipboard history and snippets both use it.
+/// and a ⌘K popup. Clipboard, snippets and the shelf manager all use it.
 ///
 /// Handles the keys every such panel shares: arrows and Page Up/Down/Home/End move through the list
 /// (or the popup), ↵ runs the main action (⌘↵ the second one), ⌘K toggles the popup, ← leaves a
 /// submenu, ⌘P opens the filter menu and Esc closes one level at a time. Anything else goes to `onShortcut`.
 struct ListDetailPanel<Action: PanelActionItem, Accessory: View, ListContent: View, Detail: View, Empty: View>: View {
-    @Environment(\.compactPanelLayout) private var isCompact
     let placeholder: String
     @Binding var query: String
     let actions: ActionsMenu<Action>
@@ -38,21 +37,20 @@ struct ListDetailPanel<Action: PanelActionItem, Accessory: View, ListContent: Vi
     @ViewBuilder let detail: Detail
     @ViewBuilder let emptyState: Empty
 
-    @FocusState private var isSearchFocused: Bool
     @ViewState private var isFilterOpen = false
 
     private static var pageSize: Int { 8 }
 
     var body: some View {
-        VStack(spacing: 0) {
-            SearchHeader(placeholder: placeholder, query: $query, isFocused: $isSearchFocused, onKey: handleKey) {
+        PanelLayout {
+            SearchHeader(placeholder: placeholder, query: $query,
+                         isSearchActive: !(actions.isShowing && hasItems) && !isFilterOpen, onKey: handleKey) {
                 accessory($isFilterOpen)
             }
-            // Keeps the filter popup above the list.
-            .zIndex(1)
+        } content: {
             content
-                .frame(maxHeight: .infinity)
                 .simultaneousGesture(TapGesture().onEnded { isFilterOpen = false })
+        } footer: {
             BottomActionBar(
                 title: footer.title,
                 icon: footer.icon,
@@ -75,24 +73,13 @@ struct ListDetailPanel<Action: PanelActionItem, Accessory: View, ListContent: Vi
                 onRun: onRunAction
             )
         }
-        .frame(width: PanelTheme.listDetailSize.width, height: PanelTheme.listDetailSize.height)
-        .panelSurface(tint: isCompact ? PanelTheme.compactTint : PanelTheme.tint)
-        // The panel isn't key yet when this appears, so focus once it is.
-        .onAppear { Task { isSearchFocused = true } }
-        .onChange(of: actions.isShowing) { _, isShowing in
-            if !isShowing { isSearchFocused = true }
-        }
-        .onChange(of: isFilterOpen) { _, isOpen in
-            if !isOpen { isSearchFocused = true }
-        }
     }
 
     @ViewBuilder
     private var content: some View {
         if hasItems {
             HStack(spacing: 0) {
-                list.frame(width: isCompact ? 250 : PanelTheme.listWidth)
-                    .background(isCompact ? PanelTheme.compactListBackground : .clear)
+                list.frame(width: PanelTheme.listWidth)
                 PanelTheme.separator.frame(width: 1)
                 detail
             }

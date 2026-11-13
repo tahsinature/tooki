@@ -85,7 +85,7 @@ final class SearchPanelController: ResumablePanelController {
             history: history,
             calculate: calculate
         )
-        let panel = FloatingPanel(size: SearchView.size) {
+        let panel = FloatingPanel(size: PanelTheme.size) {
             SearchView(
                 model: model,
                 onRun: { [weak self, weak model] action, item in
