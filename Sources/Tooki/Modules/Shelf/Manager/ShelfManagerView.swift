@@ -9,25 +9,13 @@ struct ShelfManagerView: View {
     var body: some View {
         ListDetailPanel(
             placeholder: placeholder,
-            query: $model.query,
+            query: $model.displayedQuery,
             actions: model.actions,
-            footer: ListDetailFooter(
-                title: model.renamingShelf.map { "Rename “\($0.name)”" } ?? model.openShelf?.name ?? "Shelves",
-                icon: .symbol(model.renamingShelf == nil ? "tray.full" : "pencil"),
-                primaryActionTitle: primaryActionTitle,
-                secondaryAction: model.renamingShelf != nil ? nil : model.library.isEmpty
-                    ? FooterAction(title: "New Shelf", shortcut: "⌘N") { onAction(.newShelf) }
-                    : FooterAction(title: model.openShelf == nil ? "Show/Hide All" : "Show/Hide", shortcut: "⌘S") { onAction(.toggleShelves) }
-            ),
+            footer: footer,
             hasItems: hasItems,
-            onMove: model.moveSelection,
-            onReturn: { isCommand in
-                if model.renamingShelf != nil {
-                    model.finishRenaming(save: true)
-                } else {
-                    onAction(primaryAction(isCommand: isCommand))
-                }
-            },
+            showsActions: !model.isShowingConversion,
+            onMove: { if !model.isShowingConversion { model.moveSelection(by: $0) } },
+            onReturn: runPrimaryAction,
             onRunAction: { onAction($0.kind) },
             onShortcut: handleShortcut,
             onCancel: onCancel
@@ -35,9 +23,10 @@ struct ShelfManagerView: View {
             EmptyView()
         } list: {
             ShelfManagerList(model: model, onDoubleClick: { onAction(primaryAction(isCommand: false)) })
+                .allowsHitTesting(!model.isShowingConversion)
         } detail: {
             if let shelf = model.openShelf {
-                if let item = model.selectedItem { ShelfManagerItemDetail(item: item, shelf: shelf) }
+                ShelfManagerConversionDetail(model: model, shelf: shelf)
             } else if let shelf = model.selectedShelf {
                 ShelfManagerShelfDetail(shelf: shelf)
             }
@@ -47,18 +36,57 @@ struct ShelfManagerView: View {
     }
 
     private var placeholder: String {
+        if model.isShowingConversion { return "Convert image" }
         if model.renamingShelf != nil { return "Shelf name" }
         return model.openShelf.map { "Search \($0.name)…" } ?? "Search shelves…"
     }
 
-    private var primaryActionTitle: String? {
-        if model.renamingShelf != nil { return "Save Name" }
-        guard hasItems else { return nil }
-        return model.openShelf == nil ? "Open Shelf" : "Open"
+    private var footer: ListDetailFooter {
+        if model.isShowingConversion, let conversion = model.imageConversion {
+            return conversionFooter(conversion)
+        }
+        return ListDetailFooter(
+            title: model.renamingShelf.map { "Rename “\($0.name)”" } ?? model.openShelf?.name ?? "Shelves",
+            icon: .symbol(model.renamingShelf == nil ? "tray.full" : "pencil"),
+            primaryActionTitle: model.renamingShelf != nil ? "Save Name" : hasItems ? (model.openShelf == nil ? "Open Shelf" : "Open") : nil,
+            secondaryAction: model.renamingShelf != nil ? nil : model.library.isEmpty
+                ? FooterAction(title: "New Shelf", shortcut: "⌘N") { onAction(.newShelf) }
+                : FooterAction(title: model.openShelf == nil ? "Show/Hide All" : "Show/Hide", shortcut: "⌘S") { onAction(.toggleShelves) }
+        )
+    }
+
+    private func conversionFooter(_ conversion: ShelfImageConversionModel) -> ListDetailFooter {
+        var footer = ListDetailFooter(title: "Convert image", icon: .symbol("arrow.triangle.2.circlepath"), primaryActionTitle: nil)
+        switch conversion.phase {
+        case .settings:
+            footer = ListDetailFooter(title: "Convert image", icon: .symbol("arrow.triangle.2.circlepath"), primaryActionTitle: "Convert",
+                                      secondaryAction: FooterAction(title: "Cancel", shortcut: "⎋", run: conversion.discard))
+        case .review:
+            footer = ListDetailFooter(title: "Review result", icon: .symbol("checkmark.circle"),
+                primaryActionTitle: conversion.canSave ? conversion.replaceTitle : nil,
+                secondaryAction: conversion.canSave ? FooterAction(title: conversion.saveCopyTitle, shortcut: "⌘↵") { conversion.save(.copy) } : nil,
+                accessory: AnyView(Button("Discard", action: conversion.discard).buttonStyle(.plain).foregroundStyle(.secondary)))
+        case .converting, .saving: break
+        }
+        return footer
+    }
+
+    private func runPrimaryAction(_ isCommand: Bool) {
+        if model.isShowingConversion, let conversion = model.imageConversion {
+            switch conversion.phase {
+            case .settings: conversion.convert()
+            case .review: conversion.save(isCommand ? .copy : .replace)
+            case .converting, .saving: break
+            }
+        } else if model.renamingShelf != nil {
+            model.finishRenaming(save: true)
+        } else {
+            onAction(primaryAction(isCommand: isCommand))
+        }
     }
 
     private var hasItems: Bool {
-        model.openShelf == nil ? model.selectedShelf != nil : model.selectedItem != nil
+        model.isShowingConversion || (model.openShelf == nil ? model.selectedShelf != nil : model.selectedItem != nil)
     }
 
     private func primaryAction(isCommand: Bool) -> ShelfManagerAction.Kind {
@@ -84,6 +112,17 @@ struct ShelfManagerView: View {
     }
 
     private func handleShortcut(_ press: KeyPress) -> KeyPress.Result {
+        if model.isShowingConversion, let conversion = model.imageConversion {
+            if press.key == .space || (press.characters.lowercased() == "y" && press.modifiers.contains(.command)) {
+                conversion.quickLook()
+                return .handled
+            }
+            if press.key == .leftArrow || press.key == .rightArrow {
+                conversion.moveReview(by: press.key == .leftArrow ? -1 : 1)
+                return .handled
+            }
+            return .ignored
+        }
         guard model.renamingShelf == nil else { return .ignored }
         let key = press.characters.lowercased()
         let command = press.modifiers.contains(.command)

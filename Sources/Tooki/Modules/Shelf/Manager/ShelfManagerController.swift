@@ -4,6 +4,7 @@ import AppKit
 @MainActor
 final class ShelfManagerController {
     private var panel: FloatingPanel?
+    private let quickLook = QuickLookPreview()
     /// Runs after Esc closes the panel, e.g. to go back to root search. Set before each `show()`.
     var onBack: (() -> Void)?
     private let windows: ShelfWindows
@@ -34,6 +35,8 @@ final class ShelfManagerController {
                 }
             )
         }
+        panel.quickLook = quickLook
+        panel.onClose = { [weak model] in model?.imageConversion?.discard() }
         panel.onEscape = { [weak self, weak model] in
             guard let model, !model.actions.dismiss() else { return }
             self?.back(model)
@@ -49,7 +52,9 @@ final class ShelfManagerController {
 
     /// Esc leaves an open shelf first, then closes the panel.
     private func back(_ model: ShelfManagerModel) {
-        if model.renamingShelf != nil {
+        if model.isShowingConversion {
+            model.imageConversion?.back()
+        } else if model.renamingShelf != nil {
             model.finishRenaming(save: false)
         } else if model.openShelf != nil {
             model.closeOpenShelf()
@@ -60,6 +65,7 @@ final class ShelfManagerController {
     }
 
     private func perform(_ kind: ShelfManagerAction.Kind, model: ShelfManagerModel) {
+        if model.isShowingConversion { return }
         switch kind {
         case .toggleShelves:
             model.actions.close()
@@ -129,6 +135,12 @@ final class ShelfManagerController {
         case .openIn(let appURL):
             close()
             NSWorkspace.shared.open([item.url], withApplicationAt: appURL, configuration: NSWorkspace.OpenConfiguration())
+        case .convertImage:
+            model.beginConversion { [weak panel = panel] in panel?.keepsOpenOnBlur = false }
+            guard let conversion = model.imageConversion else { return }
+            panel?.keepsOpenOnBlur = true
+            conversion.showPreview = { [weak self] urls in self?.quickLook.toggle(urls) }
+            conversion.closePreview = { [weak self] in self?.quickLook.close() }
         case .quickLook:
             // The shelf's own panel owns the preview, so bring the shelf up and preview there.
             close()

@@ -8,6 +8,9 @@ import TookiKit
 final class FloatingPanel: NSPanel {
     /// Set by panels that offer Preview. Other panels keep their usual dismiss-on-blur behavior.
     var quickLook: QuickLookPreview?
+    /// Converters remain available while a temporary result is open in another app.
+    var keepsOpenOnBlur = false
+    var onClose: (() -> Void)?
     init<Content: View>(size: CGSize, @ViewBuilder content: () -> Content) {
         super.init(
             contentRect: CGRect(origin: .zero, size: size),
@@ -54,6 +57,7 @@ final class FloatingPanel: NSPanel {
     /// Clicking anywhere else dismisses the panel.
     override func resignKey() {
         super.resignKey()
+        if keepsOpenOnBlur { return }
         if quickLook?.isOpening == true { return }
         if QLPreviewPanel.sharedPreviewPanelExists(),
            let preview = QLPreviewPanel.shared(), preview.isVisible,
@@ -62,6 +66,7 @@ final class FloatingPanel: NSPanel {
     }
 
     override func close() {
+        onClose?()
         quickLook?.close()
         super.close()
     }

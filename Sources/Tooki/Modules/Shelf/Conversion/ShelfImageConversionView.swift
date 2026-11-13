@@ -3,6 +3,8 @@ import SwiftUI
 /// A page inside the shelf, sharing its header and sliding container with item details.
 struct ShelfImageConversionView: View {
     let model: ShelfImageConversionModel
+    var width: CGFloat = ShelfMotion.width
+    var showsFooterActions = true
 
     var body: some View {
         VStack(spacing: 0) {
@@ -22,7 +24,7 @@ struct ShelfImageConversionView: View {
             .frame(height: 32)
             switch model.phase {
             case .settings:
-                ShelfConversionSettingsView(model: model)
+                ShelfConversionSettingsView(model: model, showsActions: showsFooterActions)
             case .converting:
                 ConversionProgressView(title: "Preparing your preview", detail: "The original files stay unchanged.",
                                        completed: model.completed, total: model.items.count, onCancel: model.discard)
@@ -30,10 +32,10 @@ struct ShelfImageConversionView: View {
                 ConversionProgressView(title: "Saving results", detail: "Updating this shelf…",
                                        completed: model.completed, total: model.results.count)
             case .review:
-                ShelfConversionReviewView(model: model)
+                ShelfConversionReviewView(model: model, showsActions: showsFooterActions)
             }
         }
-        .frame(width: ShelfMotion.width)
+        .frame(width: width)
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
             Task { await model.refreshPreviews() }
         }

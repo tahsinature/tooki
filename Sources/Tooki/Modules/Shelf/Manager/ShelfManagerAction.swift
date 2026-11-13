@@ -7,7 +7,7 @@ struct ShelfManagerAction: PanelActionItem {
         case openShelf, showShelf, renameShelf, closeShelf, confirmClose, cancelClose, pasteFromClipboard
         case paste(ShelfAddMode)
         // An item
-        case open, openWith, quickLook, showInFinder, copyFile, copyPath, rename, remove
+        case open, openWith, quickLook, convertImage, showInFinder, copyFile, copyPath, rename, remove
         case openIn(appURL: URL)
         // Every shelf window, or only the open shelf when inside one
         case toggleShelves, newShelf
@@ -46,12 +46,16 @@ struct ShelfManagerAction: PanelActionItem {
     ]
 
     @MainActor
-    static func forItem(in shelf: Shelf) -> [ShelfManagerAction] {
-        itemActions.map {
+    static func forItem(_ item: ShelfItem, in shelf: Shelf) -> [ShelfManagerAction] {
+        var actions = itemActions.map {
             $0.kind == .toggleShelves
                 ? ShelfManagerAction(kind: .toggleShelves, title: "Show or Hide “\(shelf.name)”", icon: .symbol("macwindow"), shortcut: "⌘S")
                 : $0
         }
+        if shelf.imageConversion == nil, shelf.canConvertImages([item]) {
+            actions.insert(ShelfManagerAction(kind: .convertImage, title: "Convert Image…", icon: .symbol("arrow.triangle.2.circlepath")), at: 3)
+        }
+        return actions
     }
 
     private static let itemActions = [

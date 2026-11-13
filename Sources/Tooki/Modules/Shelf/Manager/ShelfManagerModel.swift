@@ -20,12 +20,21 @@ final class ShelfManagerModel {
     private(set) var openShelfID: Shelf.ID?
     var selectedShelfID: Shelf.ID?
     var selectedItemID: ShelfItem.ID?
+    private(set) var imageConversion: ShelfImageConversionModel?
+    private(set) var isShowingConversion = false
+
+    /// The conversion page owns typing while the prior search is preserved for Back.
+    var displayedQuery: String {
+        get { isShowingConversion ? "" : query }
+        set { if !isShowingConversion { query = newValue } }
+    }
 
     init(library: ShelfLibrary) {
         self.library = library
         actions.rootActions = { [weak self] in
-            guard let self, renamingShelfID == nil else { return [] }
-            if let openShelf { return selectedItem == nil ? [] : ShelfManagerAction.forItem(in: openShelf) }
+            guard let self, renamingShelfID == nil, !isShowingConversion else { return [] }
+            if let openShelf, let selectedItem { return ShelfManagerAction.forItem(selectedItem, in: openShelf) }
+            if openShelf != nil { return [] }
             return selectedShelf == nil ? [] : ShelfManagerAction.forShelf
         }
     }
@@ -99,6 +108,33 @@ final class ShelfManagerModel {
 
     var selectedItem: ShelfItem? {
         items.first { $0.id == selectedItemID } ?? items.first
+    }
+
+    func beginConversion(onClose: @escaping () -> Void) {
+        guard imageConversion == nil, let shelf = openShelf, let item = selectedItem,
+              shelf.imageConversion == nil, shelf.canConvertImages([item]) else { return }
+        actions.close()
+        let conversion = ShelfImageConversionModel(items: [item], shelf: shelf) { [weak self] in
+            self?.endConversion()
+            onClose()
+        }
+        conversion.onSaved = { [weak self] ids in
+            guard let self, let id = ids.first else { return }
+            if !items.contains(where: { $0.id == id }) { query = "" }
+            selectedItemID = id
+        }
+        imageConversion = conversion
+        isShowingConversion = true
+    }
+
+    private func endConversion() {
+        guard let id = imageConversion?.id else { return }
+        isShowingConversion = false
+        Task { [weak self] in
+            try? await Task.sleep(for: .seconds(ShelfMotion.duration))
+            guard let self, !isShowingConversion, imageConversion?.id == id else { return }
+            imageConversion = nil
+        }
     }
 
     // MARK: - Moving

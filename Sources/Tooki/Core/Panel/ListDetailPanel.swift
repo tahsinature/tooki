@@ -25,6 +25,7 @@ struct ListDetailPanel<Action: PanelActionItem, Accessory: View, ListContent: Vi
     let footer: ListDetailFooter
     /// `false` shows `emptyState` across the whole panel instead of the list and detail.
     let hasItems: Bool
+    var showsActions = true
     let onMove: (_ offset: Int) -> Void
     /// ↵ outside the popup. `isCommand` is true for ⌘↵.
     let onReturn: (_ isCommand: Bool) -> Void
@@ -59,7 +60,7 @@ struct ListDetailPanel<Action: PanelActionItem, Accessory: View, ListContent: Vi
                 primaryShortcut: footer.primaryShortcut,
                 onPrimaryAction: { onReturn(false) },
                 secondaryAction: footer.secondaryAction,
-                onShowActions: hasItems ? { actions.toggle() } : nil,
+                onShowActions: hasItems && showsActions ? { actions.toggle() } : nil,
                 accessory: footer.accessory
             )
         }
@@ -122,7 +123,7 @@ struct ListDetailPanel<Action: PanelActionItem, Accessory: View, ListContent: Vi
         default:
             let key = press.modifiers.contains(.command) ? press.characters.lowercased() : ""
             if key == "k" {
-                if hasItems { actions.toggle() }
+                if hasItems && showsActions { actions.toggle() }
             } else if key == "p", !press.modifiers.contains(.shift) {
                 actions.close()
                 isFilterOpen.toggle()

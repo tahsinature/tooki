@@ -9,6 +9,10 @@ final class ShelfImageConversionModel: Identifiable {
 
     let id = UUID()
     let previousWasExpanded: Bool
+    @ObservationIgnored var onSaved: ([UUID]) -> Void = { _ in }
+    @ObservationIgnored var showPreview: (([URL]) -> Void)?
+    @ObservationIgnored var closePreview: (() -> Void)?
+    @ObservationIgnored private let onClose: (() -> Void)?
     private(set) var items: [ShelfItem]
     var options = ImageConversionOptions()
     private(set) var phase = Phase.settings
@@ -22,7 +26,8 @@ final class ShelfImageConversionModel: Identifiable {
     @ObservationIgnored private var isRefreshing = false
     @ObservationIgnored private var failedPreparation: [UUID: String] = [:]
 
-    init(items: [ShelfItem], shelf: Shelf) {
+    init(items: [ShelfItem], shelf: Shelf, onClose: (() -> Void)? = nil) {
+        self.onClose = onClose
         previousWasExpanded = shelf.isExpanded
         self.items = items
         self.shelf = shelf
@@ -101,6 +106,7 @@ final class ShelfImageConversionModel: Identifiable {
                 completed += 1
             }
             shelf.selectConverted(savedRows)
+            onSaved(savedRows)
             results.removeAll { savedSources.contains($0.item.id) }
             items.removeAll { savedSources.contains($0.id) }
             if items.isEmpty {
@@ -144,13 +150,13 @@ final class ShelfImageConversionModel: Identifiable {
         markOpened(Set(results.map(\.id)))
         // The current result comes first; Quick Look can browse the whole batch.
         let ordered = [current.preview.url] + results.filter { $0.id != current.id }.map(\.preview.url)
-        shelf?.onQuickLook(ordered)
+        if let showPreview { showPreview(ordered) } else { shelf?.onQuickLook(ordered) }
     }
 
     func back() {
         guard phase != .saving else { return }
         if phase == .review {
-            shelf?.onCloseQuickLook()
+            dismissPreview()
             discardResults()
             phase = .settings
             errors = []
@@ -166,10 +172,15 @@ final class ShelfImageConversionModel: Identifiable {
     }
 
     private func close() {
+        guard !isClosed else { return }
         isClosed = true
-        shelf?.onCloseQuickLook()
+        dismissPreview()
         discardResults()
-        shelf?.endImageConversion(self)
+        if let onClose { onClose() } else { shelf?.endImageConversion(self) }
+    }
+
+    private func dismissPreview() {
+        if let closePreview { closePreview() } else { shelf?.onCloseQuickLook() }
     }
 
     private func discardResults() {
