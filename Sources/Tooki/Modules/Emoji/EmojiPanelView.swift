@@ -6,7 +6,7 @@ struct EmojiPanelView: View {
     @Bindable var model: EmojiPanelModel
     let onRun: (EmojiAction) -> Void
     let onCancel: () -> Void
-    @ViewState private var navigation = PanelKeyboardNavigation()
+    private var navigation: PanelKeyboardNavigation { model.navigation }
 
     var body: some View {
         PanelLayout {

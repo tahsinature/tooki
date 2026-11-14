@@ -9,7 +9,7 @@ struct SearchView: View {
 
     @ViewState private var isFilterMenuOpen = false
 
-    @ViewState private var navigation = PanelKeyboardNavigation()
+    private var navigation: PanelKeyboardNavigation { model.navigation }
 
     var body: some View {
         PanelLayout {

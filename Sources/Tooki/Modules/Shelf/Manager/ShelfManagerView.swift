@@ -11,6 +11,7 @@ struct ShelfManagerView: View {
             placeholder: placeholder,
             query: $model.displayedQuery,
             actions: model.actions,
+            navigation: model.navigation,
             footer: footer,
             hasItems: hasItems,
             showsActions: !model.isShowingConversion,

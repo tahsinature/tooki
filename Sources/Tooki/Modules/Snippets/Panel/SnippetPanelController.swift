@@ -4,6 +4,7 @@ import TookiKit
 /// Shows the snippets panel and carries out the chosen action.
 @MainActor
 final class SnippetPanelController: ResumablePanelController {
+    var remembersPosition: () -> Bool = { true }
     var panel: FloatingPanel?
     /// Runs after Esc closes the panel, e.g. to go back to root search. Set before each `show()`.
     var onBack: (() -> Void)?
@@ -60,6 +61,7 @@ final class SnippetPanelController: ResumablePanelController {
         panel.onClose = { [weak model] in
             model?.selectedID = model?.selectedSnippet?.id
         }
+        configurePositionRestoration(for: panel) { [weak model] in model?.resetPosition() }
         self.panel = panel
         panel.present()
     }

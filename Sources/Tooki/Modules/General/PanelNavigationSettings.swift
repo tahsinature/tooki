@@ -15,6 +15,11 @@ struct PanelNavigationSettings: View {
                 .labelsHidden()
                 .fixedSize()
             }
+            SettingsToggleRow(
+                "Remember position in tools",
+                description: "Reopen at the selected item and scroll position. Turn off to start at the top; searches, filters and drafts are kept.",
+                isOn: $config.value.panelNavigation.rememberToolPosition
+            )
             SettingsRow("Return to Root Search", description: "Works anywhere in a Tooki panel.") {
                 HotkeyRecorder(
                     combo: KeyCombo(config.value.panelNavigation.rootSearchShortcut),
@@ -25,7 +30,7 @@ struct PanelNavigationSettings: View {
                 }
             }
         } footer: {
-            Text("Last used panel keeps your search, filters, selection and scroll position until Tooki quits. Esc clears the current search, then returns to the previous Root Search. The return shortcut starts a fresh Root Search and keeps snippet drafts available in Snippets.")
+            Text("Panel state stays available until Tooki quits. Remember position controls selection and scrolling independently of which panel the main shortcut opens. Esc clears the current search, then returns to the previous Root Search. The return shortcut starts a fresh Root Search and keeps snippet drafts available in Snippets.")
         }
     }
 

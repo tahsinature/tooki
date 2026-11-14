@@ -6,6 +6,13 @@ import TookiKit
 @MainActor
 @Observable
 final class ClipboardPanelModel {
+    let navigation = PanelKeyboardNavigation()
+
+    func resetPosition() {
+        selectedID = orderedResults.first?.id
+        navigation.moved(in: .results)
+    }
+
     // Text fields write their value back when they lose focus, so only a real change resets the selection.
     var query = "" {
         didSet { if query != oldValue { selectedID = nil } }

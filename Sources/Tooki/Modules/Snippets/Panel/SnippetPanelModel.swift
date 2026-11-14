@@ -6,6 +6,13 @@ import TookiKit
 @MainActor
 @Observable
 final class SnippetPanelModel {
+    let navigation = PanelKeyboardNavigation()
+
+    func resetPosition() {
+        selectedID = orderedResults.first?.id
+        navigation.moved(in: .results)
+    }
+
     /// A snippet being created or edited. Saving writes it back; going back discards it.
     struct Form {
         var draft: Snippet

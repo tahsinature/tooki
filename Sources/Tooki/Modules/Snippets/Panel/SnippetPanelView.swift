@@ -21,6 +21,7 @@ struct SnippetPanelView: View {
             placeholder: "Search snippets…",
             query: $model.query,
             actions: model.actions,
+            navigation: model.navigation,
             footer: ListDetailFooter(
                 title: "Snippets",
                 icon: .symbol("text.quote"),

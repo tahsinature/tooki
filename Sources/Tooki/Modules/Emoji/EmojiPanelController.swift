@@ -37,6 +37,7 @@ enum EmojiAction: String, CaseIterable, PanelActionItem {
 /// Shows the emoji picker and copies the chosen emoji, or pastes it into the app you were using.
 @MainActor
 final class EmojiPanelController: ResumablePanelController {
+    var remembersPosition: () -> Bool = { true }
     var panel: FloatingPanel?
     /// Runs after Esc closes the panel, e.g. to go back to root search. Set before each `show()`.
     var onBack: (() -> Void)?
@@ -68,6 +69,7 @@ final class EmojiPanelController: ResumablePanelController {
         panel.onEscape = { [weak self, weak model] in
             if let model { self?.escape(model) }
         }
+        configurePositionRestoration(for: panel) { [weak model] in model?.resetPosition() }
         self.panel = panel
         panel.present()
     }

@@ -7,6 +7,7 @@ struct PanelNavigationConfigTests {
         for json in ["{}", "{\"panelNavigation\":{}}"] {
             let config = try JSONDecoder().decode(TookiConfig.self, from: Data(json.utf8))
             #expect(config.panelNavigation.resumeLastPanel)
+            #expect(config.panelNavigation.rememberToolPosition)
             #expect(config.panelNavigation.rootSearchShortcut == "cmd+escape")
         }
     }
@@ -14,6 +15,7 @@ struct PanelNavigationConfigTests {
     @Test func preferencesRoundTripIncludingDisabledShortcut() throws {
         var config = TookiConfig()
         config.panelNavigation.resumeLastPanel = false
+        config.panelNavigation.rememberToolPosition = false
         for shortcut in ["ctrl+shift+r", ""] {
             config.panelNavigation.rootSearchShortcut = shortcut
             let data = try JSONEncoder().encode(config)

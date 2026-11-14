@@ -12,6 +12,7 @@ final class FloatingPanel: NSPanel {
     var keepsOpenOnBlur = false
     var onClose: (() -> Void)?
     var onPresent: (() -> Void)?
+    var preparePositionForPresentation: (() -> Void)?
     init<Content: View>(size: CGSize, @ViewBuilder content: () -> Content) {
         super.init(
             contentRect: CGRect(origin: .zero, size: size),
@@ -74,6 +75,7 @@ final class FloatingPanel: NSPanel {
 
     func present(restoring: Bool = false) {
         onPresent?()
+        preparePositionForPresentation?()
         if !restoring, let screen = NSScreen.main {
             let visible = screen.visibleFrame
             let origin = CGPoint(

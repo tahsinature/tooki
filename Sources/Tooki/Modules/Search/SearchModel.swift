@@ -13,6 +13,13 @@ struct SearchSection: Identifiable {
 @MainActor
 @Observable
 final class SearchModel {
+    let navigation = PanelKeyboardNavigation()
+
+    func resetPosition() {
+        selection = 0
+        navigation.moved(in: .results)
+    }
+
     var query = "" {
         didSet { if query != oldValue { rebuild() } }
     }

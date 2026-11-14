@@ -15,6 +15,12 @@ Tooki reads two files from `~/.config/tooki/` (or `$TOOKI_CONFIG_DIR`):
 
 To keep them in dotfiles, symlink the folder (or the individual files) into your dotfiles repository. Tooki writes through symlinks without replacing them, and edits made outside Tooki are picked up within 2 seconds. Missing keys fall back to defaults; invalid values are reported on the General page instead of being overwritten.
 
+### Remembering tool position
+
+General → Panel navigation → **Remember position in tools** controls whether Root Search, Clipboard, Snippets, Emoji and the Shelf Manager keep their selected item and scroll position when reopened. It is enabled by default. Turn it off to start at the first item while keeping searches, filters and unfinished snippet drafts. This is independent of **Main shortcut opens**, which chooses between the last used panel and Root Search.
+
+In `config.json`, set `panelNavigation.rememberToolPosition` to `false` to disable position restoration. State is kept for the current Tooki session.
+
 ### Launcher
 
 Bind the `search` action (for example `opt+space`) to open the launcher. Like Asyar, it searches apps and commands. Before you type, it lists your most-used results under **Recent**, then Applications and Commands. Snippets, clipboard history and emoji have their own panels: open them from the launcher (Search Snippets, Clipboard History, Emoji Picker) or bind their own shortcuts. A panel opened from the launcher goes back to it when you press Esc. ⌘Esc goes back to the launcher from any panel, however you opened it. Press ⌘P, or click the menu next to the search field, to show only Applications or Commands. The clipboard and snippets panels use ⌘P the same way for their type and collection menus. Typing ranks everything by how well the name matches (whole name, start, start of a word, initials such as `vsc` for Visual Studio Code, then anywhere), plus a boost for results you pick often and recently. Your picks are stored privately in `~/Library/Application Support/Tooki/launcher-history.json`.

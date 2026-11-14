@@ -37,6 +37,7 @@ final class SearchPanelController: ResumablePanelController {
         }
     }
 
+    var remembersPosition: () -> Bool = { true }
     var panel: FloatingPanel?
     /// Runs after Esc closes the panel, e.g. to go back to root search. Set before each `show()`.
     var onBack: (() -> Void)?
@@ -117,9 +118,11 @@ final class SearchPanelController: ResumablePanelController {
                     let items = await refresh()
                     guard let self, let panel, self.panel === panel, panel.isVisible else { return }
                     model?.refresh(items: items, history: history)
+                    panel.preparePositionForPresentation?()
                 }
             }
         }
+        configurePositionRestoration(for: panel) { [weak model] in model?.resetPosition() }
         self.panel = panel
         savedPanels[mode] = panel
         panel.present()

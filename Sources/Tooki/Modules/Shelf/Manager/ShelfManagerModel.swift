@@ -5,6 +5,17 @@ import Observation
 @MainActor
 @Observable
 final class ShelfManagerModel {
+    let navigation = PanelKeyboardNavigation()
+
+    func resetPosition() {
+        if openShelf != nil {
+            selectedItemID = items.first?.id
+        } else {
+            selectedShelfID = shelves.first?.id
+        }
+        navigation.moved(in: .results)
+    }
+
     let library: ShelfLibrary
     let actions = ActionsMenu<ShelfManagerAction>()
 

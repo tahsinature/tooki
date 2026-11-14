@@ -15,6 +15,7 @@ struct ClipboardPanelView: View {
             placeholder: "Search clipboard…",
             query: $model.query,
             actions: model.actions,
+            navigation: model.navigation,
             footer: footer,
             hasItems: model.selectedItem != nil,
             onMove: model.moveSelection,

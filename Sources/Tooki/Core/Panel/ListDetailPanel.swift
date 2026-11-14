@@ -22,6 +22,7 @@ struct ListDetailPanel<Action: PanelActionItem, Accessory: View, ListContent: Vi
     let placeholder: String
     @Binding var query: String
     let actions: ActionsMenu<Action>
+    let navigation: PanelKeyboardNavigation
     let footer: ListDetailFooter
     /// `false` shows `emptyState` across the whole panel instead of the list and detail.
     let hasItems: Bool
@@ -40,7 +41,6 @@ struct ListDetailPanel<Action: PanelActionItem, Accessory: View, ListContent: Vi
 
     @ViewState private var isFilterOpen = false
 
-    @ViewState private var navigation = PanelKeyboardNavigation()
 
     var body: some View {
         PanelLayout {

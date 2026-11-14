@@ -4,6 +4,7 @@ import TookiKit
 /// Shows the clipboard history panel and carries out the chosen action.
 @MainActor
 final class ClipboardPanelController: ResumablePanelController {
+    var remembersPosition: () -> Bool = { true }
     var panel: FloatingPanel?
     /// Runs after Esc closes the panel, e.g. to go back to root search. Set before each `show()`.
     var onBack: (() -> Void)?
@@ -57,6 +58,7 @@ final class ClipboardPanelController: ResumablePanelController {
         panel.onClose = { [weak model] in
             model?.selectedID = model?.selectedItem?.id
         }
+        configurePositionRestoration(for: panel) { [weak model] in model?.resetPosition() }
         self.panel = panel
         panel.present()
     }

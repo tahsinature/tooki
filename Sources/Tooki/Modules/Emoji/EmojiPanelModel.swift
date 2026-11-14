@@ -5,6 +5,13 @@ import TookiKit
 @MainActor
 @Observable
 final class EmojiPanelModel {
+    let navigation = PanelKeyboardNavigation()
+
+    func resetPosition() {
+        selection = 0
+        navigation.moved(in: .results)
+    }
+
     struct Section: Identifiable {
         let title: String
         let emoji: [Emoji]

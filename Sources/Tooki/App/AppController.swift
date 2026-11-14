@@ -28,26 +28,26 @@ final class AppController {
     @ObservationIgnored private let shortcuts = ShortcutController()
     @ObservationIgnored private let snippetInserter = SnippetInserter()
     @ObservationIgnored private let snippetUsage = SnippetUsage()
-    @ObservationIgnored private lazy var snippetPanel = SnippetPanelController(
+    @ObservationIgnored private lazy var snippetPanel = withPositionPreference(SnippetPanelController(
         snippets: snippets, usage: snippetUsage, inserter: snippetInserter,
         groupByDate: { [config] in config.value.snippets.groupByDate }
-    )
+    ))
     @ObservationIgnored private lazy var searchPanel: SearchPanelController = {
-        let panel = SearchPanelController()
+        let panel = withPositionPreference(SearchPanelController())
         panel.onOpenSettings = { [weak self] in self?.showSettings() }
         return panel
     }()
-    @ObservationIgnored private lazy var clipboardPanel = ClipboardPanelController(
+    @ObservationIgnored private lazy var clipboardPanel = withPositionPreference(ClipboardPanelController(
         history: clipboard, shelves: shelfWindows,
         groupByDate: { [config] in config.value.clipboard.groupByDate }
-    )
-    @ObservationIgnored private let emojiPanel = EmojiPanelController()
+    ))
+    @ObservationIgnored private lazy var emojiPanel = withPositionPreference(EmojiPanelController())
     @ObservationIgnored let appCatalog = AppCatalog()
     @ObservationIgnored let currencyRates = CurrencyRates(
         cacheURL: StoragePaths.dataDirectory.appending(path: "calculator/rates.json")
     )
     @ObservationIgnored private(set) lazy var shelfWindows = ShelfWindows(library: shelves)
-    @ObservationIgnored private lazy var shelfManager = ShelfManagerController(windows: shelfWindows)
+    @ObservationIgnored private lazy var shelfManager = withPositionPreference(ShelfManagerController(windows: shelfWindows))
     @ObservationIgnored private let shelfDragWatcher = ShelfDragWatcher()
     @ObservationIgnored private lazy var snippetExpander = SnippetExpander(snippets: snippets, inserter: snippetInserter, usage: snippetUsage)
     @ObservationIgnored private lazy var keyboardMonitor = KeyboardMonitor(handlers: [hyperKey, detective, shortcuts, snippetExpander])
@@ -56,6 +56,11 @@ final class AppController {
     @ObservationIgnored private var pollTimer: Timer?
     /// `tooki://` links that arrived while Tooki was still starting up.
     @ObservationIgnored private var pendingURLs: [URL]? = []
+
+    private func withPositionPreference<Controller: ResumablePanelController>(_ controller: Controller) -> Controller {
+        controller.remembersPosition = { [config] in config.value.panelNavigation.rememberToolPosition }
+        return controller
+    }
 
     var isCoffeeIconInserted: Bool {
         config.value.keepAwake.showMenuBarIcon && keepAwake.isActive
