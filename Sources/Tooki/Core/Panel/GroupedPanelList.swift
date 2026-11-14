@@ -56,8 +56,6 @@ struct GroupedPanelList<Item: Identifiable, Row: View>: View {
                 .padding(.horizontal, PanelTheme.listInset)
                 .panelScrollContent()
             }
-            // Margins, not padding, so scrolling to the last row keeps space below it.
-            .contentMargins(.vertical, PanelTheme.listInset, for: .scrollContent)
             .panelSelectionScrolling(
                 proxy: proxy,
                 selection: selectedID.map { Entry.itemID($0) },

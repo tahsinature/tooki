@@ -1,26 +1,25 @@
 import SwiftUI
 
 enum PanelScrollArea { case results, actions }
-private enum PanelScrollEdge { case top, bottom }
+private enum PanelScrollEdge { case top }
 
 extension View {
-    /// Edge targets include all headings and padding, rather than just the selectable rows.
+    /// The content itself provides a stable top target, including section headings.
     func panelScrollContent() -> some View {
-        VStack(spacing: 0) {
-            Color.clear.frame(height: 0).id(PanelScrollEdge.top)
-            self
-            Color.clear.frame(height: 0).id(PanelScrollEdge.bottom)
-        }
+        id(PanelScrollEdge.top)
     }
 
     func panelSelectionScrolling<ID: Hashable>(
         proxy: ScrollViewProxy, selection: ID?, first: ID?, last: ID?,
-        area: PanelScrollArea = .results, rowHeight: CGFloat = PanelTheme.rowHeight, columns: Int = 1
+        area: PanelScrollArea = .results, rowHeight: CGFloat = PanelTheme.rowHeight, columns: Int = 1,
+        verticalInset: CGFloat = PanelTheme.listInset
     ) -> some View {
-        modifier(PanelSelectionScrollModifier(
-            proxy: proxy, selection: selection, first: first, last: last,
-            area: area, rowHeight: rowHeight, columns: columns
-        ))
+        // Margins stay visible when a real row is aligned to the bottom edge.
+        contentMargins(.vertical, verticalInset, for: .scrollContent)
+            .modifier(PanelSelectionScrollModifier(
+                proxy: proxy, selection: selection, first: first, last: last,
+                area: area, rowHeight: rowHeight, columns: columns
+            ))
     }
 }
 
@@ -48,7 +47,8 @@ private struct PanelSelectionScrollModifier<ID: Hashable>: ViewModifier {
         if selection == first {
             proxy.scrollTo(PanelScrollEdge.top, anchor: .top)
         } else if selection == last {
-            proxy.scrollTo(PanelScrollEdge.bottom, anchor: .bottom)
+            // Target the row so lazy containers realize it, rather than an estimated content edge.
+            proxy.scrollTo(selection, anchor: .bottom)
         } else {
             proxy.scrollTo(selection)
         }

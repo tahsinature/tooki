@@ -106,7 +106,7 @@ private struct EmojiGrid: View {
                         }
                     }
                 }
-                .padding(PanelTheme.listInset)
+                .padding(.horizontal, PanelTheme.listInset)
                 .panelScrollContent()
             }
             .panelSelectionScrolling(

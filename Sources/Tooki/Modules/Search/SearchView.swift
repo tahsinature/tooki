@@ -128,7 +128,7 @@ private struct SearchResultList: View {
                         }
                     }
                 }
-                .padding(PanelTheme.listInset)
+                .padding(.horizontal, PanelTheme.listInset)
                 .panelScrollContent()
             }
             .panelSelectionScrolling(

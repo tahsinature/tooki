@@ -52,11 +52,11 @@ struct FilterPopup: View {
                     rows.panelScrollContent().onGeometryChange(for: CGFloat.self) { $0.size.height } action: { rowsHeight = $0 }
                 }
                 .scrollBounceBehavior(.basedOnSize)
-                .frame(height: min(rowsHeight, Self.maxListHeight))
+                .frame(height: min(rowsHeight + 2 * Self.listPadding, Self.maxListHeight))
                 .panelSelectionScrolling(
                     proxy: proxy, selection: highlighted,
                     first: visible.isEmpty ? nil : 0, last: visible.indices.last,
-                    rowHeight: Self.rowHeight
+                    rowHeight: Self.rowHeight, verticalInset: Self.listPadding
                 )
             }
         }
@@ -94,7 +94,7 @@ struct FilterPopup: View {
                 }
             }
         }
-        .padding(Self.listPadding)
+        .padding(.horizontal, Self.listPadding)
     }
 
     private func row(_ index: Int, isHighlighted: Bool) -> some View {

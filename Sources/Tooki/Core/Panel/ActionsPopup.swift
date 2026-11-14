@@ -41,7 +41,7 @@ struct ActionsPopup<Action: PanelActionItem>: View {
                     rows.panelScrollContent().onGeometryChange(for: CGFloat.self) { $0.size.height } action: { rowsHeight = $0 }
                 }
                 .scrollBounceBehavior(.basedOnSize)
-                .frame(height: min(rowsHeight, Self.maxListHeight))
+                .frame(height: min(rowsHeight + 2 * PanelTheme.listInset, Self.maxListHeight))
                 .panelSelectionScrolling(
                     proxy: proxy, selection: selection,
                     first: actions.isEmpty ? nil : 0, last: actions.indices.last, area: .actions
@@ -84,7 +84,7 @@ struct ActionsPopup<Action: PanelActionItem>: View {
                 .id(index)
             }
         }
-        .padding(8)
+        .padding(.horizontal, PanelTheme.listInset)
     }
 
     private func row(_ action: Action, isSelected: Bool) -> some View {
