@@ -23,11 +23,15 @@ Apps are found in `/Applications`, `/System/Applications`, `~/Applications` and 
 
 | Key | Action |
 | --- | --- |
-| ↑ ↓, Page Up/Down | Move through the results |
+| ↑ ↓ | Move through the results |
+| Page Up/Down (Fn + ↑/↓) | Move selection by one visible page |
+| ⌘↑/↓ or Home/End | Select the first/last result and reveal the full edge |
 | ↵ | Open, paste or run the selected result |
 | ⌘↵ | Copy it instead |
 | ⌘K | Show all actions, such as Show in Finder |
 | ⌘, | Close the launcher and open Settings (or click Tooki in the bottom-left corner) |
+
+These navigation keys also apply to Snippets, the Shelf Manager, Actions Menu and Filter Menu. In the Emoji picker, ↑/↓ moves one grid row and Page Up/Down moves one visible page. At either end, keyboard navigation reveals the full heading and padding.
 
 ### Snippets panel
 
@@ -59,7 +63,9 @@ Press Hyper+V to open it. The list is on the left (Pinned first, then Most Recen
 
 | Key | Action |
 | --- | --- |
-| ↑ ↓ (hold to repeat), Page Up/Down, Home/End | Move through the list |
+| ↑ ↓ (hold to repeat) | Move through the list |
+| Page Up/Down (Fn + ↑/↓) | Move selection by one visible page |
+| ⌘↑/↓ or Home/End | Select the first/last item and reveal the full edge |
 | ↵ (or double-click) | Copy to the clipboard |
 | ⌘↵ | Paste into the app you were using |
 | ⌘O | Open With: search for an app to open an image, file or link with (Esc goes back) |

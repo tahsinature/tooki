@@ -3,7 +3,7 @@ import TookiKit
 
 /// A titled group of rows in a `GroupedPanelList`, like "Pinned" or "Today".
 struct PanelListSection<Item: Identifiable> {
-    let title: String
+    let title: String?
     let items: [Item]
 
     /// Groups items by day (Today, Yesterday, This Week…), skipping empty days. Keeps the items' order.
@@ -54,28 +54,25 @@ struct GroupedPanelList<Item: Identifiable, Row: View>: View {
                     }
                 }
                 .padding(.horizontal, PanelTheme.listInset)
+                .panelScrollContent()
             }
             // Margins, not padding, so scrolling to the last row keeps space below it.
             .contentMargins(.vertical, PanelTheme.listInset, for: .scrollContent)
-            .onChange(of: selectedID) { _, newValue in
-                guard let newValue else { return }
-                if newValue == sections.first(where: { !$0.items.isEmpty })?.items.first?.id,
-                   let firstEntry = entries.first {
-                    // Include the first section heading when navigating back to the top.
-                    proxy.scrollTo(firstEntry.id, anchor: .top)
-                } else if newValue == sections.last(where: { !$0.items.isEmpty })?.items.last?.id {
-                    proxy.scrollTo(Entry.itemID(newValue), anchor: .bottom)
-                } else {
-                    proxy.scrollTo(Entry.itemID(newValue))
-                }
-            }
+            .panelSelectionScrolling(
+                proxy: proxy,
+                selection: selectedID.map { Entry.itemID($0) },
+                first: sections.first(where: { !$0.items.isEmpty })?.items.first.map { Entry.itemID($0.id) },
+                last: sections.last(where: { !$0.items.isEmpty })?.items.last.map { Entry.itemID($0.id) }
+            )
         }
     }
 
     private var entries: [Entry] {
         var entries: [Entry] = []
         for section in sections where !section.items.isEmpty {
-            entries.append(Entry(kind: .header(section.title, isFirst: entries.isEmpty)))
+            if let title = section.title {
+                entries.append(Entry(kind: .header(title, isFirst: entries.isEmpty)))
+            }
             entries += section.items.map { Entry(kind: .item($0)) }
         }
         return entries
@@ -100,7 +97,7 @@ struct GroupedPanelList<Item: Identifiable, Row: View>: View {
 
         var height: CGFloat {
             switch kind {
-            case .header(_, let isFirst): isFirst ? 24 : 36
+            case .header(_, let isFirst): SectionHeader.height(isFirst: isFirst)
             case .item: PanelTheme.rowHeight
             }
         }

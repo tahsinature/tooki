@@ -8,8 +8,7 @@ struct ClipboardListView: View {
 
     var body: some View {
         GroupedPanelList(
-            sections: [PanelListSection(title: "Pinned", items: model.pinned)]
-                + PanelListSection.byDay(model.recent, date: \.copiedAt),
+            sections: model.sections,
             selectedID: model.selectedItem?.id,
             onSelect: { model.selectedID = $0 },
             onDoubleClick: onCopy,

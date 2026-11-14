@@ -20,10 +20,12 @@ final class ClipboardPanelModel {
     let history: ClipboardHistory
     /// The app that was in front when the panel opened; pasting goes there.
     var targetAppName: String?
+    private let groupByDate: () -> Bool
 
-    init(history: ClipboardHistory, targetAppName: String?) {
+    init(history: ClipboardHistory, targetAppName: String?, groupByDate: @escaping () -> Bool = { true }) {
         self.history = history
         self.targetAppName = targetAppName
+        self.groupByDate = groupByDate
         actions.rootActions = { [weak self] in
             guard let self, let item = selectedItem else { return [] }
             return ClipboardAction.all(for: item, targetAppName: self.targetAppName)
@@ -32,6 +34,13 @@ final class ClipboardPanelModel {
 
     var pinned: [ClipboardItem] { results.filter(\.isPinned) }
     var recent: [ClipboardItem] { results.filter { !$0.isPinned } }
+
+    var sections: [PanelListSection<ClipboardItem>] {
+        let recentSections = groupByDate()
+            ? PanelListSection.byDay(recent, date: \.copiedAt)
+            : [PanelListSection(title: nil, items: recent)]
+        return [PanelListSection(title: "Pinned", items: pinned)] + recentSections
+    }
 
     /// Items in the order they are shown: pinned first.
     var orderedResults: [ClipboardItem] { pinned + recent }

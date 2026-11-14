@@ -38,11 +38,14 @@ struct ActionsPopup<Action: PanelActionItem>: View {
             // Sized to the rows, scrolling only past the maximum height.
             ScrollViewReader { proxy in
                 ScrollView {
-                    rows.onGeometryChange(for: CGFloat.self) { $0.size.height } action: { rowsHeight = $0 }
+                    rows.panelScrollContent().onGeometryChange(for: CGFloat.self) { $0.size.height } action: { rowsHeight = $0 }
                 }
                 .scrollBounceBehavior(.basedOnSize)
                 .frame(height: min(rowsHeight, Self.maxListHeight))
-                .onChange(of: selection, initial: true) { proxy.scrollTo(selection) }
+                .panelSelectionScrolling(
+                    proxy: proxy, selection: selection,
+                    first: actions.isEmpty ? nil : 0, last: actions.indices.last, area: .actions
+                )
             }
             PanelTheme.popupDivider.frame(height: 1)
             TextField("", text: $query.ignoringUnchangedValues(), prompt: Text(searchPrompt).foregroundStyle(PanelTheme.tertiaryText))

@@ -48,19 +48,3 @@ struct ResultRow<Leading: View, Trailing: View>: View {
         .accessibilityAddTraits(isSelected ? [.isSelected] : [])
     }
 }
-
-/// A quiet label above a group of rows, like "Pinned" or "Today".
-struct SectionHeader: View {
-    let title: String
-    var isFirst = false
-
-    var body: some View {
-        Text(title)
-            .font(.system(size: 13, weight: .semibold))
-            .foregroundStyle(PanelTheme.secondaryText)
-            .padding(.horizontal, 8)
-            .padding(.top, isFirst ? 4 : 16)
-            .padding(.bottom, 4)
-            .frame(maxWidth: .infinity, alignment: .leading)
-    }
-}

@@ -30,6 +30,11 @@ struct SnippetsView: View {
                     isOn: $config.value.snippets.keywordExpansion
                 )
                 .disabled(!config.value.snippets.enabled)
+                SettingsToggleRow(
+                    "Group by date",
+                    description: "Organize recent items by date. Pinned items stay separate.",
+                    isOn: $config.value.snippets.groupByDate
+                )
                 SettingsRow("Shortcut", description: shortcutText) {
                     Button("Open Shortcuts", action: onOpenShortcuts)
                 }

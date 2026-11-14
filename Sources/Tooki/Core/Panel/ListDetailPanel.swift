@@ -14,7 +14,8 @@ struct ListDetailFooter {
 /// A Raycast-style panel: search on top, list and detail side by side, actions along the bottom,
 /// and a ⌘K popup. Clipboard, snippets and the shelf manager all use it.
 ///
-/// Handles the keys every such panel shares: arrows and Page Up/Down/Home/End move through the list
+/// Handles the keys every such panel shares: arrows move rows, Page Up/Down moves a visible page,
+/// and ⌘↑/↓ or Home/End jumps to the ends of the list
 /// (or the popup), ↵ runs the main action (⌘↵ the second one), ⌘K toggles the popup, ← leaves a
 /// submenu, ⌘P opens the filter menu and Esc closes one level at a time. Anything else goes to `onShortcut`.
 struct ListDetailPanel<Action: PanelActionItem, Accessory: View, ListContent: View, Detail: View, Empty: View>: View {
@@ -39,7 +40,7 @@ struct ListDetailPanel<Action: PanelActionItem, Accessory: View, ListContent: Vi
 
     @ViewState private var isFilterOpen = false
 
-    private static var pageSize: Int { 8 }
+    @ViewState private var navigation = PanelKeyboardNavigation()
 
     var body: some View {
         PanelLayout {
@@ -73,6 +74,7 @@ struct ListDetailPanel<Action: PanelActionItem, Accessory: View, ListContent: Vi
                 onRun: onRunAction
             )
         }
+        .environment(\.panelKeyboardNavigation, navigation)
     }
 
     @ViewBuilder
@@ -90,8 +92,12 @@ struct ListDetailPanel<Action: PanelActionItem, Accessory: View, ListContent: Vi
     }
 
     private func handleKey(_ press: KeyPress) -> KeyPress.Result {
-        if let offset = navigationOffset(for: press.key) {
+        if let offset = PanelKeyboardNavigation.offset(
+            for: press.key, modifiers: press.modifiers,
+            pageSize: actions.isShowing ? navigation.actionsPageSize : navigation.resultsPageSize
+        ) {
             if actions.isShowing { actions.moveSelection(by: offset) } else { onMove(offset) }
+            navigation.moved(in: actions.isShowing ? .actions : .results)
             return .handled
         }
         // Holding Return or a shortcut must not run it repeatedly.
@@ -119,18 +125,5 @@ struct ListDetailPanel<Action: PanelActionItem, Accessory: View, ListContent: Vi
             }
         }
         return .handled
-    }
-
-    /// Arrows move one row, Page Up/Down a page, Home/End to the ends. These repeat while held.
-    private func navigationOffset(for key: KeyEquivalent) -> Int? {
-        switch key {
-        case .upArrow: -1
-        case .downArrow: 1
-        case .pageUp: -Self.pageSize
-        case .pageDown: Self.pageSize
-        case .home: -Int.max / 2
-        case .end: Int.max / 2
-        default: nil
-        }
     }
 }

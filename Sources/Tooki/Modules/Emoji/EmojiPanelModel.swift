@@ -12,8 +12,6 @@ final class EmojiPanelModel {
     }
 
     static let columns = 10
-    /// Rows Page Up and Page Down move, about one screenful of the grid.
-    static let pageRows = 5
 
     var query = "" {
         // The search field writes the same text back when it loses focus to the ⌘K popup.

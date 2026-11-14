@@ -28,11 +28,13 @@ final class SnippetPanelModel {
     let usage: SnippetUsage
     /// The app that was in front when the panel opened; pasting goes there.
     var targetAppName: String?
+    private let groupByDate: () -> Bool
 
-    init(snippets: JSONDocument<[Snippet]>, usage: SnippetUsage, targetAppName: String?) {
+    init(snippets: JSONDocument<[Snippet]>, usage: SnippetUsage, targetAppName: String?, groupByDate: @escaping () -> Bool = { true }) {
         self.snippets = snippets
         self.usage = usage
         self.targetAppName = targetAppName
+        self.groupByDate = groupByDate
         actions.rootActions = { [weak self] in
             guard let self, let snippet = selectedSnippet else { return [] }
             return SnippetAction.all(for: snippet, targetAppName: self.targetAppName)
@@ -51,7 +53,10 @@ final class SnippetPanelModel {
         let pinned = sorted.filter(\.isPinned)
         let others = sorted.filter { !$0.isPinned }
         let pinnedSection = pinned.isEmpty ? [] : [PanelListSection(title: "Pinned", items: pinned)]
-        return pinnedSection + PanelListSection.byDay(others, date: lastActivity)
+        let recentSections = groupByDate()
+            ? PanelListSection.byDay(others, date: lastActivity)
+            : [PanelListSection(title: nil, items: others)]
+        return pinnedSection + recentSections
     }
 
     var selectedSnippet: Snippet? {

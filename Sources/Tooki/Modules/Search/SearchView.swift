@@ -9,7 +9,7 @@ struct SearchView: View {
 
     @ViewState private var isFilterMenuOpen = false
 
-    private static let pageSize = 8
+    @ViewState private var navigation = PanelKeyboardNavigation()
 
     var body: some View {
         PanelLayout {
@@ -55,6 +55,7 @@ struct SearchView: View {
                 )
             }
         }
+        .environment(\.panelKeyboardNavigation, navigation)
     }
 
     @ViewBuilder
@@ -75,12 +76,16 @@ struct SearchView: View {
     }
 
     private func handleKey(_ press: KeyPress) -> KeyPress.Result {
-        if let offset = navigationOffset(for: press.key) {
+        if let offset = PanelKeyboardNavigation.offset(
+            for: press.key, modifiers: press.modifiers,
+            pageSize: model.isShowingActions ? navigation.actionsPageSize : navigation.resultsPageSize
+        ) {
             if model.isShowingActions {
                 model.moveActionSelection(by: offset)
             } else {
                 model.moveSelection(by: offset)
             }
+            navigation.moved(in: model.isShowingActions ? .actions : .results)
             return .handled
         }
         guard press.phase == .down else { return .ignored }
@@ -106,16 +111,6 @@ struct SearchView: View {
         }
         return .handled
     }
-
-    private func navigationOffset(for key: KeyEquivalent) -> Int? {
-        switch key {
-        case .upArrow: -1
-        case .downArrow: 1
-        case .pageUp: -Self.pageSize
-        case .pageDown: Self.pageSize
-        default: nil
-        }
-    }
 }
 
 private struct SearchResultList: View {
@@ -134,10 +129,12 @@ private struct SearchResultList: View {
                     }
                 }
                 .padding(PanelTheme.listInset)
+                .panelScrollContent()
             }
-            .onChange(of: model.selection) { _, _ in
-                if let id = model.selectedItem?.id { proxy.scrollTo(id) }
-            }
+            .panelSelectionScrolling(
+                proxy: proxy, selection: model.selectedItem?.id,
+                first: model.results.first?.id, last: model.results.last?.id
+            )
         }
     }
 

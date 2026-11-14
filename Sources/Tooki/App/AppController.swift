@@ -29,14 +29,18 @@ final class AppController {
     @ObservationIgnored private let snippetInserter = SnippetInserter()
     @ObservationIgnored private let snippetUsage = SnippetUsage()
     @ObservationIgnored private lazy var snippetPanel = SnippetPanelController(
-        snippets: snippets, usage: snippetUsage, inserter: snippetInserter
+        snippets: snippets, usage: snippetUsage, inserter: snippetInserter,
+        groupByDate: { [config] in config.value.snippets.groupByDate }
     )
     @ObservationIgnored private lazy var searchPanel: SearchPanelController = {
         let panel = SearchPanelController()
         panel.onOpenSettings = { [weak self] in self?.showSettings() }
         return panel
     }()
-    @ObservationIgnored private lazy var clipboardPanel = ClipboardPanelController(history: clipboard, shelves: shelfWindows)
+    @ObservationIgnored private lazy var clipboardPanel = ClipboardPanelController(
+        history: clipboard, shelves: shelfWindows,
+        groupByDate: { [config] in config.value.clipboard.groupByDate }
+    )
     @ObservationIgnored private let emojiPanel = EmojiPanelController()
     @ObservationIgnored let appCatalog = AppCatalog()
     @ObservationIgnored let currencyRates = CurrencyRates(

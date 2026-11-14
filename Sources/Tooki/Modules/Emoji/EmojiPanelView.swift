@@ -6,6 +6,7 @@ struct EmojiPanelView: View {
     @Bindable var model: EmojiPanelModel
     let onRun: (EmojiAction) -> Void
     let onCancel: () -> Void
+    @ViewState private var navigation = PanelKeyboardNavigation()
 
     var body: some View {
         PanelLayout {
@@ -37,6 +38,7 @@ struct EmojiPanelView: View {
                 )
             }
         }
+        .environment(\.panelKeyboardNavigation, navigation)
     }
 
     @ViewBuilder
@@ -49,26 +51,19 @@ struct EmojiPanelView: View {
     }
 
     private func handleKey(_ press: KeyPress) -> KeyPress.Result {
-        let columns = EmojiPanelModel.columns
-        let page = columns * EmojiPanelModel.pageRows
-        let offset: Int? = switch press.key {
-        case .leftArrow: -1
-        case .rightArrow: 1
-        case .upArrow: -columns
-        case .downArrow: columns
-        case .pageUp: -page
-        case .pageDown: page
-        case .home: -model.results.count
-        case .end: model.results.count
-        default: nil
-        }
+        let area: PanelScrollArea = model.isShowingActions ? .actions : .results
+        let offset = PanelKeyboardNavigation.offset(
+            for: press.key, modifiers: press.modifiers,
+            pageSize: model.isShowingActions ? navigation.actionsPageSize : navigation.resultsPageSize,
+            stride: model.isShowingActions ? 1 : EmojiPanelModel.columns
+        ) ?? (press.key == .leftArrow ? -1 : (press.key == .rightArrow ? 1 : nil))
         if let offset {
             if model.isShowingActions {
-                let step = offset > 0 ? 1 : -1
-                model.actionSelection = min(max(model.actionSelection + step, 0), EmojiAction.allCases.count - 1)
+                model.actionSelection = min(max(model.actionSelection + offset, 0), EmojiAction.allCases.count - 1)
             } else {
                 model.moveSelection(by: offset)
             }
+            navigation.moved(in: area)
             return .handled
         }
         guard press.phase == .down else { return .ignored }
@@ -112,10 +107,14 @@ private struct EmojiGrid: View {
                     }
                 }
                 .padding(PanelTheme.listInset)
+                .panelScrollContent()
             }
-            .onChange(of: model.selection) { _, _ in
-                if let emoji = model.selected { proxy.scrollTo(cellID(emoji, in: sectionOfSelection)) }
-            }
+            .panelSelectionScrolling(
+                proxy: proxy, selection: model.selected.map { cellID($0, in: sectionOfSelection) },
+                first: model.sections.first.flatMap { section in section.emoji.first.map { cellID($0, in: section.id) } },
+                last: model.sections.last.flatMap { section in section.emoji.last.map { cellID($0, in: section.id) } },
+                rowHeight: 60, columns: EmojiPanelModel.columns
+            )
         }
     }
 

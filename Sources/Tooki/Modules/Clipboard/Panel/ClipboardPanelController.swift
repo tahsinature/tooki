@@ -9,10 +9,12 @@ final class ClipboardPanelController: ResumablePanelController {
     var onBack: (() -> Void)?
     private let history: ClipboardHistory
     private let shelves: ShelfWindows
+    private let groupByDate: () -> Bool
 
-    init(history: ClipboardHistory, shelves: ShelfWindows) {
+    init(history: ClipboardHistory, shelves: ShelfWindows, groupByDate: @escaping () -> Bool = { true }) {
         self.history = history
         self.shelves = shelves
+        self.groupByDate = groupByDate
     }
 
     func toggle() {
@@ -27,7 +29,8 @@ final class ClipboardPanelController: ResumablePanelController {
         panel?.close()
         let model = ClipboardPanelModel(
             history: history,
-            targetAppName: NSWorkspace.shared.frontmostApplication?.localizedName
+            targetAppName: NSWorkspace.shared.frontmostApplication?.localizedName,
+            groupByDate: groupByDate
         )
         let panel = FloatingPanel(size: PanelTheme.size) {
             ClipboardPanelView(

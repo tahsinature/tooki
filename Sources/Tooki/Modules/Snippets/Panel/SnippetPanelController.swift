@@ -10,11 +10,13 @@ final class SnippetPanelController: ResumablePanelController {
     private let snippets: JSONDocument<[Snippet]>
     private let usage: SnippetUsage
     private let inserter: SnippetInserter
+    private let groupByDate: () -> Bool
 
-    init(snippets: JSONDocument<[Snippet]>, usage: SnippetUsage, inserter: SnippetInserter) {
+    init(snippets: JSONDocument<[Snippet]>, usage: SnippetUsage, inserter: SnippetInserter, groupByDate: @escaping () -> Bool = { true }) {
         self.snippets = snippets
         self.usage = usage
         self.inserter = inserter
+        self.groupByDate = groupByDate
     }
 
     func toggle() {
@@ -31,7 +33,8 @@ final class SnippetPanelController: ResumablePanelController {
         let model = SnippetPanelModel(
             snippets: snippets,
             usage: usage,
-            targetAppName: NSWorkspace.shared.frontmostApplication?.localizedName
+            targetAppName: NSWorkspace.shared.frontmostApplication?.localizedName,
+            groupByDate: groupByDate
         )
         if creating { model.startCreating() }
         let panel = FloatingPanel(size: PanelTheme.size) {

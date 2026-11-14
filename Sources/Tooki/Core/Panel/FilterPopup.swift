@@ -9,6 +9,7 @@ struct FilterPopup: View {
     let onPick: (_ index: Int) -> Void
     let onClose: () -> Void
 
+    @ViewState private var navigation = PanelKeyboardNavigation()
     @ViewState private var query = ""
     @ViewState private var highlighted = 0
     @ViewState private var hoveredIndex: Int?
@@ -48,13 +49,18 @@ struct FilterPopup: View {
             PanelTheme.popupDivider.frame(height: 1)
             ScrollViewReader { proxy in
                 ScrollView {
-                    rows.onGeometryChange(for: CGFloat.self) { $0.size.height } action: { rowsHeight = $0 }
+                    rows.panelScrollContent().onGeometryChange(for: CGFloat.self) { $0.size.height } action: { rowsHeight = $0 }
                 }
                 .scrollBounceBehavior(.basedOnSize)
                 .frame(height: min(rowsHeight, Self.maxListHeight))
-                .onChange(of: highlighted, initial: true) { proxy.scrollTo(highlighted) }
+                .panelSelectionScrolling(
+                    proxy: proxy, selection: highlighted,
+                    first: visible.isEmpty ? nil : 0, last: visible.indices.last,
+                    rowHeight: Self.rowHeight
+                )
             }
         }
+        .environment(\.panelKeyboardNavigation, navigation)
         .frame(width: Self.width)
         .popupSurface(cornerRadius: 10)
         .onAppear {
@@ -121,11 +127,14 @@ struct FilterPopup: View {
     }
 
     private func handleKey(_ press: KeyPress) -> KeyPress.Result {
+        if let offset = PanelKeyboardNavigation.offset(
+            for: press.key, modifiers: press.modifiers, pageSize: navigation.resultsPageSize
+        ) {
+            highlighted = min(max(highlighted + offset, 0), max(visible.count - 1, 0))
+            navigation.moved(in: .results)
+            return .handled
+        }
         switch press.key {
-        case .upArrow:
-            highlighted = max(highlighted - 1, 0)
-        case .downArrow:
-            highlighted = min(highlighted + 1, max(visible.count - 1, 0))
         case .return where press.phase == .down:
             if visible.indices.contains(highlighted) { onPick(visible[highlighted]) }
         case .escape where press.phase == .down:

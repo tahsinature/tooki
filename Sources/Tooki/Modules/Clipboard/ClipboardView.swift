@@ -28,6 +28,11 @@ struct ClipboardView: View {
                         zeroHint: "0 is off"
                     )
                 }
+                SettingsToggleRow(
+                    "Group by date",
+                    description: "Organize recent items by date. Pinned items stay separate.",
+                    isOn: $config.value.clipboard.groupByDate
+                )
                 SettingsToggleRow("Remember history after restart", isOn: $config.value.clipboard.persistHistory)
             } footer: {
                 Text("Open with Hyper + V. Text inside copied images is searchable; it is read on this Mac. Passwords and content from ignored apps are never recorded. History stays on this Mac and is not part of your config folder.")

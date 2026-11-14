@@ -87,6 +87,7 @@ private struct LegacyHyperKeyConfig: Decodable {
 
 public struct SnippetsConfig: Codable, Equatable, Sendable {
     public var enabled = true
+    public var groupByDate = true
     public var keywordExpansion = true
 
     public init() {}
@@ -95,12 +96,14 @@ public struct SnippetsConfig: Codable, Equatable, Sendable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let defaults = SnippetsConfig()
         enabled = try container.decode(.enabled, default: defaults.enabled)
+        groupByDate = try container.decode(.groupByDate, default: defaults.groupByDate)
         keywordExpansion = try container.decode(.keywordExpansion, default: defaults.keywordExpansion)
     }
 }
 
 public struct ClipboardConfig: Codable, Equatable, Sendable {
     public var enabled = true
+    public var groupByDate = true
     public var maxItems = 200
     /// Images take much more space than text, so they have their own limit. 0 turns images off.
     public var maxImages = 50
@@ -118,6 +121,7 @@ public struct ClipboardConfig: Codable, Equatable, Sendable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let defaults = ClipboardConfig()
         enabled = try container.decode(.enabled, default: defaults.enabled)
+        groupByDate = try container.decode(.groupByDate, default: defaults.groupByDate)
         maxItems = try container.decode(.maxItems, default: defaults.maxItems)
         maxImages = try container.decode(.maxImages, default: defaults.maxImages)
         persistHistory = try container.decode(.persistHistory, default: defaults.persistHistory)
