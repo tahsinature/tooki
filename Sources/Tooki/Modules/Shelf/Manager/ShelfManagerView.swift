@@ -1,3 +1,4 @@
+import TookiDesignSystem
 import SwiftUI
 
 /// Shelves: pick a shelf, then browse, open and manage its items.
@@ -34,6 +35,7 @@ struct ShelfManagerView: View {
         } emptyState: {
             emptyState
         }
+        .onChange(of: model.librarySnapshot) { _, _ in model.refresh() }
     }
 
     private var placeholder: String {

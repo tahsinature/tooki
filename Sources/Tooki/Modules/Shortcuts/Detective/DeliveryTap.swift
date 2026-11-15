@@ -3,12 +3,18 @@ import CoreGraphics
 /// Watches key presses at the last stop before they reach an app.
 /// A press seen by `KeyboardMonitor` but never here was taken by someone along the way.
 @MainActor
-final class DeliveryTap {
+protocol ShortcutDeliveryWatching: AnyObject {
+    func start(onDelivered: @escaping (Int64, CGEventTimestamp, pid_t) -> Void) -> Bool
+    func stop()
+}
+
+@MainActor
+final class DeliveryTap: ShortcutDeliveryWatching {
     private var tap: CFMachPort?
     private var runLoopSource: CFRunLoopSource?
-    fileprivate var onDelivered: (_ keyCode: Int64, _ targetPID: pid_t) -> Void = { _, _ in }
+    fileprivate var onDelivered: (_ keyCode: Int64, _ timestamp: CGEventTimestamp, _ targetPID: pid_t) -> Void = { _, _, _ in }
 
-    func start(onDelivered: @escaping (_ keyCode: Int64, _ targetPID: pid_t) -> Void) -> Bool {
+    func start(onDelivered: @escaping (_ keyCode: Int64, _ timestamp: CGEventTimestamp, _ targetPID: pid_t) -> Void) -> Bool {
         guard tap == nil else { return true }
         self.onDelivered = onDelivered
         guard let tap = CGEvent.tapCreate(
@@ -27,6 +33,8 @@ final class DeliveryTap {
         self.runLoopSource = source
         return true
     }
+
+    isolated deinit { stop() }
 
     func stop() {
         guard let tap else { return }
@@ -49,12 +57,13 @@ private func deliveryTapCallback(
 ) -> Unmanaged<CGEvent>? {
     guard let userInfo else { return Unmanaged.passUnretained(event) }
     let deliveryTap = Unmanaged<DeliveryTap>.fromOpaque(userInfo).takeUnretainedValue()
+    let timestamp = event.timestamp
     let keyCode = event.getIntegerValueField(.keyboardEventKeycode)
     let pid = pid_t(truncatingIfNeeded: event.getIntegerValueField(.eventTargetUnixProcessID))
     // Attached to the main run loop, so this runs on the main thread.
     MainActor.assumeIsolated {
         if type == .keyDown {
-            deliveryTap.onDelivered(keyCode, pid)
+            deliveryTap.onDelivered(keyCode, timestamp, pid)
         } else if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
             deliveryTap.reenable()
         }

@@ -41,6 +41,7 @@ final class ShelfPanel: NSPanel {
 
     /// Esc is caught here, before SwiftUI turns it into a cancel, unless a text field is being edited.
     override func sendEvent(_ event: NSEvent) {
+        if PanelShortcutRouter.handleRootSearchShortcut(event, in: self) { return }
         let isEscape = (event.type == .keyDown || event.type == .keyUp) && event.keyCode == 53
         if isEscape, !(firstResponder is NSText) {
             onEscapeKey(event)
@@ -64,7 +65,7 @@ final class ShelfPanel: NSPanel {
     }
 
     override func performKeyEquivalent(with event: NSEvent) -> Bool {
-        onKey(event) || super.performKeyEquivalent(with: event)
+        PanelShortcutRouter.handleRootSearchShortcut(event, in: self) || onKey(event) || super.performKeyEquivalent(with: event)
     }
 
     override func acceptsPreviewPanelControl(_ panel: QLPreviewPanel!) -> Bool { true }

@@ -1,38 +1,6 @@
+import TookiDesignSystem
 import AppKit
 import TookiKit
-
-enum EmojiAction: String, CaseIterable, PanelActionItem {
-    case copy
-    case paste
-    case copyShortcode
-
-    var id: String { rawValue }
-    var isDestructive: Bool { false }
-
-    var title: String {
-        switch self {
-        case .paste: "Paste Emoji"
-        case .copy: "Copy Emoji"
-        case .copyShortcode: "Copy Shortcode"
-        }
-    }
-
-    var icon: PanelIcon {
-        switch self {
-        case .paste: .symbol("doc.on.clipboard")
-        case .copy: .symbol("doc.on.doc")
-        case .copyShortcode: .symbol("textformat")
-        }
-    }
-
-    var shortcut: String {
-        switch self {
-        case .copy: "↵"
-        case .paste: "⌘↵"
-        case .copyShortcode: ""
-        }
-    }
-}
 
 /// Shows the emoji picker and copies the chosen emoji, or pastes it into the app you were using.
 @MainActor
@@ -69,6 +37,7 @@ final class EmojiPanelController: ResumablePanelController {
         panel.onEscape = { [weak self, weak model] in
             if let model { self?.escape(model) }
         }
+        panel.onPresent = { [weak self, weak model] in model?.refresh(recentCharacters: self?.recent ?? []) }
         configurePositionRestoration(for: panel) { [weak model] in model?.resetPosition() }
         self.panel = panel
         panel.present()

@@ -1,3 +1,4 @@
+import TookiDesignSystem
 import SwiftUI
 
 /// Monospaced text with the same copy feedback as other copyable rows.

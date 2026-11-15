@@ -10,8 +10,8 @@ final class SnippetUsage {
     private(set) var history: LaunchHistory
     @ObservationIgnored private let fileURL = StoragePaths.dataDirectory.appending(path: "snippet-usage.json")
 
-    init() {
-        history = JSONFile.read(fileURL).flatMap { try? JSONFile.decoder.decode(LaunchHistory.self, from: $0) } ?? LaunchHistory()
+    init(initialHistory: LaunchHistory? = nil) {
+        history = initialHistory ?? JSONFile.read(fileURL).flatMap { try? JSONFile.decoder.decode(LaunchHistory.self, from: $0) } ?? LaunchHistory()
     }
 
     func entry(for id: Snippet.ID) -> LaunchHistory.Entry? {

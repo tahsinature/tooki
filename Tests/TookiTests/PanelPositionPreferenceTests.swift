@@ -19,7 +19,7 @@ extension PanelRestorationTests {
         )
         let controller = SnippetPanelController(snippets: document, usage: SnippetUsage(), inserter: SnippetInserter())
         controller.remembersPosition = { preference.value.panelNavigation.rememberToolPosition }
-        controller.show()
+        withSnippetTestDependencies { controller.show() }
         defer { controller.close() }
         let hosting = try #require(controller.panel?.contentView as? NSHostingView<SnippetPanelView>)
         let model = hosting.rootView.model

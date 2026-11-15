@@ -1,144 +1,101 @@
 import AppKit
 import Observation
-import TookiKit
+import Sparkle
 
-/// A release on GitHub that's newer than the running Tooki.
-struct AppRelease: Equatable, Sendable {
-    let version: String
-    let pageURL: URL
-    let dmgURL: URL
-}
-
-/// Checks GitHub for a newer release and installs it. Only release builds update themselves,
-/// so a local dev build is never replaced.
+/// Sparkle owns checking, update presentation, download, verification and installation.
+/// Development builds never create or start an updater.
 @MainActor
 @Observable
-final class Updater {
+final class Updater: NSObject, SPUUpdaterDelegate {
     enum State: Equatable {
         case idle
         case checking
         case upToDate
-        case available(AppRelease)
-        case installing(AppRelease)
+        case available(String)
         case failed(String)
     }
 
     private(set) var state = State.idle
     private(set) var lastChecked: Date?
-    /// "Skip" hides the sidebar prompt for this version; About still offers it.
-    private(set) var skippedVersion = UserDefaults.standard.string(forKey: DefaultsKey.skippedVersion)
+    private(set) var canCheck = false
+    private(set) var checksAutomatically = false
+    let isEnabled: Bool
 
-    @ObservationIgnored private var timer: Timer?
-    @ObservationIgnored private var checksAutomatically = false
+    @ObservationIgnored private var controller: SPUStandardUpdaterController?
+    @ObservationIgnored private var observations: [NSKeyValueObservation] = []
+    @ObservationIgnored private let defaults: UserDefaults
 
-    private static let checkInterval: TimeInterval = 24 * 60 * 60
-    /// `defaults write us.tahsin.tooki updateFeedURL <url>` points Tooki at another release, for testing.
-    private static var feedURL: URL {
-        UserDefaults.standard.string(forKey: DefaultsKey.feedURL).flatMap(URL.init(string:))
-            ?? URL(string: "https://api.github.com/repos/tahsinature/tooki/releases/latest")!
+    init(isRelease: Bool = BuildInfo.isRelease, defaults: UserDefaults = .standard) {
+        isEnabled = isRelease
+        self.defaults = defaults
+        super.init()
     }
 
-    private enum DefaultsKey {
-        static let skippedVersion = "skippedUpdateVersion"
-        static let feedURL = "updateFeedURL"
-    }
-
-    var isEnabled: Bool { BuildInfo.isRelease }
-
-    var availableRelease: AppRelease? {
-        if case .available(let release) = state { return release }
-        return nil
-    }
-
-    /// Whether the sidebar shows the Update pill.
     var shouldPrompt: Bool {
-        guard let availableRelease else { return false }
-        return availableRelease.version != skippedVersion
+        if case .available = state { return true }
+        return false
+    }
+
+    /// Seed Sparkle's preference once from the legacy JSON setting. Later settings changes
+    /// go directly to Sparkle, including changes made in its own update window.
+    func start(initialAutomaticChecks: Bool) {
+        guard isEnabled, controller == nil else { return }
+        let controller = SPUStandardUpdaterController(startingUpdater: false, updaterDelegate: self, userDriverDelegate: nil)
+        self.controller = controller
+        let updater = controller.updater
+        let domain = Bundle.main.bundleIdentifier ?? ""
+        if defaults.persistentDomain(forName: domain)?["SUEnableAutomaticChecks"] == nil {
+            updater.automaticallyChecksForUpdates = initialAutomaticChecks
+        }
+        observations = [
+            updater.observe(\.canCheckForUpdates, options: [.initial, .new]) { [weak self] updater, _ in
+                MainActor.assumeIsolated { self?.canCheck = updater.canCheckForUpdates }
+            },
+            updater.observe(\.automaticallyChecksForUpdates, options: [.initial, .new]) { [weak self] updater, _ in
+                MainActor.assumeIsolated { self?.checksAutomatically = updater.automaticallyChecksForUpdates }
+            },
+            updater.observe(\.lastUpdateCheckDate, options: [.initial, .new]) { [weak self] updater, _ in
+                MainActor.assumeIsolated { self?.lastChecked = updater.lastUpdateCheckDate }
+            },
+        ]
+        do {
+            try updater.start()
+        } catch {
+            state = .failed(error.localizedDescription)
+        }
     }
 
     func setChecksAutomatically(_ enabled: Bool) {
-        guard isEnabled, enabled != checksAutomatically else { return }
-        checksAutomatically = enabled
-        timer?.invalidate()
-        timer = nil
-        guard enabled else { return }
-        check()
-        timer = Timer.scheduledTimer(withTimeInterval: Self.checkInterval, repeats: true) { [weak self] _ in
-            MainActor.assumeIsolated { self?.check() }
-        }
+        guard isEnabled, let updater = controller?.updater,
+              updater.automaticallyChecksForUpdates != enabled else { return }
+        updater.automaticallyChecksForUpdates = enabled
     }
 
     func check() {
-        switch state {
-        case .checking, .installing: return
-        default: break
-        }
+        guard isEnabled, let controller, canCheck else { return }
         state = .checking
-        Task {
-            do {
-                let release = try await Self.fetchLatest()
-                lastChecked = .now
-                state = AppVersion.isNewer(release.version, than: BuildInfo.version) ? .available(release) : .upToDate
-            } catch {
-                state = .failed("Couldn't check for updates")
+        controller.checkForUpdates(nil)
+    }
+
+    func updater(_ updater: SPUUpdater, didFindValidUpdate item: SUAppcastItem) {
+        state = .available(item.displayVersionString)
+    }
+
+    func updater(_ updater: SPUUpdater, didFinishUpdateCycleFor updateCheck: SPUUpdateCheck, error: Error?) {
+        state = Self.stateAfterCycle(error: error)
+    }
+
+    static func stateAfterCycle(error: Error?) -> State {
+        if let error = error as NSError? {
+            if error.domain == SUSparkleErrorDomain && error.code == SUError.noUpdateError.rawValue {
+                return .upToDate
+            } else if error.domain == SUSparkleErrorDomain && error.code == SUError.installationCanceledError.rawValue {
+                return .idle
+            } else {
+                return .failed(error.localizedDescription)
             }
+        } else {
+            return .idle
         }
-    }
-
-    func skip() {
-        guard let availableRelease else { return }
-        skippedVersion = availableRelease.version
-        UserDefaults.standard.set(availableRelease.version, forKey: DefaultsKey.skippedVersion)
-    }
-
-    func install() {
-        guard let release = availableRelease else { return }
-        state = .installing(release)
-        Task {
-            do {
-                try await UpdateInstaller.install(release)
-                NSApp.terminate(nil)
-            } catch {
-                state = .failed(error.localizedDescription)
-            }
-        }
-    }
-
-    private static func fetchLatest() async throws -> AppRelease {
-        var request = URLRequest(url: feedURL)
-        request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
-        let (data, _) = try await URLSession.shared.data(for: request)
-        let latest = try JSONDecoder().decode(GitHubRelease.self, from: data)
-        guard let dmg = latest.assets.first(where: { $0.name.hasSuffix(".dmg") }) else {
-            throw URLError(.resourceUnavailable)
-        }
-        return AppRelease(
-            version: AppVersion.plain(latest.tagName),
-            pageURL: latest.htmlURL,
-            dmgURL: dmg.browserDownloadURL
-        )
-    }
-}
-
-/// The parts of GitHub's "latest release" response that Tooki uses.
-private struct GitHubRelease: Decodable {
-    struct Asset: Decodable {
-        let name: String
-        let browserDownloadURL: URL
-
-        enum CodingKeys: String, CodingKey {
-            case name
-            case browserDownloadURL = "browser_download_url"
-        }
-    }
-
-    let tagName: String
-    let htmlURL: URL
-    let assets: [Asset]
-
-    enum CodingKeys: String, CodingKey {
-        case tagName = "tag_name"
-        case htmlURL = "html_url"
-        case assets
     }
 }

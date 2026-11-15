@@ -37,7 +37,13 @@ final class ShortcutDetective: KeyEventHandler {
     /// Newest first.
     private(set) var checks: [DetectiveCheck] = []
 
+    private struct PressIdentity: Hashable {
+        let keyCode: Int64
+        let timestamp: CGEventTimestamp
+    }
+
     private struct PendingPress {
+        let identity: PressIdentity
         let combo: KeyCombo
         let frontApp: NSRunningApplication?
         var deliveredTo: pid_t?
@@ -45,25 +51,47 @@ final class ShortcutDetective: KeyEventHandler {
 
     private static let historyLimit = 6
     /// How long to wait for a press to show up at the app before calling it taken.
-    private static let deliveryTimeout: TimeInterval = 0.25
+    private static let deliveryTimeout = Duration.milliseconds(250)
 
-    @ObservationIgnored private let deliveryTap = DeliveryTap()
+    @ObservationIgnored private let deliveryTap: any ShortcutDeliveryWatching
+    @ObservationIgnored private let sleep: @Sendable (Duration) async throws -> Void
+    @ObservationIgnored private var sessionID: UUID?
+    @ObservationIgnored private var timeouts: [UUID: Task<Void, Never>] = [:]
+    @ObservationIgnored private var idsByEvent: [PressIdentity: UUID] = [:]
     @ObservationIgnored private var catalog = ShortcutCatalog(entries: [])
-    @ObservationIgnored private var pending: [Int64: PendingPress] = [:]
+    @ObservationIgnored private var pending: [UUID: PendingPress] = [:]
     @ObservationIgnored private var swallowedKeyCodes: Set<Int64> = []
+
+    init(deliveryTap: any ShortcutDeliveryWatching = DeliveryTap(),
+         sleep: @escaping @Sendable (Duration) async throws -> Void = { try await ContinuousClock().sleep(for: $0) }) {
+        self.deliveryTap = deliveryTap
+        self.sleep = sleep
+    }
+
+    isolated deinit { stop() }
 
     /// Returns `false` when the keyboard can't be watched (no Accessibility permission).
     func start(catalog: ShortcutCatalog) -> Bool {
         self.catalog = catalog
-        let started = deliveryTap.start { [weak self] keyCode, pid in
-            self?.pending[keyCode]?.deliveredTo = pid
+        guard !isListening else { return true }
+        let session = UUID()
+        sessionID = session
+        let started = deliveryTap.start { [weak self] keyCode, timestamp, pid in
+            guard let self, sessionID == session,
+                  let id = idsByEvent[PressIdentity(keyCode: keyCode, timestamp: timestamp)] else { return }
+            pending[id]?.deliveredTo = pid
         }
         isListening = started
+        if !started { sessionID = nil }
         return started
     }
 
     func stop() {
         deliveryTap.stop()
+        sessionID = nil
+        timeouts.values.forEach { $0.cancel() }
+        timeouts = [:]
+        idsByEvent = [:]
         pending = [:]
         isListening = false
     }
@@ -86,15 +114,24 @@ final class ShortcutDetective: KeyEventHandler {
             record(combo, lookUp(combo, frontApp: frontApp))
             return true
         }
-        pending[keyCode] = PendingPress(combo: combo, frontApp: frontApp)
-        DispatchQueue.main.asyncAfter(deadline: .now() + Self.deliveryTimeout) { [weak self] in
-            self?.finish(keyCode)
+        let id = UUID()
+        let identity = PressIdentity(keyCode: keyCode, timestamp: event.timestamp)
+        guard idsByEvent[identity] == nil else { return false }
+        pending[id] = PendingPress(identity: identity, combo: combo, frontApp: frontApp)
+        idsByEvent[identity] = id
+        let session = sessionID
+        timeouts[id] = Task { [weak self, sleep] in
+            do { try await sleep(Self.deliveryTimeout) } catch { return }
+            guard !Task.isCancelled else { return }
+            self?.finish(id, session: session)
         }
         return false
     }
 
-    private func finish(_ keyCode: Int64) {
-        guard let press = pending.removeValue(forKey: keyCode) else { return }
+    private func finish(_ id: UUID, session: UUID?) {
+        guard sessionID == session, let press = pending.removeValue(forKey: id) else { return }
+        idsByEvent.removeValue(forKey: press.identity)
+        timeouts.removeValue(forKey: id)
         record(press.combo, verdict(for: press))
     }
 

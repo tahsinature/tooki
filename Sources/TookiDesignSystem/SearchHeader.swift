@@ -1,0 +1,44 @@
+import SwiftUI
+
+/// The panel's command line: a large search field with an optional accessory (a filter menu) at the end.
+/// The leading glyph has the row icon's width, so typed text lines up with the row titles below.
+public struct SearchHeader<Accessory: View>: View {
+    let placeholder: String
+    @Binding var query: String
+    var isSearchActive = true
+    let onKey: (KeyPress) -> KeyPress.Result
+    @ViewBuilder let accessory: Accessory
+    @FocusState private var isFocused: Bool
+
+    public init(placeholder: String, query: Binding<String>, isSearchActive: Bool = true,
+                onKey: @escaping (KeyPress) -> KeyPress.Result, @ViewBuilder accessory: () -> Accessory) {
+        self.placeholder = placeholder
+        self._query = query
+        self.isSearchActive = isSearchActive
+        self.onKey = onKey
+        self.accessory = accessory()
+    }
+
+    public var body: some View {
+        HStack(spacing: PanelTheme.rowSpacing) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 15, weight: .medium))
+                .foregroundStyle(PanelTheme.secondaryText)
+                .frame(width: PanelTheme.rowIconSize, height: PanelTheme.rowIconSize)
+            TextField(
+                "",
+                text: $query.ignoringUnchangedValues(),
+                prompt: Text(placeholder).foregroundStyle(PanelTheme.tertiaryText)
+            )
+            .textFieldStyle(.plain)
+            .font(PanelTheme.queryFont)
+            .tracking(PanelTheme.queryTracking)
+            .foregroundStyle(PanelTheme.primaryText)
+            .tint(PanelTheme.accent)
+            .focusOnPresentation($isFocused, when: isSearchActive)
+            .onKeyPress(phases: [.down, .repeat], action: onKey)
+            accessory
+        }
+        .padding(.horizontal, 16)
+    }
+}

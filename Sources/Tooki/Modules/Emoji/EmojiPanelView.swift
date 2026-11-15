@@ -1,3 +1,4 @@
+import TookiDesignSystem
 import SwiftUI
 import TookiKit
 
@@ -29,9 +30,9 @@ struct EmojiPanelView: View {
             if let emoji = model.selected {
                 ActionsPopup(
                     title: "\(emoji.character)  \(emoji.name.capitalized)",
-                    actions: EmojiAction.allCases,
+                    actions: model.visibleActions,
                     selection: model.actionSelection,
-                    query: .constant(""),
+                    query: $model.actionQuery,
                     searchPrompt: "Search for actions…",
                     onKey: handleKey,
                     onRun: onRun
@@ -59,7 +60,7 @@ struct EmojiPanelView: View {
         ) ?? (press.key == .leftArrow ? -1 : (press.key == .rightArrow ? 1 : nil))
         if let offset {
             if model.isShowingActions {
-                model.actionSelection = min(max(model.actionSelection + offset, 0), EmojiAction.allCases.count - 1)
+                model.moveActionSelection(by: offset)
             } else {
                 model.moveSelection(by: offset)
             }
@@ -72,7 +73,7 @@ struct EmojiPanelView: View {
             if model.isShowingActions { model.isShowingActions = false } else { onCancel() }
         case .return:
             if model.isShowingActions {
-                onRun(EmojiAction.allCases[model.actionSelection])
+                if let action = model.selectedAction { onRun(action) }
             } else {
                 onRun(press.modifiers.contains(.command) ? .paste : .copy)
             }
@@ -137,14 +138,7 @@ private struct EmojiGrid: View {
         return Text(emoji.character)
             .font(.system(size: 30))
             .frame(maxWidth: .infinity, minHeight: 56)
-            .background {
-                if isSelected {
-                    RoundedRectangle(cornerRadius: PanelTheme.rowRadius)
-                        .fill(PanelTheme.selectedBackground)
-                        .overlay(RoundedRectangle(cornerRadius: PanelTheme.rowRadius).strokeBorder(PanelTheme.selectedRim))
-                }
-            }
-            .contentShape(Rectangle())
+            .panelItemHighlight(isSelected: isSelected)
             .help(emoji.name.capitalized)
             .id(cellID(emoji, in: sectionID))
             .onTapGesture {

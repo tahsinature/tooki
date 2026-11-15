@@ -1,3 +1,4 @@
+import TookiDesignSystem
 import AppKit
 
 /// Shows the shelf manager and carries out the chosen action.
@@ -49,6 +50,7 @@ final class ShelfManagerController: ResumablePanelController {
             guard let model, !model.actions.dismiss() else { return }
             self?.back(model)
         }
+        panel.onPresent = { [weak model] in model?.refresh() }
         configurePositionRestoration(for: panel) { [weak model] in model?.resetPosition() }
         self.panel = panel
         panel.present()
@@ -170,6 +172,7 @@ final class ShelfManagerController: ResumablePanelController {
             let ids = model.items.map(\.id)
             let index = ids.firstIndex(of: item.id) ?? 0
             shelf.remove([item.id])
+            model.refresh()
             // Keep the keyboard working on the next item.
             model.selectedItemID = ids.indices.contains(index + 1) ? ids[index + 1] : ids.dropLast().last
         default:

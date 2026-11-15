@@ -1,3 +1,4 @@
+import TookiDesignSystem
 import AppKit
 import SwiftUI
 import TookiKit
@@ -13,7 +14,7 @@ struct AboutView: View {
         SettingsScrollPage {
             SettingsSection("Updates") {
                 SettingsCardRow { AboutAppHeader() }
-                UpdateRows(updater: updater, config: config)
+                UpdateRows(updater: updater)
             }
 
             SettingsSection("Credits") {

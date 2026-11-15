@@ -1,3 +1,4 @@
+import TookiDesignSystem
 import SwiftUI
 import TookiKit
 
@@ -9,11 +10,15 @@ struct SnippetPanelView: View {
     let onCancel: () -> Void
 
     var body: some View {
-        if model.form != nil {
-            SnippetFormView(model: model, onBack: { model.form = nil }, onSave: save)
-        } else {
-            browser
+        Group {
+            if model.form != nil {
+                SnippetFormView(model: model, onBack: { model.form = nil }, onSave: save)
+            } else {
+                browser
+            }
         }
+        .onChange(of: model.snippets.value, initial: true) { model.refreshData() }
+        .onChange(of: model.usage.history) { model.refreshData() }
     }
 
     private var browser: some View {

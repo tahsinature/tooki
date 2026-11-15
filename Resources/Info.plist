@@ -35,6 +35,16 @@
 	</array>
 	<key>CFBundleVersion</key>
 	<string>1</string>
+	<key>SUFeedURL</key>
+	<string>https://github.com/tahsinature/tooki/releases/latest/download/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>eIwVq7Z7ZSvlPRCcXHzWWKvlSniPgN+VBihgU6M/nIk=</string>
+	<key>SUEnableAutomaticChecks</key>
+	<false/>
+	<key>SUAutomaticallyUpdate</key>
+	<false/>
+	<key>SUVerifyUpdateBeforeExtraction</key>
+	<true/>
 	<key>TookiBuildChannel</key>
 	<string>dev</string>
 	<key>TookiCommit</key>

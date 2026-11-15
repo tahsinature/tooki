@@ -1,3 +1,4 @@
+import TookiDesignSystem
 import SwiftUI
 import TookiKit
 
@@ -118,6 +119,7 @@ struct MenuBarLayoutEditor: View {
     private func applyAndSave() {
         let layout = model.layout
         config.value.menuBar.layout = layout
+        model.markSaved()
         Task {
             await arranger.arrange(layout)
             await load()

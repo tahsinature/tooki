@@ -1,0 +1,156 @@
+import SwiftUI
+
+/// Something the ⌘K popup can list.
+public protocol PanelActionItem: Identifiable {
+    var title: String { get }
+    var icon: PanelIcon { get }
+    /// Shown as key caps at the end of the row, e.g. "⌘↵". Empty shows none.
+    var shortcut: String { get }
+    /// Descriptive text at the end of the row, such as "Default" or "7 items".
+    var detail: String? { get }
+    var isDestructive: Bool { get }
+}
+
+extension PanelActionItem {
+    public var detail: String? { nil }
+}
+
+/// The ⌘K popup: a short list of actions with a filter field at the bottom.
+/// It grows out of the bottom-right corner, above the `BottomActionBar`.
+public struct ActionsPopup<Action: PanelActionItem>: View {
+    /// Shown above the rows, e.g. the selected item's name or "Open With".
+    let title: String?
+    let actions: [Action]
+    let selection: Int
+    @Binding var query: String
+    let searchPrompt: String
+    let onKey: (KeyPress) -> KeyPress.Result
+    let onRun: (Action) -> Void
+
+    @FocusState private var isQueryFocused: Bool
+    @ViewState private var rowsHeight: CGFloat = 0
+
+    static var width: CGFloat { 350 }
+    private static var maxListHeight: CGFloat { 202 }
+
+    public init(title: String?, actions: [Action], selection: Int, query: Binding<String>, searchPrompt: String,
+                onKey: @escaping (KeyPress) -> KeyPress.Result, onRun: @escaping (Action) -> Void) {
+        self.title = title
+        self.actions = actions
+        self.selection = selection
+        self._query = query
+        self.searchPrompt = searchPrompt
+        self.onKey = onKey
+        self.onRun = onRun
+    }
+
+    public var body: some View {
+        VStack(spacing: 0) {
+            // Sized to the rows, scrolling only past the maximum height.
+            ScrollViewReader { proxy in
+                ScrollView {
+                    rows.panelScrollContent().onGeometryChange(for: CGFloat.self) { $0.size.height } action: { rowsHeight = $0 }
+                }
+                .scrollBounceBehavior(.basedOnSize)
+                .frame(height: min(rowsHeight + 2 * PanelTheme.listInset, Self.maxListHeight))
+                .panelSelectionScrolling(
+                    proxy: proxy, selection: selection,
+                    first: actions.isEmpty ? nil : 0, last: actions.indices.last, area: .actions
+                )
+            }
+            PanelTheme.popupDivider.frame(height: 1)
+            TextField("", text: $query.ignoringUnchangedValues(), prompt: Text(searchPrompt).foregroundStyle(PanelTheme.tertiaryText))
+                .textFieldStyle(.plain)
+                .font(.system(size: 13))
+                .foregroundStyle(PanelTheme.primaryText)
+                .focusOnPresentation($isQueryFocused)
+                .onKeyPress(phases: [.down, .repeat], action: onKey)
+                .padding(.horizontal, 12)
+                .frame(height: 41)
+        }
+        .frame(width: Self.width)
+        .popupSurface()
+    }
+
+    private var rows: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            if let title {
+                Text(title)
+                    .font(PanelTheme.labelFont)
+                    .foregroundStyle(PanelTheme.secondaryText)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 6)
+            }
+            if actions.isEmpty {
+                Text("No matching actions")
+                    .font(.system(size: 13))
+                    .foregroundStyle(PanelTheme.secondaryText)
+                    .frame(maxWidth: .infinity, minHeight: PanelTheme.rowHeight)
+            }
+            ForEach(Array(actions.enumerated()), id: \.element.id) { index, action in
+                Button { onRun(action) } label: {
+                    row(action, isSelected: index == selection)
+                }
+                .buttonStyle(.plain)
+                .id(index)
+            }
+        }
+        .padding(.horizontal, PanelTheme.listInset)
+    }
+
+    private func row(_ action: Action, isSelected: Bool) -> some View {
+        let color = action.isDestructive ? PanelTheme.danger : PanelTheme.primaryText
+        return ResultRow(title: action.title, isSelected: isSelected, titleColor: color) {
+            PanelIconView(icon: action.icon, size: PanelTheme.rowIconSize)
+                .foregroundStyle(color)
+        } trailing: {
+            if let detail = action.detail, !detail.isEmpty {
+                Text(detail)
+                    .font(PanelTheme.labelFont)
+                    .foregroundStyle(PanelTheme.secondaryText)
+                    .lineLimit(1)
+            }
+            if !action.shortcut.isEmpty {
+                Keycap(shortcut: action.shortcut)
+            }
+        }
+    }
+}
+
+extension View {
+    /// Shows the ⌘K popup above the panel's footer. A click anywhere outside it closes it.
+    public func actionsPopup<Popup: View>(
+        isPresented: Bool,
+        onDismiss: @escaping () -> Void,
+        @ViewBuilder popup: () -> Popup
+    ) -> some View {
+        overlay(alignment: .bottomTrailing) {
+            if isPresented {
+                ZStack(alignment: .bottomTrailing) {
+                    Color.clear
+                        .contentShape(Rectangle())
+                        .onTapGesture(perform: onDismiss)
+                    popup()
+                        .padding(.trailing, 12)
+                        .padding(.bottom, PanelTheme.footerHeight + 8)
+                }
+            }
+        }
+    }
+
+    /// The blurred, bordered card the ⌘K and filter popups float on.
+    public func popupSurface(cornerRadius: CGFloat = PanelTheme.cornerRadius) -> some View {
+        background {
+            ZStack {
+                VisualEffectBackground(material: .hudWindow)
+                PanelTheme.popupBackground
+            }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .strokeBorder(PanelTheme.popupBorder)
+        )
+        .shadow(color: .black.opacity(0.35), radius: 24, x: -8, y: 10)
+    }
+}

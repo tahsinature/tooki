@@ -1,3 +1,4 @@
+import ShelfFeature
 import AppKit
 import SwiftUI
 

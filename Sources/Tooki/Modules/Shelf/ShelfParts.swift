@@ -1,3 +1,4 @@
+import TookiDesignSystem
 import AppKit
 import SwiftUI
 
@@ -108,17 +109,14 @@ private struct ShelfRow: View {
                 Text(item.shortDetail)
                     .font(.caption)
                     .monospacedDigit()
-                    .foregroundStyle(isSelected ? AnyShapeStyle(.white.opacity(0.8)) : AnyShapeStyle(.secondary))
+                    .foregroundStyle(PanelTheme.secondaryText)
                     .opacity(isHovered ? 0 : 1)
             }
         }
         .padding(.horizontal, 8)
         .frame(maxHeight: .infinity)
-        .foregroundStyle(isSelected ? .white : .primary)
-        .background(
-            isSelected ? Color.accentColor : (isHovered ? PanelTheme.hoverBackground : .clear),
-            in: RoundedRectangle(cornerRadius: 6)
-        )
+        .foregroundStyle(PanelTheme.primaryText)
+        .panelItemHighlight(isSelected: isSelected)
         .overlay(
             ShelfDragArea(
                 items: { shelf.itemsToDrag(startingAt: item) },
@@ -145,7 +143,7 @@ private struct ShelfRow: View {
         Button { shelf.showDetail(of: item) } label: {
             Image(systemName: "info.circle")
                 .font(.system(size: 13))
-                .foregroundStyle(isSelected ? Color.white : Color.secondary)
+                .foregroundStyle(PanelTheme.secondaryText)
                 .frame(width: 26, height: 26)
                 .contentShape(Rectangle())
         }

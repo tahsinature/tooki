@@ -16,6 +16,11 @@ final class ClipboardHistory {
 
     var items: [ClipboardItem] { log.items }
 
+    /// Seeds previews and tests without loading or writing the user's history.
+    init(initialItems: [ClipboardItem] = []) {
+        log = ClipboardLog(items: initialItems)
+    }
+
     func load() {
         guard let data = JSONFile.read(fileURL),
               let saved = try? JSONFile.decoder.decode(ClipboardLog.self, from: data)

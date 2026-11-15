@@ -1,4 +1,6 @@
 import AppKit
+import ComposableArchitecture
+import ShelfFeature
 import Observation
 import TookiKit
 
@@ -10,16 +12,26 @@ final class Shelf: Identifiable {
     private(set) var name: String
     /// When something was last added. Links and scripts add to the most recently used shelf.
     private(set) var lastUsed: Date
-    private(set) var items: [ShelfItem]
-    var selection: Set<ShelfItem.ID> = []
+    private(set) var items: [ShelfItem] {
+        didSet { store.send(.itemsChanged(items.map(\.id))) }
+    }
+    let store: StoreOf<ShelfFeature>
+    var selection: Set<ShelfItem.ID> {
+        get { store.selection }
+        set { store.send(.selectionChanged(newValue)) }
+    }
     /// Presented by ShelfView. The model keeps only a weak reference back to this shelf.
     var imageConversion: ShelfImageConversionModel?
     var isShowingConversion = false
-    var isExpanded = false {
-        didSet { if !isExpanded { isShowingDetail = false } }
+    var isExpanded: Bool {
+        get { store.isExpanded }
+        set { store.send(.expanded(newValue)) }
     }
     /// The list has slid over to the details of the item at the cursor.
-    var isShowingDetail = false
+    var isShowingDetail: Bool {
+        get { store.isShowingDetail }
+        set { store.send(.detailPresented(newValue)) }
+    }
     /// The shelf's panel has keyboard focus.
     var isFocused = false
     /// Esc is being held down; the shelf is deleted if it's held long enough.
@@ -27,15 +39,14 @@ final class Shelf: Identifiable {
     /// The shelf is on its way off screen.
     var leaving: ShelfLeaving?
     /// Clear or Delete was asked for and is waiting for a second click, since it deletes copies.
-    private(set) var armed: ShelfAction?
-    @ObservationIgnored private var disarming: Task<Void, Never>?
+    var armed: ShelfAction? { store.armed }
     /// Something is being dragged over the shelf.
     var dropTarget: ShelfDropTarget?
     /// Copies still being made. They show as "Copying…" and can't be dragged out yet.
     private(set) var copyingIDs: Set<ShelfItem.ID> = []
     @ObservationIgnored var removeAfterDragOut = false
     /// The item the arrow keys move from: the last one clicked or reached with an arrow.
-    private(set) var cursor: ShelfItem.ID?
+    var cursor: ShelfItem.ID? { store.cursor }
 
     /// Opens Quick Look for these files. Set by the shelf's panel, which owns the preview.
     @ObservationIgnored var onCloseQuickLook: () -> Void = {}
@@ -48,6 +59,7 @@ final class Shelf: Identifiable {
         self.name = name
         lastUsed = Date()
         items = []
+        store = Store(initialState: ShelfFeature.State()) { ShelfFeature() }
     }
 
     /// Files that were moved or deleted while Tooki wasn't running are left out.
@@ -55,7 +67,9 @@ final class Shelf: Identifiable {
         id = saved.id
         name = saved.name
         lastUsed = saved.lastUsed
-        items = saved.items.filter(\.exists)
+        let availableItems = saved.items.filter(\.exists)
+        items = availableItems
+        store = Store(initialState: ShelfFeature.State(itemIDs: availableItems.map(\.id))) { ShelfFeature() }
     }
 
     var isEmpty: Bool { items.isEmpty }
@@ -65,21 +79,8 @@ final class Shelf: Identifiable {
     var hasCopies: Bool { items.contains(where: \.isCopy) }
 
     /// Waits a few seconds for the action to be confirmed, then lets it go.
-    func arm(_ action: ShelfAction) {
-        armed = action
-        disarming?.cancel()
-        disarming = Task { [weak self] in
-            try? await Task.sleep(for: .seconds(4))
-            guard !Task.isCancelled else { return }
-            self?.disarm()
-        }
-    }
-
-    func disarm() {
-        disarming?.cancel()
-        disarming = nil
-        armed = nil
-    }
+    func arm(_ action: ShelfAction) { store.send(.arm(action)) }
+    func disarm() { store.send(.disarm) }
     /// The item whose details are showing, if any.
     var detailItem: ShelfItem? {
         guard isExpanded, isShowingDetail else { return nil }
@@ -132,9 +133,11 @@ final class Shelf: Identifiable {
         } else {
             let converted = ShelfItem(savedFile: url, text: nil, isLink: false)
             items.insert(converted, at: index + 1)
-            selection.remove(item.id)
-            selection.insert(converted.id)
-            cursor = converted.id
+            var convertedSelection = selection
+            convertedSelection.remove(item.id)
+            convertedSelection.insert(converted.id)
+            store.send(.clicked(converted.id, extending: false))
+            selection = convertedSelection
             resultID = converted.id
         }
         lastUsed = Date()
@@ -144,8 +147,8 @@ final class Shelf: Identifiable {
 
     func selectConverted(_ ids: [UUID]) {
         guard let first = ids.first else { return }
+        store.send(.clicked(first, extending: false))
         selection = Set(ids)
-        cursor = first
     }
 
     /// The items a right-click acts on: the selection if the clicked item is in it, otherwise
@@ -248,37 +251,13 @@ final class Shelf: Identifiable {
 
     /// A plain click selects one item; ⌘ or ⇧ adds it to or removes it from the selection.
     func click(_ item: ShelfItem, modifiers: NSEvent.ModifierFlags) {
-        cursor = item.id
-        if modifiers.contains(.command) || modifiers.contains(.shift) {
-            if selection.remove(item.id) == nil { selection.insert(item.id) }
-        } else {
-            selection = [item.id]
-        }
+        store.send(.clicked(item.id, extending: modifiers.contains(.command) || modifiers.contains(.shift)))
     }
 
-    /// Slides the list over to this item's details, and selects it.
-    func showDetail(of item: ShelfItem) {
-        cursor = item.id
-        selection = [item.id]
-        isShowingDetail = true
-    }
+    func showDetail(of item: ShelfItem) { store.send(.showDetail(item.id)) }
 
-    /// ↑ and ↓ select the next row up or down; with ⇧ that row is added to the selection.
-    /// With nothing selected yet, ↓ starts at the top and ↑ at the bottom.
     func moveSelection(by offset: Int, extending: Bool) {
-        guard !items.isEmpty else { return }
-        let next: Int
-        if let current = cursor.flatMap({ id in items.firstIndex { $0.id == id } }), !selection.isEmpty {
-            next = min(max(current + offset, 0), items.count - 1)
-        } else {
-            next = offset > 0 ? 0 : items.count - 1
-        }
-        cursor = items[next].id
-        if extending {
-            selection.insert(items[next].id)
-        } else {
-            selection = [items[next].id]
-        }
+        store.send(.moveSelection(offset, extending: extending))
     }
 
     /// Dragging a selected item takes the whole selection along; any other item goes alone.
@@ -306,6 +285,4 @@ enum ShelfLeaving {
 }
 
 /// What a shelf's buttons do to all of its items.
-enum ShelfAction {
-    case clear, delete
-}
+typealias ShelfAction = ShelfDestructiveAction

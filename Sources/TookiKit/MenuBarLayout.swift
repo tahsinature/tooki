@@ -56,15 +56,17 @@ public enum MenuBarLayoutPlanner {
     /// Apple's items use their accessibility identifier. Other apps use their bundle ID,
     /// with "#2", "#3"… for an app's second and later icons.
     public static func ids(for items: [MenuBarItemDescriptor]) -> [String] {
-        var countPerApp: [String: Int] = [:]
+        var countPerIdentity: [String: Int] = [:]
         return items.map { item in
+            let identity: String
             if let identifier = item.identifier, !identifier.isEmpty, item.bundleID?.hasPrefix("com.apple.") == true {
-                return identifier
+                identity = identifier
+            } else {
+                identity = item.bundleID ?? item.appName
             }
-            let app = item.bundleID ?? item.appName
-            let count = countPerApp[app, default: 0] + 1
-            countPerApp[app] = count
-            return count == 1 ? app : "\(app)#\(count)"
+            let count = countPerIdentity[identity, default: 0] + 1
+            countPerIdentity[identity] = count
+            return count == 1 ? identity : "\(identity)#\(count)"
         }
     }
 

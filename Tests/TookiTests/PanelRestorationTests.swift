@@ -51,7 +51,7 @@ import TookiKit
         let document = JSONDocument(fileURL: FileManager.default.temporaryDirectory.appending(path: UUID().uuidString),
                                     initialValue: Snippet.examples)
         let controller = SnippetPanelController(snippets: document, usage: SnippetUsage(), inserter: SnippetInserter())
-        controller.show()
+        withSnippetTestDependencies { controller.show() }
         defer { controller.close() }
         let hosting = try #require(controller.panel?.contentView as? NSHostingView<SnippetPanelView>)
         let model = hosting.rootView.model
@@ -97,7 +97,7 @@ import TookiKit
         #expect(!root.isShowing)
     }
 
-    @Test func commandEscapeBypassesTheFilteredManagerAndResetsRoot() throws {
+    @Test func commandEscapeBypassesTheFilteredManagerAndResetsRoot() async throws {
         _ = NSApplication.shared
         let root = SearchPanelController()
         let clipboard = ClipboardPanelController(history: ClipboardHistory(), shelves: ShelfWindows(library: ShelfLibrary()))
@@ -115,8 +115,11 @@ import TookiKit
             windowNumber: panel.windowNumber, context: nil, characters: "\u{1b}",
             charactersIgnoringModifiers: "\u{1b}", isARepeat: false, keyCode: KeyCode.escape
         ))
-        #expect(PanelShortcutRouter.handleRootSearchShortcut(event, in: panel, combo: KeyCombo("cmd+escape")) {
-            root.show(.everything, items: [item("clipboard")])
+        #expect(await awaitRootShortcut { completed in
+            PanelShortcutRouter.handleRootSearchShortcut(event, in: panel, combo: KeyCombo("cmd+escape")) {
+                root.show(.everything, items: [self.item("clipboard")])
+                completed()
+            }
         })
         let freshRoot = try #require(root.panel?.contentView as? NSHostingView<SearchView>)
         #expect(!clipboard.isShowing)
@@ -137,7 +140,7 @@ import TookiKit
         defer { controller.close() }
         var backCount = 0
         controller.onBack = { backCount += 1 }
-        controller.show()
+        withSnippetTestDependencies { controller.show() }
         let hosting = try #require(controller.panel?.contentView as? NSHostingView<SnippetPanelView>)
         hosting.rootView.model.query = "tes"
         controller.panel?.cancelOperation(nil)
@@ -160,7 +163,7 @@ import TookiKit
         #expect(!PanelShortcutRouter.hideShelf(nil))
     }
 
-    @Test func rootShortcutHidesTheShelfBeforeOpeningRootSearch() throws {
+    @Test func rootShortcutHidesTheShelfBeforeOpeningRootSearch() async throws {
         _ = NSApplication.shared
         let shelf = ShelfPanel(shelf: Shelf(name: "Test"), content: Text("Shelf"))
         defer { shelf.close() }
@@ -171,8 +174,11 @@ import TookiKit
             windowNumber: shelf.windowNumber, context: nil, characters: "\u{1b}",
             charactersIgnoringModifiers: "\u{1b}", isARepeat: false, keyCode: KeyCode.escape
         ))
-        #expect(PanelShortcutRouter.handleRootSearchShortcut(event, in: shelf, combo: KeyCombo("cmd+escape")) {
-            calls.append("root")
+        #expect(await awaitRootShortcut { completed in
+            PanelShortcutRouter.handleRootSearchShortcut(event, in: shelf, combo: KeyCombo("cmd+escape")) {
+                calls.append("root")
+                completed()
+            }
         })
         #expect(calls == ["hide", "root"])
         calls = []

@@ -1,3 +1,4 @@
+import TookiDesignSystem
 import SwiftUI
 import TookiKit
 
@@ -40,6 +41,7 @@ struct ClipboardPanelView: View {
         } emptyState: {
             emptyState
         }
+        .onChange(of: model.history.items, initial: true) { model.refreshHistory() }
     }
 
     private var footer: ListDetailFooter {

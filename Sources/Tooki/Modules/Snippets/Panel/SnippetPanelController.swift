@@ -1,3 +1,4 @@
+import TookiDesignSystem
 import AppKit
 import TookiKit
 
@@ -35,7 +36,8 @@ final class SnippetPanelController: ResumablePanelController {
             snippets: snippets,
             usage: usage,
             targetAppName: NSWorkspace.shared.frontmostApplication?.localizedName,
-            groupByDate: groupByDate
+            groupByDate: groupByDate,
+            inserter: inserter
         )
         if creating { model.startCreating() }
         let panel = FloatingPanel(size: PanelTheme.size) {
@@ -54,6 +56,7 @@ final class SnippetPanelController: ResumablePanelController {
             if let model { self?.escape(model) }
         }
         panel.onPresent = { [weak model] in
+            model?.refreshData()
             if let app = NSWorkspace.shared.frontmostApplication, app.processIdentifier != ProcessInfo.processInfo.processIdentifier {
                 model?.targetAppName = app.localizedName
             }
@@ -107,13 +110,11 @@ final class SnippetPanelController: ResumablePanelController {
         switch kind {
         case .copy:
             close()
-            usage.record(snippet.id)
-            inserter.copy(snippet)
+            model.copySelected()
         case .paste:
             close()
-            usage.record(snippet.id)
             // The inserter waits briefly, so focus is back in the previous app before pasting.
-            inserter.insert(snippet)
+            model.pasteSelected()
         case .open(let appURL):
             close()
             SnippetOpenWith.open(snippet, with: appURL)

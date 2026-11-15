@@ -208,7 +208,7 @@ public struct KeepAwakeConfig: Codable, Equatable, Sendable {
 }
 
 public struct UpdatesConfig: Codable, Equatable, Sendable {
-    /// Checks GitHub for a new release when Tooki starts and once a day.
+    /// Legacy setting, used once to seed Sparkle. Update preferences then live in Sparkle’s user defaults.
     public var checkAutomatically = true
 
     public init() {}

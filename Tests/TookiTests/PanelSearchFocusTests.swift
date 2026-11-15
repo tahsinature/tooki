@@ -26,7 +26,7 @@ extension PanelRestorationTests {
             ("Shelf Manager", { shelves.show(library: ShelfLibrary()); return shelves.panel }, {
                 (shelves.panel?.contentView as? NSHostingView<ShelfManagerView>)?.rootView.model.query ?? ""
             }),
-            ("Snippets", { snippets.show(); return snippets.panel }, {
+            ("Snippets", { withSnippetTestDependencies { snippets.show() }; return snippets.panel }, {
                 (snippets.panel?.contentView as? NSHostingView<SnippetPanelView>)?.rootView.model.query ?? ""
             }),
             ("Emoji", { emoji.show(); return emoji.panel }, {
@@ -139,7 +139,7 @@ extension PanelRestorationTests {
         let document = JSONDocument(fileURL: FileManager.default.temporaryDirectory.appending(path: UUID().uuidString),
                                     initialValue: Snippet.examples)
         let controller = SnippetPanelController(snippets: document, usage: SnippetUsage(), inserter: SnippetInserter())
-        controller.show(creating: true)
+        withSnippetTestDependencies { controller.show(creating: true) }
         defer { controller.close() }
         let panel = try #require(controller.panel)
         let hosting = try #require(panel.contentView as? NSHostingView<SnippetPanelView>)

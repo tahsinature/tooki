@@ -1,3 +1,4 @@
+import TookiDesignSystem
 import AppKit
 import TookiKit
 
@@ -77,25 +78,9 @@ struct SearchItems {
     /// Shown icons first, then hidden ones, each from right to left as in the menu bar.
     func menuBarItems() async -> [SearchItem] {
         let menuBar = app.menuBar
-        let boundary = menuBar.hiddenBoundaryX
-        func isHidden(_ item: MenuBarItem) -> Bool {
-            boundary.map { item.frame.midX < $0 } ?? !item.isOnScreen
-        }
-        let sorted = await MenuBarItemScanner.scan().sorted { first, second in
-            isHidden(first) == isHidden(second) ? first.frame.minX > second.frame.minX : !isHidden(first)
-        }
-        return sorted.enumerated().map { index, item in
-            let appIcon = NSRunningApplication(processIdentifier: item.pid)?.icon
-            return SearchItem(
-                id: "menubar-\(item.bundleID ?? item.appName)-\(item.title)",
-                title: item.title,
-                kind: isHidden(item) ? "Hidden" : "Shown",
-                group: .menuBar,
-                icon: appIcon.map(PanelIcon.image) ?? .symbol("menubar.rectangle"),
-                searchText: "\(item.appName) \(item.label) \(item.bundleID ?? "")",
-                actionTitle: "Click Item",
-                run: { Task { await MenuBarItemPresser.press(item, organizer: menuBar) } }
-            )
+        let items = await MenuBarItemScanner.scan()
+        return MenuBarSearchItemFactory.items(from: items, boundary: menuBar.hiddenBoundaryX) { item in
+            Task { await MenuBarItemPresser.press(item, organizer: menuBar) }
         }
     }
 

@@ -1,3 +1,4 @@
+import TookiDesignSystem
 import AppKit
 import TookiKit
 
@@ -34,7 +35,7 @@ struct SnippetAction: PanelActionItem {
 
     /// Shown in place of the main list before a snippet is deleted. Snippets are written by hand,
     /// so unlike clipboard entries they are not removed with a single key.
-    static let deleteConfirmation = [
+    @MainActor static let deleteConfirmation = [
         SnippetAction(kind: .confirmDelete, title: "Delete Snippet", icon: .symbol("trash"), shortcut: "↵"),
         SnippetAction(kind: .cancelDelete, title: "Cancel", icon: .symbol("xmark"), shortcut: "esc"),
     ]

@@ -40,6 +40,14 @@ final class FloatingPanel: NSPanel {
 
     override var canBecomeKey: Bool { true }
 
+    override func sendEvent(_ event: NSEvent) {
+        if !PanelShortcutRouter.handleRootSearchShortcut(event, in: self) { super.sendEvent(event) }
+    }
+
+    override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        PanelShortcutRouter.handleRootSearchShortcut(event, in: self) || super.performKeyEquivalent(with: event)
+    }
+
     override func cancelOperation(_ sender: Any?) {
         if let onEscape { onEscape() } else { close() }
     }

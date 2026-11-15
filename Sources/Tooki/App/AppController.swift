@@ -76,6 +76,9 @@ final class AppController {
         snippets.load()
         clipboard.load()
         config.onChange = { [weak self] in self?.apply($0) }
+        shortcuts.onPanelShortcut = { event in
+            PanelShortcutRouter.handleRootSearchShortcut(event, in: NSApp.keyWindow)
+        }
         shortcuts.onAction = { [weak self] in self?.perform($0) }
         PanelShortcutRouter.onRootSearchShortcut(combo: { [weak self] in
             guard let self, !shortcuts.isPaused else { return nil }
@@ -103,6 +106,7 @@ final class AppController {
     func shutdown() {
         buildClock.stop()
         hyperKey.shutdown()
+        detective.stop()
         keepAwake.shutdown()
     }
 
@@ -284,7 +288,7 @@ final class AppController {
         menuBarArranger.apply(config.menuBar)
         keepAwake.apply(config.keepAwake)
         applyShelf(config.shelf)
-        updater.setChecksAutomatically(config.updates.checkAutomatically)
+        updater.start(initialAutomaticChecks: config.updates.checkAutomatically)
     }
 
     private func startKeyboardMonitor() {

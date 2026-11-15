@@ -23,7 +23,9 @@ concurrency:
 
 jobs:
   release:
-    runs-on: macos-26
+    runs-on: xcode-27
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_27.2.app/Contents/Developer
     steps:
       - uses: actions/checkout@v4
         with:
@@ -43,6 +45,16 @@ jobs:
       - name: Test
         if: steps.version.outputs.version != ''
         run: make test
+
+      - name: Require the update signing key
+        if: steps.version.outputs.version != ''
+        env:
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+        run: |
+          if [[ -z "$SPARKLE_PRIVATE_KEY" ]]; then
+            echo "::error::SPARKLE_PRIVATE_KEY is required to publish verifiable Sparkle updates. See docs/RELEASING.md."
+            exit 1
+          fi
 
       # Signing every release with the same certificate makes macOS see updates as the same app,
       # so they keep the Accessibility permission. Ad hoc signatures change with every build.
@@ -73,11 +85,21 @@ jobs:
 
       - name: Build universal DMG
         if: steps.version.outputs.version != ''
-        run: make dmg ARCHS="arm64 x86_64" SIGN_ID="${{ steps.signing.outputs.identity }}" CHANNEL=release VERSION="${{ steps.version.outputs.version }}"
+        run: make dmg ARCHS="arm64 x86_64" SIGN_ID="${{ steps.signing.outputs.identity }}" CHANNEL=release VERSION="${{ steps.version.outputs.version }}" BUILD_NUMBER="${{ github.run_number }}"
 
       - name: Check the signature
         if: steps.version.outputs.version != ''
-        run: codesign -d -r- build/Tooki.app
+        run: codesign --verify --deep --strict build/Tooki.app
+
+      - name: Generate signed update feed
+        if: steps.version.outputs.version != ''
+        env:
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          mkdir -p build/appcast
+          cp build/Tooki.dmg build/appcast/Tooki.dmg
+          scripts/generate-appcast.sh build/appcast "https://github.com/tahsinature/tooki/releases/download/v$VERSION/"
 
       - name: Publish release
         if: steps.version.outputs.version != ''
@@ -95,7 +117,7 @@ jobs:
             echo
             echo "Update with \`brew upgrade --cask tooki\`."
           } > notes.md
-          gh release create "v$VERSION" build/Tooki.dmg --target "$GITHUB_SHA" --title "v$VERSION" --notes-file notes.md
+          gh release create "v$VERSION" build/Tooki.dmg build/appcast/appcast.xml --target "$GITHUB_SHA" --title "v$VERSION" --notes-file notes.md
 
       - name: Update Homebrew cask
         if: steps.version.outputs.version != ''

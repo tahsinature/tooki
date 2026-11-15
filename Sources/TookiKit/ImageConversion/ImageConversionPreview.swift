@@ -1,7 +1,7 @@
 import Foundation
 
 /// An inspectable, editable result. Creating it never changes the source or shelf.
-public struct ImageConversionPreview: Sendable {
+public struct ImageConversionPreview: Sendable, Equatable {
     public let source: URL
     public let url: URL
     public let format: ImageConversionOptions.Format

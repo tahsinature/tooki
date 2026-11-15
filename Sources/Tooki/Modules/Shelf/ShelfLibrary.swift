@@ -8,6 +8,10 @@ final class ShelfLibrary {
     /// In the order they were made.
     private(set) var shelves: [Shelf] = []
 
+    init(initialShelves: [Shelf] = []) {
+        shelves = initialShelves
+    }
+
     static let fileURL = StoragePaths.dataDirectory.appending(path: "shelves.json")
     /// Where the single shelf was saved before Tooki had more than one.
     private static let oldFileURL = StoragePaths.dataDirectory.appending(path: "shelf.json")

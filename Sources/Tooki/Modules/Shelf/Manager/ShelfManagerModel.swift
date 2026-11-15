@@ -1,4 +1,7 @@
+import TookiDesignSystem
 import Foundation
+import ComposableArchitecture
+import ShelfFeature
 import Observation
 
 /// State of the shelf manager: the list of shelves, or the items of the one that's open.
@@ -8,31 +11,31 @@ final class ShelfManagerModel {
     let navigation = PanelKeyboardNavigation()
 
     func resetPosition() {
-        if openShelf != nil {
-            selectedItemID = items.first?.id
-        } else {
-            selectedShelfID = shelves.first?.id
-        }
+        refresh()
+        store.send(.resetPosition)
         navigation.moved(in: .results)
     }
 
     let library: ShelfLibrary
     let actions = ActionsMenu<ShelfManagerAction>()
 
-    var query = "" {
-        didSet {
-            // While renaming, the search field holds the new name instead of a search.
-            if query != oldValue, renamingShelfID == nil { selectedShelfID = nil; selectedItemID = nil }
-        }
+    let store: StoreOf<ShelfManagerFeature>
+    var query: String {
+        get { store.query }
+        set { store.send(.queryChanged(newValue)) }
     }
-    /// The shelf being renamed in the search field.
-    private(set) var renamingShelfID: Shelf.ID?
-    /// The shelf whose items are listed. `nil` lists the shelves.
-    private(set) var openShelfID: Shelf.ID?
-    var selectedShelfID: Shelf.ID?
-    var selectedItemID: ShelfItem.ID?
+    var renamingShelfID: Shelf.ID? { store.renamingShelfID }
+    var openShelfID: Shelf.ID? { store.openShelfID }
+    var selectedShelfID: Shelf.ID? {
+        get { store.selectedShelfID }
+        set { store.send(.shelfSelected(newValue)) }
+    }
+    var selectedItemID: ShelfItem.ID? {
+        get { store.selectedItemID }
+        set { store.send(.itemSelected(newValue)) }
+    }
     private(set) var imageConversion: ShelfImageConversionModel?
-    private(set) var isShowingConversion = false
+    var isShowingConversion: Bool { store.isShowingConversion }
 
     /// The conversion page owns typing while the prior search is preserved for Back.
     var displayedQuery: String {
@@ -42,6 +45,7 @@ final class ShelfManagerModel {
 
     init(library: ShelfLibrary) {
         self.library = library
+        store = Store(initialState: ShelfManagerFeature.State(shelves: Self.summaries(library))) { ShelfManagerFeature() }
         actions.rootActions = { [weak self] in
             guard let self, renamingShelfID == nil, !isShowingConversion else { return [] }
             if let openShelf, let selectedItem { return ShelfManagerAction.forItem(selectedItem, in: openShelf) }
@@ -57,9 +61,17 @@ final class ShelfManagerModel {
 
     /// Most recently used first. Searching also finds shelves holding a matching item.
     var shelves: [Shelf] {
-        library.shelves
-            .filter { renamingShelfID != nil || query.isEmpty || matches($0.name) || $0.items.contains { matches($0.name) } }
-            .sorted { $0.lastUsed > $1.lastUsed }
+        let byID = Dictionary(uniqueKeysWithValues: library.shelves.map { ($0.id, $0) })
+        return store.visibleShelves.compactMap { byID[$0.id] }
+    }
+
+    var librarySnapshot: [ShelfSummary] { Self.summaries(library) }
+    func refresh() { store.send(.refreshed(librarySnapshot)) }
+    private static func summaries(_ library: ShelfLibrary) -> [ShelfSummary] {
+        library.shelves.map { shelf in
+            ShelfSummary(id: shelf.id, name: shelf.name, lastUsed: shelf.lastUsed,
+                         items: shelf.items.map { ShelfSummary.Item(id: $0.id, name: $0.name) })
+        }
     }
 
     var selectedShelf: Shelf? {
@@ -68,27 +80,19 @@ final class ShelfManagerModel {
 
     func open(_ shelf: Shelf) {
         actions.close()
-        query = ""
-        openShelfID = shelf.id
-        selectedShelfID = shelf.id
-        selectedItemID = nil
+        refresh()
+        store.send(.open(shelf.id))
     }
 
-    /// Lists the shelves again with `shelf` selected, e.g. after making it.
     func select(_ shelf: Shelf) {
-        if openShelfID != nil { closeOpenShelf() }
         actions.close()
-        query = ""
-        selectedShelfID = shelf.id
+        refresh()
+        store.send(.select(shelf.id))
     }
 
-    /// Back to the list of shelves, with the one that was open still selected.
     func closeOpenShelf() {
-        let id = openShelfID
         actions.close()
-        openShelfID = nil
-        query = ""
-        selectedShelfID = id
+        store.send(.closeShelf)
     }
 
     // MARK: - Renaming
@@ -97,24 +101,22 @@ final class ShelfManagerModel {
 
     func startRenaming(_ shelf: Shelf) {
         actions.close()
-        renamingShelfID = shelf.id
-        selectedShelfID = shelf.id
-        query = shelf.name
+        refresh()
+        store.send(.startRenaming(shelf.id))
     }
 
-    /// Saves the typed name, or keeps the old one when `save` is `false`.
     func finishRenaming(save: Bool) {
         guard let shelf = renamingShelf else { return }
         if save { shelf.rename(to: query) }
-        renamingShelfID = nil
-        query = ""
-        selectedShelfID = shelf.id
+        store.send(.finishRenaming)
+        refresh()
     }
 
     // MARK: - Items
 
     var items: [ShelfItem] {
-        (openShelf?.items ?? []).filter { query.isEmpty || matches($0.name) }
+        let byID = Dictionary(uniqueKeysWithValues: (openShelf?.items ?? []).map { ($0.id, $0) })
+        return store.visibleItems.compactMap { byID[$0.id] }
     }
 
     var selectedItem: ShelfItem? {
@@ -131,16 +133,17 @@ final class ShelfManagerModel {
         }
         conversion.onSaved = { [weak self] ids in
             guard let self, let id = ids.first else { return }
+            refresh()
             if !items.contains(where: { $0.id == id }) { query = "" }
             selectedItemID = id
         }
         imageConversion = conversion
-        isShowingConversion = true
+        store.send(.conversionPresented(true))
     }
 
     private func endConversion() {
         guard let id = imageConversion?.id else { return }
-        isShowingConversion = false
+        store.send(.conversionPresented(false))
         Task { [weak self] in
             try? await Task.sleep(for: .seconds(ShelfMotion.duration))
             guard let self, !isShowingConversion, imageConversion?.id == id else { return }
@@ -151,21 +154,7 @@ final class ShelfManagerModel {
     // MARK: - Moving
 
     func moveSelection(by offset: Int) {
-        guard renamingShelfID == nil else { return }
-        if openShelf != nil {
-            selectedItemID = neighbour(of: selectedItem?.id, in: items.map(\.id), by: offset)
-        } else {
-            selectedShelfID = neighbour(of: selectedShelf?.id, in: shelves.map(\.id), by: offset)
-        }
-    }
-
-    private func neighbour<ID: Equatable>(of current: ID?, in ids: [ID], by offset: Int) -> ID? {
-        guard !ids.isEmpty else { return nil }
-        let index = ids.firstIndex { $0 == current } ?? 0
-        return ids[min(max(index + offset, 0), ids.count - 1)]
-    }
-
-    private func matches(_ text: String) -> Bool {
-        text.localizedCaseInsensitiveContains(query.trimmingCharacters(in: .whitespaces))
+        refresh()
+        store.send(.moveSelection(offset))
     }
 }

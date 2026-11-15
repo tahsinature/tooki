@@ -17,9 +17,19 @@ struct MenuBarLayoutRow: Identifiable, Hashable {
 @MainActor
 @Observable
 final class MenuBarLayoutEditorModel {
-    var alwaysHidden: [MenuBarLayoutRow] = []
-    var hidden: [MenuBarLayoutRow] = []
-    var shown: [MenuBarLayoutRow] = []
+    var alwaysHidden: [MenuBarLayoutRow] = [] {
+        didSet { if alwaysHidden != oldValue { edited() } }
+    }
+    var hidden: [MenuBarLayoutRow] = [] {
+        didSet { if hidden != oldValue { edited() } }
+    }
+    var shown: [MenuBarLayoutRow] = [] {
+        didSet { if shown != oldValue { edited() } }
+    }
+    private(set) var isDirty = false
+    @ObservationIgnored private var revision = UUID()
+    @ObservationIgnored private var latestLoad: UUID?
+    @ObservationIgnored private var applyingSnapshot = false
     private(set) var underNotch: Set<String> = []
 
     var layout: MenuBarLayout {
@@ -29,10 +39,25 @@ final class MenuBarLayoutEditorModel {
     /// Shows the saved layout, adding icons it doesn't know yet where they currently are.
     /// With no saved layout, or `fromMenuBar`, shows the menu bar as it is now.
     func load(saved: MenuBarLayout?, organizer: MenuBarOrganizer, fromMenuBar: Bool = false) async {
-        let snapshot = await MenuBarSnapshot.capture(organizer: organizer)
+        await load(saved: saved, hasAlwaysHiddenSection: organizer.hasAlwaysHiddenSection,
+                   fromMenuBar: fromMenuBar) { await MenuBarSnapshot.capture(organizer: organizer) }
+    }
+
+    func load(saved: MenuBarLayout?, hasAlwaysHiddenSection: Bool, fromMenuBar: Bool = false,
+              capture: () async -> MenuBarSnapshot) async {
+        // Lifecycle refreshes preserve unsaved edits. Explicit Reload replaces the prior draft,
+        // but never edits made after that request started.
+        guard fromMenuBar || !isDirty else { return }
+        let request = UUID()
+        let startingRevision = revision
+        latestLoad = request
+        let snapshot = await capture()
+        guard !Task.isCancelled, latestLoad == request, revision == startingRevision else { return }
+        applyingSnapshot = true
+        defer { applyingSnapshot = false }
         let current = snapshot.layout
         var base = fromMenuBar ? current : saved ?? current
-        if !organizer.hasAlwaysHiddenSection {
+        if !hasAlwaysHiddenSection {
             base = MenuBarLayout(shown: base.shown, hidden: base.alwaysHidden + base.hidden)
         }
         let known = Set(base.shown + base.hidden + base.alwaysHidden)
@@ -47,6 +72,18 @@ final class MenuBarLayoutEditorModel {
         hidden = rows(current.hidden, base.hidden)
         shown = rows(current.shown, base.shown)
         underNotch = Set(snapshot.iconsUnderNotch.map(\.id))
+        isDirty = false
+    }
+
+    func markSaved() {
+        isDirty = false
+        latestLoad = nil
+    }
+
+    private func edited() {
+        guard !applyingSnapshot else { return }
+        revision = UUID()
+        isDirty = true
     }
 
     /// Moves the row to the right end of another section's list, next to that section's divider.

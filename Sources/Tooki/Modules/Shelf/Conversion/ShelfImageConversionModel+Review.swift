@@ -1,11 +1,12 @@
+import ShelfFeature
 import Foundation
 import TookiKit
 import UniformTypeIdentifiers
 
 extension ShelfImageConversionModel {
     var isBusy: Bool { phase == .converting || phase == .saving }
-    var current: ShelfConversionResult? { results.indices.contains(reviewIndex) ? results[reviewIndex] : nil }
-    var canSave: Bool { phase == .review && !results.isEmpty && results.allSatisfy { $0.error == nil } }
+    var current: ShelfConversionResult? { store.current }
+    var canSave: Bool { store.canSave }
     var title: String { items.count == 1 ? "Convert image" : "Convert \(items.count) images" }
     var name: String { items.count == 1 ? (items.first?.name ?? "Image") : "\(items.count) images selected" }
     var inputSize: String { items.compactMap(\.byteSize).reduce(0, +).formatted(.byteCount(style: .file)) }
@@ -36,11 +37,6 @@ extension ShelfImageConversionModel {
     var reviewURLs: [URL] {
         guard let current else { return [] }
         return [current.preview.url] + results.filter { $0.id != current.id }.map(\.preview.url)
-    }
-
-    func moveReview(by offset: Int) {
-        guard phase == .review else { return }
-        reviewIndex = min(max(reviewIndex + offset, 0), max(results.count - 1, 0))
     }
 
     func replacementURL(for result: ShelfConversionResult) -> URL {

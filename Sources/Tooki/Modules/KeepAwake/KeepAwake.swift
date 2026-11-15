@@ -1,125 +1,80 @@
 import AppKit
+import ComposableArchitecture
 import IOKit.ps
-import IOKit.pwr_mgt
+import KeepAwakeFeature
 import Observation
 import TookiKit
 
-/// Keeps the Mac (and optionally the display) awake using a power assertion,
-/// the same mechanism as Amphetamine or KeepingYouAwake.
+/// Adapts reducer state to workspace/power notifications and a serial native assertion owner.
 @MainActor
 @Observable
 final class KeepAwake {
-    /// When manual Keep Awake ends. `.distantFuture` means until turned off; `nil` means off.
-    private(set) var manualUntil: Date?
-    /// Name of the running app that currently keeps the Mac awake, if any.
-    private(set) var triggeringApp: String?
-    private(set) var isActive = false
-
-    @ObservationIgnored private var config = KeepAwakeConfig()
-    @ObservationIgnored private var assertionID: IOPMAssertionID = 0
-    @ObservationIgnored private var heldAssertionType: String?
-    @ObservationIgnored private var timer: Timer?
+    let store: StoreOf<KeepAwakeFeature>
+    @ObservationIgnored private let assertions: PowerAssertionController
     @ObservationIgnored private var observers: [NSObjectProtocol] = []
+    @ObservationIgnored private var powerSource: CFRunLoopSource?
 
     init() {
+        let assertions = PowerAssertionController()
+        self.assertions = assertions
+        store = Store(initialState: KeepAwakeFeature.State()) { KeepAwakeFeature() } withDependencies: {
+            $0.keepAwakeClient = KeepAwakeClient(setAssertion: { mode in
+                await MainActor.run { assertions.set(mode) }
+            })
+        }
         let center = NSWorkspace.shared.notificationCenter
         for name in [NSWorkspace.didLaunchApplicationNotification, NSWorkspace.didTerminateApplicationNotification] {
             observers.append(center.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
-                MainActor.assumeIsolated { self?.refresh() }
+                MainActor.assumeIsolated { self?.refreshEnvironment() }
             })
         }
-        timer = Timer.scheduledTimer(withTimeInterval: 15, repeats: true) { [weak self] _ in
-            MainActor.assumeIsolated { self?.refresh() }
-        }
+        powerSource = IOPSNotificationCreateRunLoopSource({ context in
+            guard let context else { return }
+            MainActor.assumeIsolated {
+                Unmanaged<KeepAwake>.fromOpaque(context).takeUnretainedValue().refreshEnvironment()
+            }
+        }, Unmanaged.passUnretained(self).toOpaque())?.takeRetainedValue()
+        if let powerSource { CFRunLoopAddSource(CFRunLoopGetMain(), powerSource, .commonModes) }
     }
+
+    isolated deinit { shutdown() }
+
+    var manualUntil: Date? { store.manualUntil }
+    var triggeringApp: String? { store.triggeringApp }
+    var isActive: Bool { store.isActive }
+    var statusText: String { store.statusText }
+    var statusTitle: String { store.statusTitle }
 
     func apply(_ config: KeepAwakeConfig) {
-        self.config = config
-        refresh()
+        store.send(.configurationChanged(config, onACPower: isOnACPower(), triggeringApp: runningTriggerApp(config)))
     }
-
-    /// - Parameter minutes: `nil` or `0` keeps the Mac awake until turned off.
-    func start(minutes: Int?) {
-        if let minutes, minutes > 0 {
-            manualUntil = Date().addingTimeInterval(TimeInterval(minutes * 60))
-        } else {
-            manualUntil = .distantFuture
-        }
-        refresh()
-    }
-
-    func stop() {
-        manualUntil = nil
-        refresh()
-    }
-
-    func toggle() {
-        manualUntil == nil ? start(minutes: config.defaultDurationMinutes) : stop()
-    }
+    func start(minutes: Int?) { store.send(.start(minutes: minutes)) }
+    func stop() { store.send(.stop) }
+    func toggle() { manualUntil == nil ? start(minutes: store.config.defaultDurationMinutes) : stop() }
 
     func shutdown() {
-        manualUntil = nil
-        setAssertion(nil)
-    }
-
-    var statusText: String {
-        if let manualUntil {
-            if manualUntil == .distantFuture { return "On until turned off" }
-            return "On until \(manualUntil.formatted(date: .omitted, time: .shortened))"
+        store.send(.shutdown)
+        assertions.shutdown()
+        observers.forEach(NSWorkspace.shared.notificationCenter.removeObserver)
+        observers = []
+        if let powerSource {
+            CFRunLoopRemoveSource(CFRunLoopGetMain(), powerSource, .commonModes)
+            CFRunLoopSourceInvalidate(powerSource)
         }
-        if let triggeringApp { return "On while \(triggeringApp) is running" }
-        return "Off"
+        powerSource = nil
     }
 
-    private func refresh() {
-        if let manualUntil, manualUntil <= Date() { self.manualUntil = nil }
-        triggeringApp = runningTriggerApp()
-
-        let wanted = manualUntil != nil || triggeringApp != nil
-        let allowedByPower = !config.onlyOnPower || isOnACPower()
-        setAssertion(wanted && allowedByPower ? assertionType(for: config.mode) : nil)
+    private func refreshEnvironment() {
+        store.send(.environmentChanged(onACPower: isOnACPower(), triggeringApp: runningTriggerApp(store.config)))
     }
-
-    private func runningTriggerApp() -> String? {
-        guard !config.activateForApps.isEmpty else { return nil }
+    private func runningTriggerApp(_ config: KeepAwakeConfig) -> String? {
         let app = NSWorkspace.shared.runningApplications.first {
-            guard let bundleID = $0.bundleIdentifier else { return false }
-            return config.activateForApps.contains(bundleID)
+            !$0.isTerminated && $0.bundleIdentifier.map(config.activateForApps.contains) == true
         }
         return app?.localizedName ?? app?.bundleIdentifier
     }
-
-    private func assertionType(for mode: KeepAwakeMode) -> String {
-        switch mode {
-        case .display: "PreventUserIdleDisplaySleep"
-        case .system: "PreventUserIdleSystemSleep"
-        }
-    }
-
-    private func setAssertion(_ type: String?) {
-        guard type != heldAssertionType else { return }
-        if heldAssertionType != nil {
-            IOPMAssertionRelease(assertionID)
-            heldAssertionType = nil
-        }
-        if let type {
-            var newID: IOPMAssertionID = 0
-            let result = IOPMAssertionCreateWithName(
-                type as CFString,
-                IOPMAssertionLevel(kIOPMAssertionLevelOn),
-                "Tooki Keep Awake" as CFString,
-                &newID
-            )
-            if result == kIOReturnSuccess {
-                assertionID = newID
-                heldAssertionType = type
-            }
-        }
-        isActive = heldAssertionType != nil
-    }
-
     private func isOnACPower() -> Bool {
         guard let source = IOPSGetProvidingPowerSourceType(nil)?.takeUnretainedValue() else { return true }
-        return (source as String) == "AC Power"
+        return source as String == "AC Power"
     }
 }

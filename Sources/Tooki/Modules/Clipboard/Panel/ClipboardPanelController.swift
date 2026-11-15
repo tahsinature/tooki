@@ -1,3 +1,4 @@
+import TookiDesignSystem
 import AppKit
 import TookiKit
 
@@ -51,6 +52,7 @@ final class ClipboardPanelController: ResumablePanelController {
         }
         panel.quickLook = QuickLookPreview()
         panel.onPresent = { [weak model] in
+            model?.refreshHistory()
             if let app = NSWorkspace.shared.frontmostApplication, app.processIdentifier != ProcessInfo.processInfo.processIdentifier {
                 model?.targetAppName = app.localizedName
             }
@@ -110,14 +112,10 @@ final class ClipboardPanelController: ResumablePanelController {
             close()
         case .paste:
             close()
-            Task {
-                // Let focus return to the previous app before pasting into it.
-                try? await Task.sleep(for: .milliseconds(80))
-                history.paste(item)
-            }
+            model.pasteSelected()
         case .copy:
             close()
-            history.copy(item)
+            model.copySelected()
         case .togglePin:
             model.togglePinOfSelected()
         case .delete:

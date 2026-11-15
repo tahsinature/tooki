@@ -1,3 +1,4 @@
+import TookiDesignSystem
 import AppKit
 
 /// One entry in the shelf manager's ⌘K menu, for a shelf or for an item on it.
@@ -22,15 +23,15 @@ struct ShelfManagerAction: PanelActionItem {
     var id: Kind { kind }
     var isDestructive: Bool { [.closeShelf, .confirmClose, .remove].contains(kind) }
 
-    static let toggleShelves = ShelfManagerAction(
+    @MainActor static let toggleShelves = ShelfManagerAction(
         kind: .toggleShelves, title: "Show or Hide All Shelves", icon: .symbol("tray.full"), shortcut: "⌘S"
     )
 
-    static let newShelf = ShelfManagerAction(
+    @MainActor static let newShelf = ShelfManagerAction(
         kind: .newShelf, title: "New Shelf", icon: .symbol("plus.rectangle.on.rectangle"), shortcut: "⌘N"
     )
 
-    static let forShelf = [
+    @MainActor static let forShelf = [
         ShelfManagerAction(kind: .openShelf, title: "Open Shelf", icon: .symbol("arrow.right.circle"), shortcut: "↵"),
         ShelfManagerAction(kind: .showShelf, title: "Show on Screen", icon: .symbol("macwindow"), shortcut: "⌘↵"),
         ShelfManagerAction(kind: .renameShelf, title: "Rename Shelf", icon: .symbol("pencil"), shortcut: "⌘R"),
@@ -40,7 +41,7 @@ struct ShelfManagerAction: PanelActionItem {
         ShelfManagerAction(kind: .closeShelf, title: "Close Shelf", icon: .symbol("xmark.circle"), shortcut: "⌃X"),
     ]
 
-    static let closeConfirmation = [
+    @MainActor static let closeConfirmation = [
         ShelfManagerAction(kind: .confirmClose, title: "Close Shelf and Delete Copies", icon: .symbol("trash"), shortcut: "↵"),
         ShelfManagerAction(kind: .cancelClose, title: "Cancel", icon: .symbol("xmark"), shortcut: "esc"),
     ]
@@ -58,7 +59,7 @@ struct ShelfManagerAction: PanelActionItem {
         return actions
     }
 
-    private static let itemActions = [
+    @MainActor private static let itemActions = [
         ShelfManagerAction(kind: .open, title: "Open", icon: .symbol("arrow.up.forward.app"), shortcut: "↵"),
         ShelfManagerAction(kind: .openWith, title: "Open With…", icon: .symbol("arrow.up.right.square"), shortcut: "⌘O"),
         ShelfManagerAction(kind: .quickLook, title: "Quick Look", icon: .symbol("eye"), shortcut: "⌘Y"),

@@ -6,6 +6,8 @@ import TookiKit
 /// so Caps Lock combos arrive here already carrying ⌃⌥⇧⌘.
 @MainActor
 final class ShortcutController: KeyEventHandler {
+    /// Panel shortcuts also pass through the event tap: nonactivating panels can miss command keys.
+    var onPanelShortcut: (CGEvent) -> Bool = { _ in false }
     var onAction: (HotkeyAction) -> Void = { _ in }
     /// Paused while the settings window records a new shortcut.
     var isPaused = false
@@ -25,13 +27,18 @@ final class ShortcutController: KeyEventHandler {
     func handle(_ event: CGEvent, type: CGEventType) -> Bool {
         let keyCode = event.getIntegerValueField(.keyboardEventKeycode)
         if type == .keyUp { return swallowedKeyCodes.remove(keyCode) != nil }
-        guard type == .keyDown, !isPaused,
-              let combo = KeyCombo(keyCode: UInt16(keyCode), modifiers: KeyCombo.Modifiers(event.flags)),
-              let action = actionsByCombo[combo]
-        else { return false }
+        guard type == .keyDown, !isPaused else { return false }
+        let isRepeat = event.getIntegerValueField(.keyboardEventAutorepeat) != 0
+        if isRepeat, swallowedKeyCodes.contains(keyCode) { return true }
+        if onPanelShortcut(event) {
+            swallowedKeyCodes.insert(keyCode)
+            return true
+        }
+        guard let combo = KeyCombo(keyCode: UInt16(keyCode), modifiers: KeyCombo.Modifiers(event.flags)),
+              let action = actionsByCombo[combo] else { return false }
 
         swallowedKeyCodes.insert(keyCode)
-        if event.getIntegerValueField(.keyboardEventAutorepeat) == 0 { onAction(action) }
+        if !isRepeat { onAction(action) }
         return true
     }
 }

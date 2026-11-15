@@ -1,65 +1,53 @@
+import ComposableArchitecture
+import EmojiFeature
 import Observation
+import TookiDesignSystem
 import TookiKit
 
-/// State of the emoji picker: search, the grid's sections, the selected emoji and the ⌘K popup.
+/// Bridges portable emoji browsing state to the native panel and paste services.
 @MainActor
 @Observable
 final class EmojiPanelModel {
+    typealias Section = EmojiFeature.Section
+    static let columns = 10
+    let store: StoreOf<EmojiFeature>
     let navigation = PanelKeyboardNavigation()
 
-    func resetPosition() {
-        selection = 0
-        navigation.moved(in: .results)
-    }
-
-    struct Section: Identifiable {
-        let title: String
-        let emoji: [Emoji]
-        var id: String { title }
-    }
-
-    static let columns = 10
-
-    var query = "" {
-        // The search field writes the same text back when it loses focus to the ⌘K popup.
-        didSet { if query != oldValue { rebuild() } }
-    }
-    private(set) var sections: [Section] = []
-    private(set) var results: [Emoji] = []
-    var selection = 0
-    var isShowingActions = false {
-        didSet { actionSelection = 0 }
-    }
-    var actionSelection = 0
-
-    private let recent: [Emoji]
-
     init(recentCharacters: [String]) {
-        recent = recentCharacters.compactMap { character in EmojiCatalog.all.first { $0.character == character } }
-        rebuild()
+        store = Store(initialState: EmojiFeature.State(recentCharacters: recentCharacters)) { EmojiFeature() }
     }
 
-    var selected: Emoji? {
-        results.indices.contains(selection) ? results[selection] : nil
+    var query: String {
+        get { store.query }
+        set { store.send(.queryChanged(newValue)) }
+    }
+    var sections: [Section] { store.sections }
+    var results: [Emoji] { store.results }
+    var selected: Emoji? { store.selected }
+    var selection: Int {
+        get { store.selection }
+        set { store.send(.selectionChanged(newValue)) }
+    }
+    var isShowingActions: Bool {
+        get { store.isShowingActions }
+        set { store.send(.actionsPresented(newValue)) }
+    }
+    var actionQuery: String {
+        get { store.actionQuery }
+        set { store.send(.actionQueryChanged(newValue)) }
+    }
+    var visibleActions: [EmojiAction] { store.visibleActions }
+    var selectedAction: EmojiAction? { store.selectedAction }
+    var actionSelection: Int {
+        get { store.actionSelection }
+        set { store.send(.actionSelectionChanged(newValue)) }
     }
 
-    func moveSelection(by offset: Int) {
-        guard !results.isEmpty else { return }
-        selection = min(max(selection + offset, 0), results.count - 1)
-    }
-
-    private func rebuild() {
-        selection = 0
-        isShowingActions = false
-        if query.trimmingCharacters(in: .whitespaces).isEmpty {
-            let groups = EmojiCatalog.groups.map { group in
-                Section(title: group, emoji: EmojiCatalog.all.filter { $0.group == group })
-            }
-            sections = (recent.isEmpty ? [] : [Section(title: "Recently Used", emoji: recent)]) + groups
-        } else {
-            sections = [Section(title: "Results", emoji: EmojiCatalog.search(query))]
-        }
-        sections.removeAll { $0.emoji.isEmpty }
-        results = sections.flatMap(\.emoji)
+    func refresh(recentCharacters: [String]) { store.send(.recentChanged(recentCharacters)) }
+    func moveSelection(by offset: Int) { store.send(.moveSelection(offset)) }
+    func moveActionSelection(by offset: Int) { store.send(.moveActionSelection(offset)) }
+    func resetPosition() {
+        store.send(.resetPosition)
+        navigation.moved(in: .results)
     }
 }

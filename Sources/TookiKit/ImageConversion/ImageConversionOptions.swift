@@ -1,6 +1,6 @@
 import UniformTypeIdentifiers
 
-public struct ImageConversionOptions: Sendable {
+public struct ImageConversionOptions: Sendable, Equatable {
     public enum Format: String, CaseIterable, Sendable {
         case jpeg = "JPEG", png = "PNG", heif = "HEIF"
 

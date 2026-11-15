@@ -1,106 +1,96 @@
 import AppKit
+import ComposableArchitecture
 import Observation
+import SearchFeature
+import TookiDesignSystem
 import TookiKit
 
-/// A heading and the results under it.
+/// Native rendering values corresponding to a reducer-owned result section.
 struct SearchSection: Identifiable {
     let title: String
     let items: [SearchItem]
     var id: String { title }
 }
 
-/// State of the launcher: the query, ranked results, the selection and the ⌘K popup.
+/// Connects portable launcher state to native images, calculator output and executable callbacks.
 @MainActor
 @Observable
 final class SearchModel {
+    let store: StoreOf<SearchFeature>
     let navigation = PanelKeyboardNavigation()
-
-    func resetPosition() {
-        selection = 0
-        navigation.moved(in: .results)
-    }
-
-    var query = "" {
-        didSet { if query != oldValue { rebuild() } }
-    }
-    /// Shows only this group. `nil` shows everything.
-    var groupFilter: SearchItem.Group? {
-        didSet { if groupFilter != oldValue { rebuild() } }
-    }
-    /// The groups offered in the filter menu. Empty hides the menu.
     let filterGroups: [SearchItem.Group]
-    private(set) var sections: [SearchSection] = []
-    /// Every listed result, top to bottom, so arrow keys can walk across sections.
-    private(set) var results: [SearchItem] = []
-    var selection = 0
-
-    var isShowingActions = false {
-        didSet {
-            guard isShowingActions != oldValue else { return }
-            menuQuery = ""
-            actionSelection = 0
-        }
-    }
-    var menuQuery = "" {
-        didSet { if menuQuery != oldValue { actionSelection = 0 } }
-    }
-    var actionSelection = 0
-
     let placeholder: String
     let title: String
     let icon: PanelIcon
-    private var items: [SearchItem]
-    private var history: LaunchHistory
+    private(set) var sections: [SearchSection] = []
+    private(set) var results: [SearchItem] = []
+    @ObservationIgnored private var itemsByID: [String: SearchItem]
+    @ObservationIgnored private var calculation: SearchItem?
     private let calculate: (String) -> SearchItem?
 
-    init(
-        items: [SearchItem],
-        placeholder: String,
-        title: String,
-        icon: PanelIcon,
-        filterGroups: [SearchItem.Group] = [],
-        history: LaunchHistory,
-        calculate: @escaping (String) -> SearchItem? = { _ in nil }
-    ) {
-        self.items = items
+    var query: String {
+        get { store.query }
+        set {
+            guard newValue != store.query else { return }
+            updateCalculation(query: newValue, filter: store.groupFilter)
+            store.send(.queryChanged(newValue, calculation: calculation?.metadata, at: .now))
+            updateNativeResults()
+        }
+    }
+    var groupFilter: SearchItem.Group? {
+        get { store.groupFilter }
+        set {
+            guard newValue != store.groupFilter else { return }
+            updateCalculation(query: store.query, filter: newValue)
+            store.send(.groupFilterChanged(newValue, calculation: calculation?.metadata, at: .now))
+            updateNativeResults()
+        }
+    }
+    var selection: Int {
+        get { store.selection }
+        set { store.send(.selectionChanged(newValue)) }
+    }
+    var isShowingActions: Bool {
+        get { store.isShowingActions }
+        set { store.send(.actionsPresented(newValue)) }
+    }
+    var menuQuery: String {
+        get { store.menuQuery }
+        set { store.send(.menuQueryChanged(newValue)) }
+    }
+    var actionSelection: Int {
+        get { store.actionSelection }
+        set { store.send(.actionSelectionChanged(newValue)) }
+    }
+
+    init(items: [SearchItem], placeholder: String, title: String, icon: PanelIcon,
+         filterGroups: [SearchItem.Group] = [], history: LaunchHistory,
+         calculate: @escaping (String) -> SearchItem? = { _ in nil }) {
         self.placeholder = placeholder
         self.title = title
         self.icon = icon
         self.filterGroups = filterGroups
-        self.history = history
         self.calculate = calculate
-        rebuild()
+        itemsByID = Dictionary(items.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        store = Store(initialState: SearchFeature.State(items: items.map { $0.metadata }, history: history)) { SearchFeature() }
+        updateNativeResults()
     }
 
-    /// Refresh dynamic entries without resetting the query, filter, menu or selected identity.
     func refresh(items: [SearchItem], history: LaunchHistory) {
-        let selectedID = selectedItem?.id
-        self.items = items
-        self.history = history
-        updateResults()
-        selection = results.firstIndex { $0.id == selectedID } ?? 0
+        itemsByID = Dictionary(items.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        updateCalculation(query: store.query, filter: store.groupFilter)
+        store.send(.refreshed(items.map { $0.metadata }, history: history, calculation: calculation?.metadata, at: .now))
+        updateNativeResults()
     }
 
     var selectedItem: SearchItem? {
         results.indices.contains(selection) ? results[selection] : nil
     }
 
-    func moveSelection(by offset: Int) {
-        guard !results.isEmpty else { return }
-        selection = min(max(selection + offset, 0), results.count - 1)
-    }
-
-    // MARK: Actions popup
-
     var menuActions: [SearchAction] {
-        guard let item = selectedItem else { return [] }
-        var actions = [SearchAction(id: "run", title: item.actionTitle, icon: item.icon, shortcut: "↵", run: item.run)]
-        if let copy = item.copy {
-            actions.append(SearchAction(id: "copy", title: "Copy", icon: .symbol("doc.on.doc"), shortcut: "⌘↵", run: copy))
-        }
-        actions += item.extraActions
-        let words = menuQuery.lowercased().split(separator: " ")
-        return actions.filter { action in words.allSatisfy { action.title.lowercased().contains($0) } }
+        let actions = selectedItem?.actions ?? []
+        let byID = Dictionary(actions.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        return store.menuActions.compactMap { byID[$0.id] }
     }
 
     var selectedMenuAction: SearchAction? {
@@ -108,64 +98,25 @@ final class SearchModel {
         return actions.indices.contains(actionSelection) ? actions[actionSelection] : nil
     }
 
-    func moveActionSelection(by offset: Int) {
-        actionSelection = max(min(actionSelection + offset, menuActions.count - 1), 0)
+    func moveSelection(by offset: Int) { store.send(.moveSelection(offset)) }
+    func moveActionSelection(by offset: Int) { store.send(.moveActionSelection(offset)) }
+    func resetPosition() {
+        store.send(.resetPosition)
+        navigation.moved(in: .results)
     }
 
-    // MARK: Ranking
-
-    private func rebuild() {
-        selection = 0
-        isShowingActions = false
-        updateResults()
-    }
-
-    private func updateResults() {
+    private func updateCalculation(query: String, filter: SearchItem.Group?) {
         let trimmed = query.trimmingCharacters(in: .whitespaces)
-        sections = trimmed.isEmpty ? browsingSections() : searchSections(for: trimmed)
+        calculation = filter == nil && !trimmed.isEmpty ? calculate(trimmed) : nil
+    }
+
+    /// Cache native rows only when results change, not on every selection or body evaluation.
+    private func updateNativeResults() {
+        sections = store.sections.map { section in
+            SearchSection(title: section.title, items: section.items.compactMap { entry in
+                calculation?.id == entry.id ? calculation : itemsByID[entry.id]
+            })
+        }
         results = sections.flatMap(\.items)
-    }
-
-    private var filteredItems: [SearchItem] {
-        guard let groupFilter else { return items }
-        return items.filter { $0.group == groupFilter }
-    }
-
-    /// Before you type: your most-used results first, then everything by group.
-    private func browsingSections() -> [SearchSection] {
-        let items = filteredItems
-        let byID = Dictionary(items.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
-        let recent = history.recentIDs(limit: 5).compactMap { byID[$0] }
-        let recentIDs = Set(recent.map(\.id))
-        let rest = items.filter { !recentIDs.contains($0.id) }
-        let grouped = SearchItem.Group.allCases.compactMap { group -> SearchSection? in
-            let members = rest.filter { $0.group == group }
-            return members.isEmpty ? nil : SearchSection(title: group.rawValue, items: members)
-        }
-        return (recent.isEmpty ? [] : [SearchSection(title: "Recent", items: recent)]) + grouped
-    }
-
-    private func searchSections(for query: String) -> [SearchSection] {
-        let ranked = filteredItems
-            .compactMap { item in score(item, for: query).map { (item, $0 + history.boost(for: item.id)) } }
-            .sorted { $0.1 > $1.1 }
-            .map(\.0)
-        var sections: [SearchSection] = []
-        if groupFilter == nil, let calculation = calculate(query) {
-            sections.append(SearchSection(title: "Calculator", items: [calculation]))
-        }
-        if !ranked.isEmpty {
-            sections.append(SearchSection(title: "Results", items: ranked))
-        }
-        return sections
-    }
-
-    /// The title counts most; a keyword hit is nearly as good; text elsewhere still finds the item.
-    private func score(_ item: SearchItem, for query: String) -> Double? {
-        if let titleScore = FuzzyMatch.score(query, in: item.title) { return titleScore }
-        if let keyword = item.keyword, keyword.lowercased().hasPrefix(query.lowercased()) { return 85 }
-        let haystack = "\(item.subtitle ?? "") \(item.kind) \(item.searchText)".lowercased()
-        let words = query.lowercased().split(separator: " ")
-        return words.allSatisfy { haystack.contains($0) } ? 10 : nil
     }
 }

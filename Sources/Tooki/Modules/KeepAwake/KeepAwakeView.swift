@@ -67,7 +67,7 @@ struct KeepAwakeView: View {
                 .font(.largeTitle)
                 .foregroundStyle(keepAwake.isActive ? Color.accentColor : .secondary)
             SettingsRowLabel(
-                title: keepAwake.isActive ? "Keeping your Mac awake" : "Your Mac can sleep normally",
+                title: keepAwake.statusTitle,
                 description: keepAwake.statusText
             )
             if keepAwake.manualUntil != nil {

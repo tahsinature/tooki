@@ -1,14 +1,11 @@
+import TookiDesignSystem
 import AppKit
+import SearchFeature
 
 /// One launcher result: an app, a command, a menu bar item or a calculation.
 struct SearchItem: Identifiable {
     /// Results are listed under these headings, in this order, before you type.
-    enum Group: String, CaseIterable {
-        case calculator = "Calculator"
-        case applications = "Applications"
-        case commands = "Commands"
-        case menuBar = "Menu Bar Items"
-    }
+    typealias Group = SearchGroup
 
     /// The big answer card shown above the results, like Raycast's calculator.
     struct Calculation {
@@ -36,6 +33,17 @@ struct SearchItem: Identifiable {
     /// Copies the item with ⌘↵. `nil` when the item cannot be copied.
     var copy: (@MainActor () -> Void)?
     let run: @MainActor () -> Void
+
+    @MainActor var actions: [SearchAction] {
+        var result = [SearchAction(id: "run", title: actionTitle, icon: icon, shortcut: "↵", run: run)]
+        if let copy { result.append(SearchAction(id: "copy", title: "Copy", icon: .symbol("doc.on.doc"), shortcut: "⌘↵", run: copy)) }
+        return result + extraActions
+    }
+
+    @MainActor var metadata: SearchEntry {
+        SearchEntry(id: id, title: title, subtitle: subtitle, keyword: keyword, kind: kind, group: group,
+                    searchText: searchText, actions: actions.map { SearchActionMetadata(id: $0.id, title: $0.title) })
+    }
 }
 
 /// An entry in the launcher's ⌘K popup.
