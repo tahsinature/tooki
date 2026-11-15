@@ -19,7 +19,7 @@ struct DesignSystemTests {
             view.layoutSubtreeIfNeeded()
             window.displayIfNeeded()
             view.displayIfNeeded()
-            assertSnapshot(of: view, as: .image, named: appearance.rawValue)
+            assertSnapshot(of: view, as: .image, named: "\(appearance.rawValue)-\(Int(window.backingScaleFactor))x")
         }
     }
 }

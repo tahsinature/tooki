@@ -43,7 +43,7 @@ struct FeatureVisualTests {
             hosting.layoutSubtreeIfNeeded()
             window.displayIfNeeded()
             hosting.displayIfNeeded()
-            assertSnapshot(of: hosting, as: .image, named: "\(scenario.rawValue)-\(appearance.rawValue)")
+            assertSnapshot(of: hosting, as: .image, named: "\(scenario.rawValue)-\(appearance.rawValue)-\(Int(window.backingScaleFactor))x")
         }
     }
 

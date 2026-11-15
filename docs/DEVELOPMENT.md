@@ -56,3 +56,5 @@ See [MODERNIZATION.md](MODERNIZATION.md) for module boundaries, the Clipboard re
 `design/ui-component-names-sketch.fig` names every part of the UI (Root Search, Actions Menu, Filter Menu, List-Detail Panel, Shelf Header and so on) with its Swift type. Use those names when you talk about the UI. When you add, rename or remove a component, update the sketch in the same change: edit it in [OpenPencil](https://openpencil.dev) and save. It's a rough sketch, so only the names, pins and notes need to be right. [AGENTS.md](../AGENTS.md) lists when to update it.
 
 See [RELEASING.md](RELEASING.md) for how releases are published.
+
+Visual references include explicit `1x` and `2x` display-scale names. SnapshotTesting captures native backing pixels: the GitHub virtual display uses 1× while Retina Macs usually use 2×. Both sets are reviewed, compared with strict pixel equality, and tied to macOS 27/Xcode 27.2. A failure uploads actual images as the `snapshot-failures` Actions artifact; inspect those images before accepting any baseline changes.
