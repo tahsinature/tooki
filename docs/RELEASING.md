@@ -82,7 +82,7 @@ If the token is revoked or leaked:
 
 ## Sparkle update signing
 
-Sparkle 2.10.1 is pinned in Package.swift. In-app updates use its standard window, download verification and installer. Development builds never start Sparkle. Users of the previous custom updater receive the first Sparkle-enabled version through the existing DMG update path or Homebrew.
+Sparkle 2.10.1 is pinned in Package.swift. In-app updates use its standard window, download verification and installer. Development builds never start Sparkle. Users of the previous custom updater may need a one-time manual DMG or Homebrew upgrade; see the transition instructions below.
 
 The feed is `https://github.com/tahsinature/tooki/releases/latest/download/appcast.xml`. Each appcast points to the version-specific DMG asset. It contains the current complete update; historical archives and delta generation are not required for this initial setup.
 
@@ -102,7 +102,7 @@ scripts/generate-appcast.sh build/appcast https://github.com/tahsinature/tooki/r
 
 The legacy JSON `updates.checkAutomatically` value seeds Sparkle’s preference once, on the first Sparkle-enabled launch. Subsequent changes in About or Sparkle’s window use Sparkle’s own persisted preference. Editing that legacy JSON field after migration does not overwrite the user’s current choice. The old `updateFeedURL` GitHub-JSON override and custom skipped-version preference are no longer used. Isolated test bundles can set Sparkle’s standard `SUFeedURL` override without changing the production feed.
 
-The existing self-signed distribution and Homebrew quarantine handling remain in place. This migration does not add Developer ID signing, notarization, or publish a release. Production HTTPS hosting and the CI secret must be verified before shipping; local test-feed verification does not certify public distribution or Gatekeeper behavior.
+The existing self-signed distribution and Homebrew quarantine handling remain in place. This migration does not add Developer ID signing or notarization. Version 0.11.0 has been published with the production HTTPS feed and configured CI secret; this does not certify Gatekeeper behavior.
 
 
 ## Migration verification (November 15, 2026)
@@ -113,4 +113,18 @@ The existing self-signed distribution and Homebrew quarantine handling remain in
 - `make dmg CONFIGURATION=debug CHANNEL=release` produced an isolated test DMG. The production appcast script generated the expected version-specific HTTPS enclosure, build number and archive size. CryptoKit independently verified the DMG’s Ed25519 signature against the public key embedded in Info.plist.
 - Release YAML parsed, shell scripts passed syntax checks, and the packaged development and test-release apps passed strict nested-signature verification.
 
-No public release, production feed fetch, production universal release build, permission-denied installation, Gatekeeper/notarization certification, or update of the user’s installed Tooki was performed. Those checks belong to the first controlled release, with the existing signing certificate retained. Temporary test bundles used their own identifier and defaults, a loopback-only server, and test-only HTTP transport settings; production uses HTTPS.
+The subsequent v0.11.0 release passed CI, including universal build, strict signing, signed appcast generation and Homebrew publication. The installed v0.10.3 updater restarted but left v0.10.3 installed. Installing the verified v0.11.0 DMG directly succeeded, retained Accessibility permission and the same designated signing requirement, and Sparkle reported Up to date against the public feed. Permission-denied installation and Gatekeeper/notarization behavior remain unverified. Temporary test bundles used their own identifier and defaults, a loopback-only server, and test-only HTTP transport settings; production uses HTTPS.
+
+
+## One-time transition from the old updater
+
+If Install and Restart returns to the same older version, quit Tooki and install the latest DMG from GitHub Releases into Applications, replacing the old app. Homebrew users can instead run `brew upgrade --cask tooki`. Open Tooki, confirm the version in About, and check that General still reports Accessibility Granted. Keep the existing settings and application data folders; no reset is required.
+
+The observed v0.10.3 failure does not establish a root cause. The new release uses Sparkle; the removed legacy installer is not being patched retroactively.
+
+## Remaining acceptance checks
+
+- On the next independently warranted release, use v0.11.0's Check for Updates control to download, install and restart into that release. Confirm version, signing requirement, settings and Accessibility permission. The public no-update check and isolated installation tests do not substitute for this production-to-production upgrade. Do not publish a version solely to make this checklist green without an explicit release decision.
+- On physical Macs or macOS virtual machines running supported older versions, check launch, Root Search, Clipboard, Snippets, Emoji, Shelf, keyboard navigation, paste delivery and update checking. This machine runs macOS 27.0.1; iOS simulators cannot verify older macOS runtime compatibility.
+- With VoiceOver enabled, check search-field names, result and action labels, selected state, grouping headings, focus restoration and keyboard access to Details. Inspecting accessibility properties alone is not a complete spoken-navigation test.
+- With a pointer, check normal, hovered and selected rows/cells in Root Search, Clipboard, Snippets, Emoji, Shelf Manager and floating Shelf, plus Actions and Filter menus. Hover should be visible without changing keyboard selection; selected styling must remain dominant.
