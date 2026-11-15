@@ -44,7 +44,21 @@ jobs:
 
       - name: Test
         if: steps.version.outputs.version != ''
-        run: make test
+        env:
+          SNAPSHOT_ARTIFACTS: ${{ runner.temp }}/snapshot-artifacts
+        run: |
+          sw_vers
+          xcrun swift --version
+          system_profiler SPDisplaysDataType
+          make test
+
+      - name: Save failed visual comparisons
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: snapshot-failures
+          path: ${{ runner.temp }}/snapshot-artifacts
+          if-no-files-found: ignore
 
       - name: Require the update signing key
         if: steps.version.outputs.version != ''
