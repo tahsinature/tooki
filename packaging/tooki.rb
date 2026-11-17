@@ -6,7 +6,7 @@ cask "tooki" do
 
   url "https://github.com/tahsinature/tooki/releases/download/v#{version}/Tooki.dmg"
   name "Tooki"
-  desc "Hyper Key, snippets, clipboard history, menu bar organizer and keep awake"
+  desc "Keyboard launcher with clipboard history, snippets, emoji, notes and native tools"
   homepage "https://github.com/tahsinature/tooki"
 
   livecheck do
@@ -15,8 +15,6 @@ cask "tooki" do
   end
 
   depends_on macos: :sonoma
-  # Tooki updates itself, so Homebrew leaves it alone unless asked with --greedy.
-  auto_updates true
 
   app "Tooki.app"
 
