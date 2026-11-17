@@ -10,6 +10,7 @@
   import PanelFilterMenu from '../../components/PanelFilterMenu.svelte';
   import Keycap from '../../components/Keycap.svelte';
   let query = $state('');
+  let searchInput = $state<HTMLInputElement>();
   let filter = $state('customized');
   const groups: Record<string, string> = {
     notes: 'Notes',
@@ -58,11 +59,13 @@
 <div class="shortcut-filters">
   <SearchField
     bind:value={query}
+    bind:element={searchInput}
     placeholder="Search shortcuts…"
     label="Search shortcuts"
   />
   <PanelFilterMenu
     bind:value={filter}
+    onapply={() => searchInput?.focus({ preventScroll: true })}
     label="Shortcut assignments"
     options={[
       { value: 'customized', label: 'Customized' },

@@ -3,6 +3,7 @@
   import { launcherDrag } from '../features/launcher/placement.svelte';
   import PanelFilterMenu from './PanelFilterMenu.svelte';
   import { Command, ArrowLeft } from '@lucide/svelte';
+  let input = $state<HTMLInputElement>();
   let {
     query = $bindable(''),
     filter = $bindable('all'),
@@ -33,11 +34,13 @@
     placeholder={placeholder ??
       (clipboard ? 'Search clipboard…' : 'Search or type a command…')}
     bind:value={query}
+    bind:element={input}
     autocomplete="off"
     spellcheck="false"
   />
   {#if filterOptions ? filterOptions.length > 0 : clipboard}<PanelFilterMenu
       bind:value={filter}
+      onapply={() => input?.focus({ preventScroll: true })}
       options={filterOptions ??
         (clipboard
           ? [

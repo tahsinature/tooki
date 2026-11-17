@@ -39,6 +39,7 @@
   } = $props();
   const id = $props.id();
   let query = $state('');
+  let searchInput = $state<HTMLInputElement>();
   let category = $state('all');
   let follow = $state(true);
   let expandedId = $state<string | null>(null);
@@ -138,6 +139,12 @@
       pendingFocus = null;
     }
   }
+  function focusResults() {
+    const index = $virtualizer.getVirtualItems()[0]?.index;
+    const entry = index === undefined ? undefined : filtered[index];
+    const target = entry ? rowButtons.get(entry.id) : undefined;
+    (target ?? searchInput)?.focus({ preventScroll: true });
+  }
   async function action(kind: 'copy' | 'export' | 'clear') {
     const selected = filtered;
     busy = true;
@@ -175,10 +182,12 @@
           aria-label="Search activity"
           placeholder="Search results…"
           bind:value={query}
+          bind:element={searchInput}
         /></label
       >
       <PanelFilterMenu
         bind:value={category}
+        onapply={focusResults}
         options={filters}
         label="Filter activity"
       />

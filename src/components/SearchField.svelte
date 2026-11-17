@@ -5,11 +5,16 @@
     value = $bindable(''),
     label,
     placeholder = 'Search…',
-  }: { value?: string; label: string; placeholder?: string } = $props();
-  let input = $state<HTMLInputElement>();
+    element = $bindable(),
+  }: {
+    value?: string;
+    label: string;
+    placeholder?: string;
+    element?: HTMLInputElement;
+  } = $props();
   function clear() {
     value = '';
-    input?.focus();
+    element?.focus();
   }
 </script>
 
@@ -17,7 +22,7 @@
   <Search size={15} aria-hidden="true" />
   <TextInput
     bind:value
-    bind:element={input}
+    bind:element
     aria-label={label}
     {placeholder}
     autocomplete="off"

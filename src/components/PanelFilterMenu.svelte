@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { tick } from 'svelte';
   import { ChevronDown } from '@lucide/svelte';
   import Keycap from './Keycap.svelte';
   import FilterPopup, { type FilterOption } from './FilterPopup.svelte';
@@ -6,7 +7,13 @@
     value = $bindable('all'),
     options,
     label = 'Filter results',
-  }: { value: string; options: FilterOption[]; label?: string } = $props();
+    onapply,
+  }: {
+    value: string;
+    options: FilterOption[];
+    label?: string;
+    onapply: () => void;
+  } = $props();
   const id = $props.id();
   let open = $state(false);
   let container = $state<HTMLDivElement>();
@@ -71,9 +78,12 @@
         options.filter((option) =>
           option.label.toLowerCase().includes(query.toLowerCase()),
         )}
-      onchoose={(next) => {
+      onchoose={async (next) => {
         value = next;
-        close(true);
+        close();
+        // Let the filtered results render before returning keyboard focus.
+        await tick();
+        onapply();
       }}
       onclose={close}
     />{/if}
