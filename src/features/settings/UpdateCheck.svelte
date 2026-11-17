@@ -65,9 +65,6 @@
         <p>You’re up to date.</p>
       {/if}
     {/if}
-    {#if copied}<p>
-        Command copied. Run it in Terminal, then reopen Tooki.
-      </p>{/if}
   </div>
   {#if release}
     <div class="update-actions">
