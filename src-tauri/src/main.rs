@@ -167,8 +167,14 @@ fn main() {
         })
         .build(tauri::generate_context!())
         .expect("Could not start Tooki")
-        .run(|app, event| {
-            if matches!(event, tauri::RunEvent::Exit) {
+        .run(|app, event| match event {
+            #[cfg(target_os = "macos")]
+            tauri::RunEvent::Reopen { .. } => {
+                if let Err(error) = launcher_presentation::request(app) {
+                    eprintln!("Could not reopen the launcher: {error}");
+                }
+            }
+            tauri::RunEvent::Exit => {
                 keep_awake::stop(app);
                 notes::remember(app);
                 hyper::stop(app);
@@ -177,5 +183,6 @@ fn main() {
                 shortcut_detective::stop(app);
                 clipboard::cleanup(app);
             }
+            _ => {}
         });
 }
