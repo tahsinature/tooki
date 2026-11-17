@@ -55,6 +55,7 @@
 </script>
 
 <Dialog title="Edit theme" {onclose}>
+  <ThemePreview theme={draft} />
   <p class="settings-note">
     {copying ? 'Save as a custom theme.' : 'Changes apply when you save.'}
   </p>
@@ -85,7 +86,6 @@
       />
     {/each}
   </div>
-  <ThemePreview theme={draft} />
   <details>
     <summary>Colors <span>{colorTokens.length} colors</span></summary>
     <div class="theme-colors">

@@ -50,7 +50,11 @@
 
 <style>
   section {
-    border-top: 1px solid var(--line);
+    position: sticky;
+    /* Leave the shared sticky dialog heading visible above the preview. */
+    top: max(0px, calc(var(--dialog-heading-height, 54px) - 18px));
+    z-index: 1;
+    background: var(--popup-background, var(--panel));
     border-bottom: 1px solid var(--line);
     padding: 12px 0;
   }
