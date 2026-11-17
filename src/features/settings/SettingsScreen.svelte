@@ -1,4 +1,5 @@
 <script lang="ts">
+  import UpdateCheck from './UpdateCheck.svelte';
   import SystemMonitorSettings from '../system-monitor/SystemMonitorSettings.svelte';
   import { Activity } from '@lucide/svelte';
   import { getVersion } from '@tauri-apps/api/app';
@@ -405,6 +406,7 @@
             <span class="settings-app-icon"><Command size={32} /></span>
             <h1>Tooki</h1>
             <p>Version {version}</p>
+            <UpdateCheck />
           </div>
           <SettingsSection title="Built with"
             ><SettingsRow title="Desktop runtime">Tauri · Rust</SettingsRow

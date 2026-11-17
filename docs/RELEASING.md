@@ -33,3 +33,9 @@ CI uses Bun 1.4.2, stable Rust with both macOS targets, and the existing Xcode r
 The existing distribution remains self-signed and not notarized. Homebrew retains its existing quarantine handling. This transition does not claim Developer ID signing or notarization.
 
 The source cask is `packaging/tooki.rb`; CI replaces its version and SHA-256 when publishing to `Casks/tooki.rb` in the tap. Verify that the public cask version and checksum match the release asset before reporting a release complete.
+
+## In-app update checks
+
+Settings → About → Check for Updates queries GitHub’s latest stable release when clicked. It compares semantic versions, opens release notes in the browser and offers `brew update && brew upgrade --cask tahsinature/tap/tooki` on macOS when a newer version is available. It does not install updates or run Homebrew automatically. Development builds newer than the published release are identified separately.
+
+The checker uses the [GitHub latest-release API](https://docs.github.com/en/rest/releases/releases#get-the-latest-release), with bounded responses and request timeouts. Keep release tags in `vMAJOR.MINOR.PATCH` format. The Homebrew cask can briefly lag behind release publication while the workflow finishes.

@@ -25,6 +25,7 @@ mod system_actions;
 mod system_monitor;
 mod tool_commands;
 mod window_toggle;
+mod updates;
 
 use tauri::Manager;
 
@@ -69,6 +70,8 @@ fn main() {
         .manage(keep_awake::KeepAwake::default())
         .invoke_handler(tauri::generate_handler![
             quit_app,
+            updates::check_for_updates,
+            updates::open_release_notes,
             config::portable_preferences,
             config::set_portable_preference,
             config::portable_themes,

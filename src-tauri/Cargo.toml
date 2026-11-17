@@ -6,6 +6,8 @@ edition = "2021"
 cc = "1.11.2"
 tauri-build = { version = "2", features = [] }
 [dependencies]
+reqwest = { version = "0.13", default-features = false, features = ["native-tls", "system-proxy"] }
+semver = "1"
 chrono = { version = "0.4", default-features = false, features = ["clock"] }
 base64 = "0.23.1"
 rusqlite = { version = "0.43.0", features = ["bundled", "backup"] }
