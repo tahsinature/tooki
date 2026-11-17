@@ -27,6 +27,10 @@ pub fn open_settings(app: AppHandle, page: Option<String>) -> Result<(), String>
             let _ = settings.emit("settings-page", page);
         }
     }
+    // Settings participates in the Dock and app switcher, including when minimized.
+    #[cfg(target_os = "macos")]
+    app.set_activation_policy(tauri::ActivationPolicy::Regular)
+        .map_err(|e| e.to_string())?;
     settings.unminimize().map_err(|e| e.to_string())?;
     settings.show().map_err(|e| e.to_string())?;
     settings.set_focus().map_err(|e| e.to_string())?;
@@ -47,6 +51,14 @@ pub fn handle_event(window: &tauri::Window, event: &WindowEvent) {
             .stop_recording();
         if let Err(error) = window.hide() {
             eprintln!("Could not hide Settings: {error}");
+            return;
+        }
+        #[cfg(target_os = "macos")]
+        if let Err(error) = window
+            .app_handle()
+            .set_activation_policy(tauri::ActivationPolicy::Accessory)
+        {
+            eprintln!("Could not return Tooki to background mode: {error}");
         }
     }
 }

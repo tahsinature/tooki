@@ -40,7 +40,7 @@ fn main() {
                     || arg == "--autostart"
             }) {
                 if app.get_webview_window("main").is_some() {
-                    let _ = launcher_presentation::request(app);
+                    let _ = settings_window::open_settings(app.clone(), None);
                 }
             }
         }))
@@ -147,6 +147,8 @@ fn main() {
             launcher_placement::handle_event(window, event);
         })
         .setup(|app| {
+            #[cfg(target_os = "macos")]
+            app.set_activation_policy(tauri::ActivationPolicy::Accessory);
             general_settings::initialize(app.handle());
             keep_awake::initialize(app.handle());
             applications::refresh(app.handle());
@@ -174,8 +176,8 @@ fn main() {
         .run(|app, event| match event {
             #[cfg(target_os = "macos")]
             tauri::RunEvent::Reopen { .. } => {
-                if let Err(error) = launcher_presentation::request(app) {
-                    eprintln!("Could not reopen the launcher: {error}");
+                if let Err(error) = settings_window::open_settings(app.clone(), None) {
+                    eprintln!("Could not reopen Settings: {error}");
                 }
             }
             tauri::RunEvent::Exit => {
