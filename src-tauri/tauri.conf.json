@@ -101,6 +101,9 @@
   },
   "bundle": {
     "active": true,
+    "resources": {
+      "emoji/NOTICE": "EmojiNotices.txt"
+    },
     "icon": [
       "icons/icon.png"
     ],
