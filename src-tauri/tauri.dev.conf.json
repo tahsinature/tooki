@@ -1,0 +1,13 @@
+{
+  "productName": "Tooki Dev",
+  "identifier": "us.tahsin.tooki.dev",
+  "plugins": {
+    "deep-link": {
+      "desktop": {
+        "schemes": [
+          "tooki-dev"
+        ]
+      }
+    }
+  }
+}

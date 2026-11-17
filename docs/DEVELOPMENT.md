@@ -14,9 +14,9 @@ make app CONFIGURATION=debug
 make dmg
 ```
 
-`make dev` signs the executable with the local `Tooki Dev Signing` identity. Set `APPLE_SIGNING_IDENTITY` to another existing identity when needed. Release CI uses the existing `Tooki Release Signing` certificate. Development builds show the DEV menu-bar mark; release builds use the standard Tooki mark.
+`make dev` signs the executable with the local `Tooki Dev Signing` identity. Set `APPLE_SIGNING_IDENTITY` to another existing identity when needed. Release CI uses the existing `Tooki Release Signing` certificate. Development builds show the DEV menu-bar mark and a DEV badge beside Tooki in the launcher footer; release builds use the standard Tooki mark.
 
-`make app` produces `build/Tooki.app`. `make dmg` produces `build/Tooki.dmg`. Set `VERSION`, `BUILD_NUMBER`, and `TAURI_TARGET=universal-apple-darwin` for a versioned universal bundle. Install both Rust targets first:
+`make app` produces `build/Tooki.app`; `make app CONFIGURATION=debug` produces `build/Tooki Dev.app`. `make dmg` produces `build/Tooki.dmg`. Set `VERSION`, `BUILD_NUMBER`, and `TAURI_TARGET=universal-apple-darwin` for a versioned universal bundle. Install both Rust targets first:
 
 ```sh
 rustup target add aarch64-apple-darwin x86_64-apple-darwin
@@ -53,3 +53,11 @@ See [MIGRATION.md](MIGRATION.md), [SNIPPETS_DESKTOP.md](SNIPPETS_DESKTOP.md), an
 On macOS, both development and production builds check the running process’s Accessibility grant at startup. Missing access opens Tooki Settings with a shared setup dialog. Later dismisses it for that launch while a reminder remains in Settings. A grant or revocation is detected within two seconds and on returning to Settings; enabled Hyper Key and snippet expansion are refreshed. Blocked paste actions reopen the same setup flow. Copy and unrelated tools remain usable.
 
 The dialog identifies the actual app path. macOS grants must be managed on each computer for the copy being run; they are never synced in Tooki configuration. Opening System Settings does not grant access. Verification must not change Accessibility permissions without the user’s approval. Non-macOS builds do not display this macOS-specific prompt.
+
+## Development identity and launch guard
+
+Use `make dev` (or `bun run desktop`) for live reload. This loads `src-tauri/tauri.dev.conf.json`: app name `Tooki Dev`, identifier `us.tahsin.tooki.dev`, and URL scheme `tooki-dev`. Debug bundles use the same identity. Production retains `Tooki`, `us.tahsin.tooki`, and its existing URL schemes. Direct debug launches without this configuration are rejected to avoid borrowing the production identity.
+
+On macOS, dev startup requests a normal quit from the production app and waits up to eight seconds before creating any windows or starting its own services. If production refuses or remains running, dev aborts without a forced kill. A local process lock also prevents current dev/production builds from starting concurrently. Production startup refuses to run while dev is active. Older production releases do not have this reverse guard, so avoid manually reopening an older production app during development.
+
+Each identity has separate local history, notes, window state and permissions. Neither local data directory is migrated or deleted. Both intentionally use the same `~/.config/tooki/` portable settings, snippets and themes. Grant Accessibility to `Tooki Dev` once for its stable development signing identity. Production’s permission remains separate.

@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: help dev clean app dmg test install clean-builds size test-clipboard-native test-detective-native test-hyper-native test-preview-native
+.PHONY: help dev clean app dmg test install clean-builds size test-clipboard-native test-detective-native test-hyper-native test-preview-native test-instance-guard-native
 
 help: ## Show available commands
 	@awk 'BEGIN {FS = ":.*## "} /^[a-zA-Z_-]+:.*## / {printf "  %-24s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -24,7 +24,7 @@ test: ## Check the frontend and test the Rust and TypeScript features
 	cargo test --locked --manifest-path src-tauri/crates/shortcut-detective/Cargo.toml
 
 install: app ## Install the local build into Applications
-	ditto build/Tooki.app /Applications/Tooki.app
+	ditto "build/$(if $(filter debug,$(CONFIGURATION)),Tooki Dev,Tooki).app" "/Applications/$(if $(filter debug,$(CONFIGURATION)),Tooki Dev,Tooki).app"
 
 size: ## Show existing build sizes without rebuilding
 	@bun scripts/size.ts
@@ -43,3 +43,6 @@ test-hyper-native: ## Verify macOS Hyper Key mapping parsing
 
 test-preview-native: ## Verify native Quick Look ownership and navigation
 	@sh scripts/test-preview-native.sh
+
+test-instance-guard-native: ## Verify local dev/production session exclusion
+	@sh scripts/test-instance-guard-native.sh

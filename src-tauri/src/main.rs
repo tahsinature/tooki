@@ -9,6 +9,7 @@ mod extensions;
 mod filter_popup;
 mod general_settings;
 mod hyper;
+mod instance_guard;
 mod keep_awake;
 mod launcher_placement;
 mod launcher_presentation;
@@ -36,11 +37,22 @@ fn quit_app(app: tauri::AppHandle) {
 }
 
 fn main() {
+    let context = tauri::generate_context!();
+    // Waiting for the other app pumps AppKit events. Do this before creating
+    // webviews, so frontend IPC cannot run before managed services are ready.
+    let _instance_guard = match instance_guard::acquire(&context.config().identifier) {
+        Ok(guard) => guard,
+        Err(error) => {
+            eprintln!("Could not start Tooki: {error}");
+            return;
+        }
+    };
     tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, args, _| {
             if !args.iter().any(|arg| {
                 (arg.starts_with("tooki://")
-                    || arg.starts_with("tooki-preview://"))
+                    || arg.starts_with("tooki-preview://")
+                    || arg.starts_with("tooki-dev://"))
                     || arg == "--autostart"
             }) {
                 if app.get_webview_window("main").is_some() {
@@ -182,14 +194,15 @@ fn main() {
                 && !std::env::args().any(|arg| {
                     arg == "--autostart"
                         || (arg.starts_with("tooki://")
-                            || arg.starts_with("tooki-preview://"))
+                            || arg.starts_with("tooki-preview://")
+                            || arg.starts_with("tooki-dev://"))
                 })
             {
                 launcher_presentation::request(app.handle())?;
             }
             Ok(())
         })
-        .build(tauri::generate_context!())
+        .build(context)
         .expect("Could not start Tooki")
         .run(|app, event| match event {
             tauri::RunEvent::ExitRequested { .. } => launcher_placement::remember(app),

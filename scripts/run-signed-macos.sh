@@ -8,11 +8,11 @@ fi
 
 # Cargo also uses runners for tests and examples. Only sign the application.
 if [[ "$(basename "$1")" == tooki ]]; then
-  # Keep these defaults aligned with tauri.conf.json and tauri.macos.conf.json.
+  # Keep the identifier aligned with tauri.dev.conf.json.
   # Tauri's bundler supports the same identity override.
   identity="${APPLE_SIGNING_IDENTITY:-Tooki Dev Signing}"
   echo "Signing Tooki development executable with: $identity" >&2
-  codesign --force --sign "$identity" --identifier us.tahsin.tooki "$1"
+  codesign --force --sign "$identity" --identifier us.tahsin.tooki.dev "$1"
   codesign --verify --strict "$1"
 fi
 

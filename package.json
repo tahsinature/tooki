@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "bun --bun vite",
-    "desktop": "bun run tauri dev",
+    "desktop": "bun run tauri dev --config src-tauri/tauri.dev.conf.json",
     "build": "bun --bun vite build",
     "check": "bun --bun svelte-check --tsconfig ./tsconfig.json",
     "test": "bun test",

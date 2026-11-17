@@ -15,7 +15,7 @@ struct Command {
     copy: bool,
 }
 fn parse(url: &Url) -> Result<Command, String> {
-    if !["tooki", "tooki-preview"].contains(&url.scheme())
+    if !["tooki", "tooki-preview", "tooki-dev"].contains(&url.scheme())
         || url.host_str() != Some("shelf")
         || !url.username().is_empty()
         || url.password().is_some()

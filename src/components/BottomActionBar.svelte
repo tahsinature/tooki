@@ -1,10 +1,20 @@
 <script lang="ts">
-  import type { Component } from 'svelte';
+  import { onMount, type Component } from 'svelte';
+  import { getName } from '@tauri-apps/api/app';
+  import { isTauri } from '@tauri-apps/api/core';
   import appIcon from '../../src-tauri/icons/icon.png';
   import { placementState } from '../features/launcher/placement.svelte';
   import { ClipboardList, Settings, Grip } from '@lucide/svelte';
   import Keycap from './Keycap.svelte';
   import { shortcutLabels } from '../lib/shortcut';
+  let development = $state(false);
+  onMount(() => {
+    if (isTauri()) {
+      void getName()
+        .then((name) => (development = name === 'Tooki Dev'))
+        .catch(console.error);
+    }
+  });
   let {
     clipboard,
     toolIcon: ToolIcon = ClipboardList,
@@ -72,6 +82,7 @@
       <span class="brand-icon"
         ><img src={appIcon} alt="" width="20" height="20" /></span
       ><strong>Tooki</strong>
+      {#if development}<span class="dev-badge">DEV</span>{/if}
     </button>
   {/if}
   <span class="status" role="status">{status || placementState.error}</span>
@@ -102,3 +113,15 @@
     {/if}
   </div>
 </footer>
+
+<style>
+  .dev-badge {
+    padding: 2px 5px;
+    border: 1px solid currentColor;
+    border-radius: 4px;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    line-height: 1.2;
+  }
+</style>

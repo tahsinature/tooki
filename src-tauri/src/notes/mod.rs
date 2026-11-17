@@ -63,7 +63,7 @@ pub fn initialize(app: &AppHandle) -> Result<(), String> {
 }
 fn parse_link(url: &tauri::Url) -> Result<String, String> {
     let id = url.path().trim_start_matches('/');
-    if !["tooki", "tooki-preview"].contains(&url.scheme())
+    if !["tooki", "tooki-preview", "tooki-dev"].contains(&url.scheme())
         || url.host_str() != Some("notes")
         || !url.username().is_empty()
         || url.password().is_some()

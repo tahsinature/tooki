@@ -1,6 +1,7 @@
 fn main() {
     if std::env::var("CARGO_CFG_TARGET_OS").as_deref() == Ok("macos") {
         cc::Build::new()
+            .file("native/instance_guard.m")
             .file("native/permissions.m")
             .file("native/clipboard.m")
             .file("native/emoji.m")
@@ -37,6 +38,7 @@ fn main() {
         ] {
             println!("cargo:rustc-link-lib=framework={framework}");
         }
+        println!("cargo:rerun-if-changed=native/instance_guard.m");
         println!("cargo:rerun-if-changed=native/permissions.m");
         println!("cargo:rerun-if-changed=native/permissions.h");
         println!("cargo:rerun-if-changed=native/clipboard.m");

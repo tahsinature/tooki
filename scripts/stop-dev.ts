@@ -43,13 +43,19 @@ for (const entry of snapshot) {
     /(?:\bvite\b|\btauri(?:\.js)?\s+dev\b|\bcargo\s+run\b|\bbun\s+run\s+(?:desktop|dev|tauri)\b)/.test(
       entry.command,
     );
-  const binary = /(?:^|\/)target\/debug\/tooki(?:\s|$)/.test(
-    entry.command,
-  );
+  const binary = /(?:^|\/)target\/debug\/tooki(?:\s|$)/.test(entry.command);
+  const bundle = [
+    resolve(root, 'build/Tooki Dev.app/Contents/MacOS/tooki'),
+    resolve(
+      root,
+      'src-tauri/target/debug/bundle/macos/Tooki Dev.app/Contents/MacOS/tooki',
+    ),
+    '/Applications/Tooki Dev.app/Contents/MacOS/tooki',
+  ].includes(entry.command);
   const verification =
-    entry.command ===
-    '/private/tmp/Tooki.app/Contents/MacOS/tooki';
+    entry.command === '/private/tmp/Tooki.app/Contents/MacOS/tooki';
   if (
+    bundle ||
     verification ||
     ((binary || (runner && dev)) &&
       [root, resolve(root, 'src-tauri')].includes(cwd(entry.pid)))
