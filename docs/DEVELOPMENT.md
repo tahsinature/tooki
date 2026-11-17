@@ -44,6 +44,6 @@ Also verify Root Search, settings, shared menus, Escape, completed-action dismis
 
 ## Data
 
-The production bundle identifier is `us.tahsin.tooki`. Tauri data belongs to its application-data/config directories. The old preview identifier was `us.tahsin.tooki.preview`. The Swift app's existing config and Application Support files remain untouched; no automatic Swift data migration is included. Shelferry owns its own shelf windows and storage.
+The production bundle identifier is `us.tahsin.tooki`. Portable settings, shortcuts, themes and snippets live in `~/.config/tooki/`; machine-specific data stays in Tauri's application-data/config directories. See [Portable configuration](PORTABLE_CONFIGURATION.md) for migration and sync behavior. The old preview identifier was `us.tahsin.tooki.preview`. Original Swift files remain untouched; the Swift snippet library is copied once into the new format. Shelferry owns its own shelf windows and storage.
 
 See [MIGRATION.md](MIGRATION.md), [SNIPPETS_DESKTOP.md](SNIPPETS_DESKTOP.md), and [RELEASING.md](RELEASING.md).

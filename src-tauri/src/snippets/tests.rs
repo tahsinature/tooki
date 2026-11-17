@@ -1,4 +1,4 @@
-use super::{engine::*, model::*, storage::Storage};
+use super::{engine::*, legacy::Storage, model::*};
 use std::collections::BTreeMap;
 
 fn snippet() -> Record {

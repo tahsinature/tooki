@@ -2,6 +2,7 @@ mod commands;
 mod database;
 mod model;
 pub(crate) mod native;
+pub mod preferences;
 pub use commands::*;
 use database::Database;
 use model::{Capture, Settings};
@@ -26,11 +27,12 @@ pub fn start(app: &tauri::AppHandle) -> Result<(), String> {
         std::fs::set_permissions(&root, std::fs::Permissions::from_mode(0o700))
             .map_err(|e| e.to_string())?;
     }
-    let settings: Settings = match std::fs::read(root.join("settings.json")) {
-        Ok(bytes) => serde_json::from_slice(&bytes)
-            .map_err(|e| format!("Invalid clipboard settings: {e}"))?,
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Settings::default(),
-        Err(e) => return Err(e.to_string()),
+    let settings = match preferences::load(app) {
+        Ok(settings) => settings,
+        Err(error) => {
+            eprintln!("Clipboard settings: {error}");
+            preferences::local_settings(app)?
+        }
     };
     settings.validate()?;
     if !settings.persist_history {

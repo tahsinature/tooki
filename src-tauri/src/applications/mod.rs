@@ -1,4 +1,5 @@
 pub mod actions;
+mod identity;
 #[cfg(any(target_os = "linux", test))]
 #[allow(dead_code)]
 mod linux;
@@ -24,6 +25,8 @@ use windows as platform;
 pub struct Application {
     pub id: String,
     pub name: String,
+    #[serde(default)]
+    pub bundle_id: Option<String>,
     #[serde(default)]
     pub icon: Option<String>,
 }
@@ -53,6 +56,12 @@ pub fn refresh(app: &tauri::AppHandle) {
                     *cached = apps.clone();
                 }
                 let _ = app.emit("applications-changed", apps);
+                let handle = app.clone();
+                let _ = app.run_on_main_thread(move || {
+                    if let Err(error) = preferences::reload(&handle) {
+                        eprintln!("Shortcut reload: {error}");
+                    }
+                });
             }
             Err(error) => {
                 let _ = app.emit("applications-error", error);

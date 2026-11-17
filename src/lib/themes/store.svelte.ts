@@ -1,6 +1,13 @@
 import { parseTheme, presets, themeVariables, type Theme } from './theme';
 import { invoke, isTauri } from '@tauri-apps/api/core';
+import { observePortableConfig } from '../portableConfig';
 const key = 'tooki-preview-themes-v1';
+const rawThemes = new Map<string, unknown>();
+export function themeSource(id: string) {
+  return (
+    rawThemes.get(id) ?? themeState.custom.find((t) => t.id === id) ?? null
+  );
+}
 export const themeState = $state({
   selected: 'graphite',
   custom: [] as Theme[],
@@ -14,7 +21,7 @@ export function activeTheme() {
     allThemes().find((theme) => theme.id === themeState.selected) ?? presets[0]
   );
 }
-export function saveEditedTheme(source: Theme) {
+export async function saveEditedTheme(source: Theme, expected?: unknown) {
   const theme = parseTheme(JSON.stringify(source));
   if (presets.some((preset) => preset.id === theme.id))
     throw new Error('Built-in themes must be saved as a copy.');
@@ -24,7 +31,16 @@ export function saveEditedTheme(source: Theme) {
   const custom = exists
     ? themeState.custom.map((item) => (item.id === theme.id ? theme : item))
     : [...themeState.custom, theme];
-  localStorage.setItem(key, JSON.stringify({ selected: theme.id, custom }));
+  if (isTauri()) {
+    await invoke('write_portable_theme', {
+      id: theme.id,
+      theme,
+      expected: expected ?? null,
+    });
+    await invoke('select_portable_theme', { id: theme.id });
+  } else
+    localStorage.setItem(key, JSON.stringify({ selected: theme.id, custom }));
+  rawThemes.set(theme.id, theme);
   themeState.custom = custom;
   themeState.selected = theme.id;
   themeState.storageError = '';
@@ -56,27 +72,30 @@ export function applyTheme() {
     });
   }
 }
-function save() {
+async function save() {
   applyTheme();
   try {
-    localStorage.setItem(
-      key,
-      JSON.stringify({
-        selected: themeState.selected,
-        custom: themeState.custom,
-      }),
-    );
+    if (isTauri())
+      await invoke('select_portable_theme', { id: themeState.selected });
+    else
+      localStorage.setItem(
+        key,
+        JSON.stringify({
+          selected: themeState.selected,
+          custom: themeState.custom,
+        }),
+      );
     themeState.storageError = '';
   } catch {
     themeState.storageError =
       'Changes apply now, but could not be saved on this device.';
   }
 }
-export function selectTheme(id: string) {
+export async function selectTheme(id: string) {
   themeState.selected = id;
-  save();
+  await save();
 }
-export function importTheme(source: string) {
+export async function importTheme(source: string) {
   const theme = parseTheme(source);
   if (presets.some((preset) => preset.id === theme.id))
     throw new Error('Choose a new id to customize a built-in theme.');
@@ -86,23 +105,43 @@ export function importTheme(source: string) {
     throw new Error(
       'Remove an imported theme before adding another (limit 50).',
     );
-  themeState.custom = [...themeState.custom, theme];
-  selectTheme(theme.id);
+  await saveEditedTheme(theme);
 }
-export function removeTheme(id: string) {
-  themeState.custom = themeState.custom.filter((theme) => theme.id !== id);
-  if (themeState.selected === id) themeState.selected = 'graphite';
-  save();
-}
-function loadThemes() {
+export async function removeTheme(id: string) {
   try {
-    const saved = JSON.parse(localStorage.getItem(key) ?? 'null');
+    if (isTauri())
+      await invoke('write_portable_theme', {
+        id,
+        theme: null,
+        expected: themeSource(id),
+      });
+    themeState.custom = themeState.custom.filter((theme) => theme.id !== id);
+    if (themeState.selected === id) themeState.selected = 'graphite';
+    await save();
+  } catch (error) {
+    themeState.storageError = String(error);
+  }
+}
+async function loadThemes() {
+  try {
+    const legacy = JSON.parse(localStorage.getItem(key) ?? 'null');
+    const saved = isTauri()
+      ? await invoke<{ selected: string; custom: unknown[] }>(
+          'portable_themes',
+          { legacy },
+        )
+      : legacy;
     if (saved) {
       const custom = Array.isArray(saved.custom)
         ? saved.custom
             .slice(0, 50)
             .map((theme: unknown) => parseTheme(JSON.stringify(theme)))
         : [];
+      rawThemes.clear();
+      for (const theme of saved.custom ?? []) {
+        if (theme && typeof theme === 'object' && 'id' in theme)
+          rawThemes.set(String(theme.id), theme);
+      }
       themeState.custom = custom.filter(
         (theme: Theme, index: number) =>
           !presets.some((preset) => preset.id === theme.id) &&
@@ -111,21 +150,14 @@ function loadThemes() {
       if (typeof saved.selected === 'string')
         themeState.selected = saved.selected;
     }
-  } catch {
-    themeState.storageError =
-      'Saved themes could not be loaded. Using Graphite.';
+    themeState.storageError = '';
+  } catch (error) {
+    themeState.storageError = String(error);
   }
   applyTheme();
 }
 export function initializeThemes() {
-  loadThemes();
-  const changed = (event: StorageEvent) => {
-    if (event.key === key || event.key === null) loadThemes();
-  };
-  window.addEventListener('storage', changed);
-  window.addEventListener('focus', loadThemes);
-  return () => {
-    window.removeEventListener('storage', changed);
-    window.removeEventListener('focus', loadThemes);
-  };
+  return observePortableConfig(loadThemes, (error) => {
+    themeState.storageError = error;
+  });
 }

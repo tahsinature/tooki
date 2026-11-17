@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use std::{fs, sync::Mutex};
+use std::sync::Mutex;
 use tauri::{
     menu::{Menu, MenuItem},
     tray::TrayIconBuilder,
@@ -25,24 +25,8 @@ pub struct Status {
     show_tray: bool,
 }
 
-fn path(app: &tauri::AppHandle) -> Result<std::path::PathBuf, String> {
-    Ok(app
-        .path()
-        .app_config_dir()
-        .map_err(|e| e.to_string())?
-        .join("general-settings.json"))
-}
 fn save(app: &tauri::AppHandle, value: &Preferences) -> Result<(), String> {
-    let path = path(app)?;
-    fs::create_dir_all(path.parent().ok_or("Missing settings directory")?)
-        .map_err(|e| e.to_string())?;
-    let temporary = path.with_extension("tmp");
-    fs::write(
-        &temporary,
-        serde_json::to_vec(value).map_err(|e| e.to_string())?,
-    )
-    .map_err(|e| e.to_string())?;
-    fs::rename(temporary, path).map_err(|e| e.to_string())
+    crate::config::save(app, "general", value)
 }
 fn set_tray(app: &tauri::AppHandle, visible: bool) -> Result<(), String> {
     if !visible {
@@ -96,11 +80,14 @@ fn set_tray(app: &tauri::AppHandle, visible: bool) -> Result<(), String> {
 }
 pub fn initialize(app: &tauri::AppHandle) {
     let result = (|| -> Result<(), String> {
-        let value = match fs::read(path(app)?) {
-            Ok(bytes) => serde_json::from_slice(&bytes).map_err(|e| e.to_string())?,
-            Err(e) if e.kind() == std::io::ErrorKind::NotFound => Preferences::default(),
-            Err(e) => return Err(e.to_string()),
-        };
+        let config = crate::config::get(app);
+        config.migrate(
+            "settings.json",
+            "general",
+            config.legacy_json::<Preferences>("general-settings.json")?,
+            Preferences::default(),
+        )?;
+        let value: Preferences = crate::config::read(app, "general")?;
         *app.state::<GeneralSettings>()
             .0
             .lock()

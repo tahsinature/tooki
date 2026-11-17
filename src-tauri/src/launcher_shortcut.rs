@@ -45,24 +45,46 @@ fn register_key(app: &AppHandle, value: &str) -> Result<(), String> {
 }
 
 fn save(app: &AppHandle, value: &str) -> Result<(), String> {
-    let directory = app.path().app_config_dir().map_err(|e| e.to_string())?;
-    fs::create_dir_all(&directory).map_err(|e| e.to_string())?;
-    let temporary = directory.join("launcher-shortcut.tmp");
-    fs::write(&temporary, value).map_err(|e| e.to_string())?;
-    fs::rename(temporary, directory.join("launcher-shortcut.txt")).map_err(|e| e.to_string())
+    crate::config::get(app).set("shortcuts.json", "launcher", &value)
 }
-
 pub fn register(app: &AppHandle) {
-    let saved = app
-        .path()
-        .app_config_dir()
-        .ok()
-        .and_then(|dir| fs::read_to_string(dir.join("launcher-shortcut.txt")).ok());
-    let value = saved.as_deref().unwrap_or(DEFAULT).trim();
-    match register_key(app, value) {
-        Ok(()) => *app.state::<LauncherShortcut>().active.lock().unwrap() = Some(value.into()),
-        Err(error) => eprintln!("{error}"),
+    let result = (|| -> Result<(), String> {
+        let config = crate::config::get(app);
+        let old = fs::read_to_string(config.legacy.join("launcher-shortcut.txt"))
+            .unwrap_or_else(|_| DEFAULT.into());
+        config.migrate(
+            "shortcuts.json",
+            "launcher",
+            old.trim().to_string(),
+            DEFAULT.to_string(),
+        )?;
+        reload(app)
+    })();
+    if let Err(error) = result {
+        eprintln!("{error}");
     }
+}
+pub fn reload(app: &AppHandle) -> Result<(), String> {
+    let value: String =
+        crate::config::get(app).read("shortcuts.json", "launcher", DEFAULT.into())?;
+    let state = app.state::<LauncherShortcut>();
+    let mut active = state.active.lock().map_err(|e| e.to_string())?;
+    let parsed: Shortcut = value
+        .parse()
+        .map_err(|e| format!("Invalid launcher shortcut: {e}"))?;
+    if active.as_deref().and_then(|v| v.parse::<Shortcut>().ok()) == Some(parsed) {
+        return Ok(());
+    }
+    register_key(app, &value)?;
+    if let Some(old) = active.as_deref() {
+        if let Err(e) = app.global_shortcut().unregister(old) {
+            let _ = app.global_shortcut().unregister(value.as_str());
+            return Err(e.to_string());
+        }
+    }
+    *active = Some(value.clone());
+    let _ = app.emit("launcher-shortcut-changed", &value);
+    Ok(())
 }
 
 #[tauri::command]
@@ -91,6 +113,7 @@ pub fn set_launcher_shortcut(
         .map_err(|e| format!("Invalid shortcut: {e}"))?;
     let mut active = state.active.lock().map_err(|e| e.to_string())?;
     if active.as_deref().and_then(|v| v.parse::<Shortcut>().ok()) == Some(parsed) {
+        save(&app, &shortcut)?;
         return Ok(active.clone().unwrap());
     }
     register_key(&app, &shortcut)?;

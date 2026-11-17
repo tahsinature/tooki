@@ -1,6 +1,8 @@
 mod automatic;
 pub mod commands;
 mod engine;
+mod legacy;
+mod migration;
 mod model;
 mod native;
 mod runner;
@@ -48,19 +50,15 @@ pub struct Snippets {
 }
 pub fn initialize(app: &tauri::AppHandle) {
     let store = (|| {
-        let directory = app
-            .path()
-            .app_data_dir()
-            .map_err(|e| e.to_string())?
-            .join("snippets");
-        std::fs::create_dir_all(&directory).map_err(|e| e.to_string())?;
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::PermissionsExt;
-            std::fs::set_permissions(&directory, std::fs::Permissions::from_mode(0o700))
-                .map_err(|e| e.to_string())?;
+        let config = crate::config::get(app);
+        let mut store = storage::Storage::open(&config.root, &config.legacy, config.import_legacy)?;
+        let source = config.root.join("snippets.json");
+        let imported: bool = config.read("settings.json", "swiftSnippetsImported", false)?;
+        if source.exists() && !imported {
+            migration::import_swift(&config.root, &source, &mut store)?;
+            config.set("settings.json", "swiftSnippetsImported", &true)?;
         }
-        storage::Storage::open(&directory.join("snippets.sqlite3"))
+        Ok::<_, String>(store)
     })();
     app.manage(Snippets {
         store: Mutex::new(store),

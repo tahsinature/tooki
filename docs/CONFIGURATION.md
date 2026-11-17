@@ -1,5 +1,7 @@
 # Using and configuring Tooki
 
+This guide describes the archived Swift implementation. For the current Rust/Tauri app's settings storage and migration, see [Portable configuration](PORTABLE_CONFIGURATION.md).
+
 ## Permissions
 
 Tooki needs **Accessibility** (System Settings → Privacy & Security → Accessibility) for the Hyper key, snippet keywords and pasting. Until it is granted, Caps Lock is left alone and those features stay off. Tooki picks up the grant automatically within a couple of seconds.

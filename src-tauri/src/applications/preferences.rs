@@ -1,26 +1,29 @@
 use serde::{Deserialize, Serialize};
-use std::{collections::BTreeMap, fs, sync::Mutex};
+use std::{collections::BTreeMap, sync::Mutex};
 use tauri::{Emitter, Manager};
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
-#[derive(Clone, Default, Serialize, Deserialize)]
+#[derive(Clone, Default, Serialize, Deserialize, PartialEq)]
 pub struct Preference {
     pub favorite: bool,
     pub alias: String,
     pub shortcut: String,
-    #[serde(skip_deserializing, default)]
+    #[serde(skip, default)]
     pub shortcut_error: String,
 }
 #[derive(Default)]
 pub struct Preferences(pub Mutex<BTreeMap<String, Preference>>);
-fn save(app: &tauri::AppHandle, values: &BTreeMap<String, Preference>) -> Result<(), String> {
-    let directory = app.path().app_config_dir().map_err(|e| e.to_string())?;
-    fs::create_dir_all(&directory).map_err(|e| e.to_string())?;
-    let path = directory.join("application-preferences.json");
-    // Keep an existing file intact if serialization or writing fails.
-    let content = serde_json::to_vec(values).map_err(|e| e.to_string())?;
-    let temporary = directory.join("application-preferences.tmp");
-    fs::write(&temporary, content).map_err(|e| e.to_string())?;
-    fs::rename(temporary, path).map_err(|e| e.to_string())
+fn save_one(app: &tauri::AppHandle, id: &str, value: &Preference) -> Result<(), String> {
+    let key = super::identity::storage_key(app, id);
+    crate::config::get(app).update("shortcuts.json", |doc| {
+        if doc.get("assignments").is_none() {
+            doc["assignments"] = serde_json::json!({});
+        }
+        let assignments = doc["assignments"]
+            .as_object_mut()
+            .ok_or("shortcuts.json/assignments must be an object")?;
+        assignments.insert(key, serde_json::to_value(value).map_err(|e| e.to_string())?);
+        Ok(())
+    })
 }
 fn register(app: &tauri::AppHandle, id: &str, shortcut: &str) -> Result<(), String> {
     if crate::tool_commands::find(id).is_some() && !crate::tool_commands::enabled(app, id) {
@@ -71,24 +74,76 @@ fn register(app: &tauri::AppHandle, id: &str, shortcut: &str) -> Result<(), Stri
         .map_err(|e| format!("Shortcut is unavailable or already assigned: {e}"))
 }
 pub fn initialize(app: &tauri::AppHandle) {
-    let result = app
-        .path()
-        .app_config_dir()
-        .ok()
-        .and_then(|dir| fs::read(dir.join("application-preferences.json")).ok());
-    let Some(bytes) = result else {
-        return;
-    };
-    let Ok(mut values) = serde_json::from_slice::<BTreeMap<String, Preference>>(&bytes) else {
-        eprintln!("Could not read application preferences");
-        return;
-    };
-    for (id, value) in &mut values {
+    let result = (|| -> Result<(), String> {
+        let config = crate::config::get(app);
+        let old =
+            config.legacy_json::<BTreeMap<String, Preference>>("application-preferences.json")?;
+        let portable: BTreeMap<_, _> = old
+            .into_iter()
+            .map(|(id, value)| (super::identity::storage_key(app, &id), value))
+            .collect();
+        config.migrate(
+            "shortcuts.json",
+            "assignments",
+            portable,
+            BTreeMap::<String, Preference>::new(),
+        )?;
+        reload(app)
+    })();
+    if let Err(error) = result {
+        eprintln!("Shortcut configuration: {error}");
+    }
+}
+pub fn reload(app: &tauri::AppHandle) -> Result<(), String> {
+    let stored: BTreeMap<String, Preference> =
+        crate::config::get(app).read("shortcuts.json", "assignments", BTreeMap::new())?;
+    let mut next: BTreeMap<String, Preference> = stored
+        .into_iter()
+        .map(|(key, preference)| (super::identity::runtime_id(app, &key), preference))
+        .collect();
+    let state = app.state::<Preferences>();
+    let mut current = state.0.lock().map_err(|e| e.to_string())?;
+    // Validate before releasing any existing registrations.
+    for value in next.values() {
+        if value.alias.len() > 80 {
+            return Err("Shortcut alias exceeds 80 characters".into());
+        }
         if !value.shortcut.is_empty() {
-            value.shortcut_error = register(app, id, &value.shortcut).err().unwrap_or_default();
+            value
+                .shortcut
+                .parse::<Shortcut>()
+                .map_err(|e| e.to_string())?;
         }
     }
-    *app.state::<Preferences>().0.lock().unwrap() = values;
+    for (id, old) in current.iter() {
+        if next.get(id).is_none_or(|v| v.shortcut != old.shortcut)
+            && !old.shortcut.is_empty()
+            && old.shortcut_error.is_empty()
+        {
+            app.global_shortcut()
+                .unregister(old.shortcut.as_str())
+                .map_err(|e| e.to_string())?;
+        }
+    }
+    for (id, value) in &mut next {
+        if let Some(old) = current
+            .get(id)
+            .filter(|old| old.shortcut == value.shortcut && old.shortcut_error.is_empty())
+        {
+            value.shortcut_error = old.shortcut_error.clone();
+        } else if !value.shortcut.is_empty() {
+            value.shortcut_error = if id.starts_with("bundle:") {
+                "Application is not installed on this computer. Assignment is saved.".into()
+            } else {
+                register(app, id, &value.shortcut).err().unwrap_or_default()
+            };
+        }
+    }
+    if *current != next {
+        *current = next;
+        let _ = app.emit("application-preferences-changed", &*current);
+    }
+    Ok(())
 }
 #[tauri::command]
 pub fn application_preferences(
@@ -162,8 +217,8 @@ pub fn update_application_preference(
             String::new()
         };
     }
-    updated.insert(id, next.clone());
-    if let Err(error) = save(&app, &updated) {
+    updated.insert(id.clone(), next.clone());
+    if let Err(error) = save_one(&app, &id, &next) {
         if changed && enabled && !next.shortcut.is_empty() {
             let _ = app.global_shortcut().unregister(next.shortcut.as_str());
         }
@@ -174,7 +229,7 @@ pub fn update_application_preference(
             if !next.shortcut.is_empty() {
                 let _ = app.global_shortcut().unregister(next.shortcut.as_str());
             }
-            let _ = save(&app, &values);
+            let _ = save_one(&app, &id, &old);
             return Err(format!("Could not replace shortcut: {error}"));
         }
     }

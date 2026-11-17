@@ -118,6 +118,12 @@ pub fn set_keep_awake_icon(app: tauri::AppHandle, visible: bool) -> Result<(), S
     Ok(())
 }
 
+pub fn reload_preferences(app: &tauri::AppHandle) -> Result<(), String> {
+    *app.state::<KeepAwake>().1.lock().unwrap() = preferences::load(app)?;
+    tray::sync(app);
+    Ok(())
+}
+
 pub fn initialize(app: &tauri::AppHandle) {
     match preferences::load(app) {
         Ok(preferences) => *app.state::<KeepAwake>().1.lock().unwrap() = preferences,

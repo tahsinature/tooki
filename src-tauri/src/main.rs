@@ -3,6 +3,7 @@ mod activity_log;
 mod app_menu;
 mod applications;
 mod clipboard;
+mod config;
 mod emoji;
 mod extensions;
 mod filter_popup;
@@ -68,6 +69,11 @@ fn main() {
         .manage(keep_awake::KeepAwake::default())
         .invoke_handler(tauri::generate_handler![
             quit_app,
+            config::portable_preferences,
+            config::set_portable_preference,
+            config::portable_themes,
+            config::select_portable_theme,
+            config::write_portable_theme,
             emoji::emoji_request,
             system_monitor::system_monitor_snapshot,
             system_monitor::open_activity_monitor,
@@ -149,6 +155,7 @@ fn main() {
         .setup(|app| {
             #[cfg(target_os = "macos")]
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
+            config::initialize(app.handle())?;
             general_settings::initialize(app.handle());
             keep_awake::initialize(app.handle());
             applications::refresh(app.handle());
@@ -163,6 +170,7 @@ fn main() {
             launcher_placement::restore(app.handle());
             launcher_shortcut::register(app.handle());
             applications::preferences::initialize(app.handle());
+            config::start_watching(app.handle());
             if !std::env::args().any(|arg| {
                 arg == "--autostart"
                     || (arg.starts_with("tooki://") || arg.starts_with("tooki-preview://"))

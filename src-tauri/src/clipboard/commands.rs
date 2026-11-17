@@ -88,17 +88,10 @@ fn request(app: &AppHandle, operation: &str, args: Value) -> Result<Value, Strin
             next.validate()?;
             let mut settings = state.settings.lock().map_err(|e| e.to_string())?;
             let mut db = state.database.lock().map_err(|e| e.to_string())?;
-            let path = db.root.join("settings.json");
-            let temp = db.root.join("settings.tmp");
-            std::fs::write(
-                &temp,
-                serde_json::to_vec_pretty(&next).map_err(|e| e.to_string())?,
-            )
-            .map_err(|e| e.to_string())?;
             if next.persist_history != settings.persist_history {
                 db.set_persistence(next.persist_history)?;
             }
-            if let Err(error) = std::fs::rename(temp, path) {
+            if let Err(error) = super::preferences::save(app, &next) {
                 if next.persist_history != settings.persist_history {
                     db.set_persistence(settings.persist_history)?;
                 }

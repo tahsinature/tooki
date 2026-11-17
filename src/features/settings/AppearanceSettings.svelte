@@ -34,9 +34,9 @@
     error = '';
     editor = true;
   }
-  function importPasted() {
+  async function importPasted() {
     try {
-      importTheme(source);
+      await importTheme(source);
       editor = false;
       message = 'Theme imported and applied.';
     } catch (cause) {

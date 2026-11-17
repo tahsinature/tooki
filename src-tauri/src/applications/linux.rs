@@ -72,6 +72,7 @@ fn collect(
             if let Ok(source) = std::fs::read_to_string(&path) {
                 if let Some(name) = entry(&source, desktop) {
                     apps.push(Application {
+                        bundle_id: None,
                         id: path.to_string_lossy().into_owned(),
                         name,
                         icon: None,

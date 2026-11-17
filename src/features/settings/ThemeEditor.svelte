@@ -5,8 +5,14 @@
   import ThemePreview from './ThemePreview.svelte';
   import DimensionControl from '../../components/DimensionControl.svelte';
   import { colorTokens, presets, type Theme } from '../../lib/themes/theme';
-  import { allThemes, saveEditedTheme } from '../../lib/themes/store.svelte';
+  import {
+    allThemes,
+    saveEditedTheme,
+    themeSource,
+  } from '../../lib/themes/store.svelte';
   let { theme, onclose }: { theme: Theme; onclose: () => void } = $props();
+  const original: unknown = (() =>
+    JSON.parse(JSON.stringify(themeSource(theme.id))))();
   const copying = presets.some((item) => item.id === theme.id);
   function createDraft() {
     const copy: Theme = JSON.parse(JSON.stringify(theme));
@@ -44,9 +50,9 @@
     danger: 'Destructive actions',
     selectionMark: 'Selection indicator',
   };
-  function save() {
+  async function save() {
     try {
-      saveEditedTheme(draft);
+      await saveEditedTheme(draft, copying ? undefined : original);
       onclose();
     } catch (cause) {
       error = cause instanceof Error ? cause.message : 'Could not save theme.';

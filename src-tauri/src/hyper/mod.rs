@@ -26,9 +26,16 @@ pub fn initialize(app: &tauri::AppHandle) {
         permission_required: adapter::permission_required(false),
         ..Default::default()
     };
-    match directory(app)
-        .and_then(|path| path.join("enabled").try_exists().map_err(|e| e.to_string()))
-    {
+    match (|| -> Result<bool, String> {
+        let config = crate::config::get(app);
+        config.migrate(
+            "settings.json",
+            "hyperEnabled",
+            directory(app)?.join("enabled").exists(),
+            false,
+        )?;
+        crate::config::read(app, "hyperEnabled")
+    })() {
         Ok(enabled) => {
             state.enabled = enabled;
             state.apply(
@@ -98,17 +105,7 @@ pub async fn hyper_request(
             let mut state = hyper.0.lock().map_err(|e| e.to_string())?;
             if operation == "set" {
                 let enabled = enabled.unwrap();
-                let path = directory(&handle)?.join("enabled");
-                // Persist intent first. A permission failure must not erase it.
-                if enabled {
-                    fs::write(&path, b"enabled").map_err(|e| e.to_string())?;
-                } else {
-                    match fs::remove_file(&path) {
-                        Ok(()) => (),
-                        Err(e) if e.kind() == std::io::ErrorKind::NotFound => (),
-                        Err(e) => return Err(e.to_string()),
-                    }
-                }
+                crate::config::save(&handle, "hyperEnabled", &enabled)?;
                 state.enabled = enabled;
             }
             let was_blocked = state.permission_required;
@@ -147,4 +144,17 @@ pub async fn hyper_request(
         .await
         .map_err(|e| e.to_string())?
         .map_err(|e| e.to_string())?
+}
+
+pub fn reload_preferences(app: &tauri::AppHandle) -> Result<(), String> {
+    let enabled: bool = crate::config::read(app, "hyperEnabled")?;
+    let state = app.state::<Hyper>();
+    let mut current = state.0.lock().map_err(|e| e.to_string())?;
+    if current.enabled != enabled {
+        current.enabled = enabled;
+        current.permission_required = adapter::permission_required(false);
+        current.apply(|enabled| apply(app, enabled), adapter::active);
+        let _ = app.emit("hyper-changed", ());
+    }
+    Ok(())
 }

@@ -98,7 +98,17 @@ pub fn initialize(app: &tauri::AppHandle) {
             Err(e) => Err(e.to_string()),
         }
     };
-    match load() {
+    match load().and_then(|mut preferences| {
+        let config = crate::config::get(app);
+        config.migrate(
+            "settings.json",
+            "shelferryEnabled",
+            preferences.enabled,
+            true,
+        )?;
+        preferences.enabled = config.read("settings.json", "shelferryEnabled", true)?;
+        Ok(preferences)
+    }) {
         Ok(preferences) => *state.preferences.lock().unwrap() = preferences,
         Err(error) => *state.configuration_error.lock().unwrap() = Some(error),
     }
@@ -135,6 +145,7 @@ pub async fn configure_shelferry(
     })
     .await
     .map_err(|e| e.to_string())??;
+    crate::config::save(&app, "shelferryEnabled", &preferences.enabled)?;
     *state.preferences.lock().unwrap() = preferences;
     *state.configuration_error.lock().unwrap() = None;
     refresh(&app);
@@ -166,4 +177,16 @@ pub async fn execute(app: &tauri::AppHandle, id: &str) -> Result<(), String> {
         .ok_or_else(|| current.reason.unwrap_or_default())?;
     cli::run(&path, operation).await?;
     crate::launcher_presentation::dismiss_launcher(app.clone())
+}
+
+pub fn reload_preferences(app: &tauri::AppHandle) -> Result<(), String> {
+    let enabled = crate::config::get(app).read("settings.json", "shelferryEnabled", true)?;
+    let state = app.state::<Shelferry>();
+    let mut current = state.preferences.lock().unwrap();
+    if current.enabled != enabled {
+        current.enabled = enabled;
+        drop(current);
+        refresh(app);
+    }
+    Ok(())
 }

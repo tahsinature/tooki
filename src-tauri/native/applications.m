@@ -15,6 +15,8 @@ static void collectApplications(NSURL *folder, NSInteger depth, NSMutableArray *
             [NSGraphicsContext restoreGraphicsState];
             NSData *png = [bitmap representationUsingType:NSBitmapImageFileTypePNG properties:@{}];
             NSMutableDictionary *entry = [@{@"id":url.path, @"name":name} mutableCopy];
+            NSString *bundleID = [NSBundle bundleWithURL:url].bundleIdentifier;
+            if (bundleID) entry[@"bundle_id"] = bundleID;
             if (png) entry[@"icon"] = [@"data:image/png;base64," stringByAppendingString:[png base64EncodedStringWithOptions:0]];
             [result addObject:entry];
         } else if (depth > 1) {
@@ -50,5 +52,12 @@ char *tooki_application_trash(const char *path) {
                 return strdup(error.localizedDescription.UTF8String ?: "Could not move application to Trash.");
             return NULL;
         } @catch (NSException *exception) { return strdup("Could not move application to Trash."); }
+    }
+}
+
+char *tooki_application_bundle_id(const char *path) {
+    @autoreleasepool {
+        NSString *identifier = [NSBundle bundleWithPath:[NSString stringWithUTF8String:path]].bundleIdentifier;
+        return identifier.length ? strdup(identifier.UTF8String) : NULL;
     }
 }

@@ -347,6 +347,9 @@
     </header>
     <div class="settings-content">
       <div class="settings-content-body">
+        {#if preferences.error}<p class="error-message" role="alert">
+            {preferences.error}
+          </p>{/if}
         {#if !matches.length}<EmptyState
             title="No matching settings"
             description="Try searching for themes, clipboard, or appearance."
@@ -397,7 +400,6 @@
             >
           </SettingsSection>
           <ClipboardSettings />
-          <p class="settings-message" role="status">{preferences.error}</p>
         {:else}
           <div class="about-identity">
             <span class="settings-app-icon"><Command size={32} /></span>

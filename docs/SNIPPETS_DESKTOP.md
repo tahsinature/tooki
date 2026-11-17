@@ -39,9 +39,9 @@ Launcher Copy and Paste use the exact prepared preview. Paste captures the previ
 
 ## Storage and extension boundary
 
-The desktop app owns `snippets/snippets.sqlite3` in its Tauri application-data directory. Existing Swift Tooki snippets are not imported, migrated, edited, or deleted.
+The desktop app stores one record per file in `~/.config/tooki/snippets/`. Existing Rust SQLite records and Swift `snippets.json` entries are copied on initial migration, retaining both originals. Unsupported Swift features are preserved as disabled entries with review notes. See [Portable configuration](PORTABLE_CONFIGURATION.md).
 
-Definitions and personal configuration have separate database tables and types:
+Each record separates definitions and personal configuration:
 
 - **Definition:** schema version, stable ID, name, description, collection, snippet kind, template, input schema, required capabilities.
 - **Personal configuration:** trigger, enablement, expansion mode, defaults, choice rows and results, saved values.
@@ -51,7 +51,7 @@ This separation supports a future community catalogue without automatically publ
 
 The Rust evaluator is pure and bounded. The command service already prepares a result asynchronously before execution, retaining a short-lived ticket so output is not re-evaluated at Copy/Paste time. Future providers can be added at that boundary with explicit capability and credential handling. Unsupported schema versions, unknown fields/operations, and network/script capabilities currently fail validation. HTTP requests, weather providers, arbitrary scripts, and shell execution are deliberately outside this version.
 
-Saves are transactional and use revisions to reject stale edits. Duplicate triggers and ambiguous instant prefixes are rejected. The backend is split into model/validation, engine, storage, commands, prepared-result execution, and native expansion. Settings and the launcher share the input and preview components.
+Individual saves are atomic and use content fingerprints to reject stale edits. Duplicate triggers and ambiguous instant prefixes are rejected. The backend is split into model/validation, engine, storage, commands, prepared-result execution, and native expansion. Settings and the launcher share the input and preview components.
 
 ## Verification
 
