@@ -1,6 +1,7 @@
 use super::{
     geometry::{self, Point},
-    work,
+    sizing::Size,
+    work, Placement,
 };
 use serde::{Deserialize, Serialize};
 use tauri::{LogicalPosition, Manager, WebviewWindow};
@@ -9,6 +10,8 @@ struct Saved {
     monitor: Option<String>,
     x: f64,
     y: f64,
+    #[serde(default)]
+    size: Size,
 }
 fn path(window: &WebviewWindow) -> Result<std::path::PathBuf, String> {
     let dir = window
@@ -30,6 +33,12 @@ pub fn save(window: &WebviewWindow) -> Result<(), String> {
         monitor: m.name().cloned(),
         x: (pos.x - w.x) / w.width,
         y: (pos.y - w.y) / w.height,
+        size: window
+            .state::<Placement>()
+            .sizing
+            .lock()
+            .map_err(|e| e.to_string())?
+            .preferred,
     };
     let path = path(window)?;
     let temp = path.with_extension("tmp");
@@ -47,6 +56,17 @@ pub fn restore(window: &WebviewWindow) -> Result<(), String> {
     }
     let saved: Saved = serde_json::from_slice(&std::fs::read(path).map_err(|e| e.to_string())?)
         .map_err(|e| e.to_string())?;
+    let size = if saved.size.valid() {
+        saved.size
+    } else {
+        Size::default()
+    };
+    window
+        .state::<Placement>()
+        .sizing
+        .lock()
+        .map_err(|e| e.to_string())?
+        .preferred = size;
     if !saved.x.is_finite() || !saved.y.is_finite() {
         return Err("Invalid saved launcher position".into());
     }
@@ -60,16 +80,45 @@ pub fn restore(window: &WebviewWindow) -> Result<(), String> {
         return Ok(());
     };
     let w = work(m);
+    let fitted = size.fit(Size {
+        width: w.width,
+        height: w.height,
+    });
     let pos = geometry::clamp(
         Point {
             x: w.x + saved.x * w.width,
             y: w.y + saved.y * w.height,
         },
         w,
-        760.0,
-        520.0,
+        fitted.width,
+        fitted.height,
     );
     window
         .set_position(LogicalPosition::new(pos.x, pos.y))
         .map_err(|e| e.to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn existing_position_files_keep_the_default_size() {
+        let saved: Saved =
+            serde_json::from_str(r#"{"monitor":"Built-in","x":0.2,"y":0.1}"#).unwrap();
+        assert_eq!(saved.size, Size::default());
+    }
+    #[test]
+    fn saved_dimensions_survive_serialization() {
+        let saved = Saved {
+            monitor: None,
+            x: 0.2,
+            y: 0.1,
+            size: Size {
+                width: 1024.0,
+                height: 650.0,
+            },
+        };
+        let restored: Saved = serde_json::from_slice(&serde_json::to_vec(&saved).unwrap()).unwrap();
+        assert_eq!(restored.size, saved.size);
+    }
 }

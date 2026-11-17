@@ -174,6 +174,7 @@ fn main() {
         .build(tauri::generate_context!())
         .expect("Could not start Tooki")
         .run(|app, event| match event {
+            tauri::RunEvent::ExitRequested { .. } => launcher_placement::remember(app),
             #[cfg(target_os = "macos")]
             tauri::RunEvent::Reopen { .. } => {
                 if let Err(error) = settings_window::open_settings(app.clone(), None) {

@@ -44,6 +44,7 @@ pub fn dismiss(app: &tauri::AppHandle) -> tauri::Result<()> {
     crate::window_toggle::dismiss_popups(app, "main");
     crate::platform::preview::close_window(app, "main");
     if let Some(window) = app.get_webview_window("main") {
+        crate::launcher_placement::remember(app);
         crate::platform::launcher::dismiss(&window)?;
     }
     Ok(())

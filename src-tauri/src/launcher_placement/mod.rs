@@ -1,7 +1,11 @@
 mod geometry;
 mod persistence;
+pub mod sizing;
+mod sizing_window;
 use geometry::{Axes, Point, Rect};
 use serde::Serialize;
+use sizing_window::remember_size;
+pub use sizing_window::{applied_size, remember, requested_size};
 use std::sync::Mutex;
 use tauri::{Emitter, LogicalPosition, LogicalSize, Manager, WebviewWindow};
 
@@ -23,6 +27,7 @@ struct Drag {
 pub struct Placement {
     drag: Mutex<Option<Drag>>,
     guides: Mutex<Option<Guides>>,
+    sizing: Mutex<sizing::Sizing>,
 }
 fn frame(m: &tauri::Monitor) -> Rect {
     let s = m.scale_factor();
@@ -113,7 +118,13 @@ pub fn launcher_drag_move(
     let scale = monitor.scale_factor();
     let width = window.inner_size().map_err(|e| e.to_string())?.width as f64
         / window.scale_factor().map_err(|e| e.to_string())?;
-    let target = geometry::target(frame(monitor), work(monitor), width, 520.0);
+    let height = state
+        .sizing
+        .lock()
+        .map_err(|e| e.to_string())?
+        .preferred
+        .height;
+    let target = geometry::target(frame(monitor), work(monitor), width, height);
     let (position, axes) = geometry::snap(raw, target, 1.0);
     window
         .set_position(LogicalPosition::new(position.x, position.y))
@@ -174,6 +185,7 @@ pub fn launcher_drag_end(
         .is_some();
     hide(window.app_handle());
     if save && had_drag {
+        remember_size(&window)?;
         persistence::save(&window)?;
     }
     Ok(())
@@ -201,6 +213,14 @@ pub fn restore(app: &tauri::AppHandle) {
     }
 }
 pub fn handle_event(window: &tauri::Window, event: &tauri::WindowEvent) {
+    if window.label() == "main"
+        && matches!(
+            event,
+            tauri::WindowEvent::CloseRequested { .. } | tauri::WindowEvent::Focused(false)
+        )
+    {
+        remember(window.app_handle());
+    }
     if window.label() == "main"
         && matches!(
             event,
