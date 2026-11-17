@@ -38,6 +38,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri -> target
+          cache-on-failure: true
       - name: Install frontend dependencies
         run: bun install --frozen-lockfile
       - name: Test
@@ -81,7 +82,7 @@ jobs:
         run: |
           make dmg
           codesign --verify --deep --strict build/Tooki.app
-          lipo -verify_arch arm64 x86_64 build/Tooki.app/Contents/MacOS/tooki
+          lipo build/Tooki.app/Contents/MacOS/tooki -verify_arch arm64 x86_64
           cmp src-tauri/emoji/NOTICE build/Tooki.app/Contents/Resources/EmojiNotices.txt
           test "$(/usr/libexec/PlistBuddy -c 'Print CFBundleIdentifier' build/Tooki.app/Contents/Info.plist)" = 'us.tahsin.tooki'
           test "$(/usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' build/Tooki.app/Contents/Info.plist)" = "$VERSION"
