@@ -1,3 +1,4 @@
+#import "permissions.h"
 #import <AppKit/AppKit.h>
 #import <ApplicationServices/ApplicationServices.h>
 #import <IOKit/IOKitLib.h>
@@ -237,7 +238,7 @@ static char *applyHyper(bool enabled, const char *recovery) {
     }
     if (hyperTap)
       return NULL;
-    if (!AXIsProcessTrusted())
+    if (!tooki_accessibility_granted())
       return strdup("Enable Accessibility permission for Tooki before enabling "
                     "Hyper Key.");
     if (!restoreMapping(&error))
@@ -322,14 +323,5 @@ void tooki_hyper_free(char *value) { free(value); }
 
 bool tooki_hyper_active(void) {
   return hyperTap && CFMachPortIsValid(hyperTap) && CGEventTapIsEnabled(hyperTap)
-      && AXIsProcessTrusted();
-}
-
-// Prompt only after an explicit user action, never during startup/status reads.
-bool tooki_hyper_accessibility(bool prompt) {
-  NSDictionary *options = @{(__bridge NSString *)kAXTrustedCheckOptionPrompt: @(prompt)};
-  return AXIsProcessTrustedWithOptions((__bridge CFDictionaryRef)options);
-}
-bool tooki_hyper_open_accessibility(void) {
-  return [NSWorkspace.sharedWorkspace openURL:[NSURL URLWithString:@"x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"]];
+      && tooki_accessibility_granted();
 }

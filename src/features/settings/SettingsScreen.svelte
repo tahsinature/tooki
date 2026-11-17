@@ -1,4 +1,5 @@
 <script lang="ts">
+  import PermissionNotice from '../permissions/PermissionNotice.svelte';
   import UpdateCheck from './UpdateCheck.svelte';
   import SystemMonitorSettings from '../system-monitor/SystemMonitorSettings.svelte';
   import { Activity } from '@lucide/svelte';
@@ -348,6 +349,7 @@
     </header>
     <div class="settings-content">
       <div class="settings-content-body">
+        <PermissionNotice />
         {#if preferences.error}<p class="error-message" role="alert">
             {preferences.error}
           </p>{/if}

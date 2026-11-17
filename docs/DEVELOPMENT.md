@@ -47,3 +47,9 @@ Also verify Root Search, settings, shared menus, Escape, completed-action dismis
 The production bundle identifier is `us.tahsin.tooki`. Portable settings, shortcuts, themes and snippets live in `~/.config/tooki/`; machine-specific data stays in Tauri's application-data/config directories. See [Portable configuration](PORTABLE_CONFIGURATION.md) for migration and sync behavior. The old preview identifier was `us.tahsin.tooki.preview`. Original Swift files remain untouched; the Swift snippet library is copied once into the new format. Shelferry owns its own shelf windows and storage.
 
 See [MIGRATION.md](MIGRATION.md), [SNIPPETS_DESKTOP.md](SNIPPETS_DESKTOP.md), and [RELEASING.md](RELEASING.md).
+
+## Accessibility startup check
+
+On macOS, both development and production builds check the running process’s Accessibility grant at startup. Missing access opens Tooki Settings with a shared setup dialog. Later dismisses it for that launch while a reminder remains in Settings. A grant or revocation is detected within two seconds and on returning to Settings; enabled Hyper Key and snippet expansion are refreshed. Blocked paste actions reopen the same setup flow. Copy and unrelated tools remain usable.
+
+The dialog identifies the actual app path. macOS grants must be managed on each computer for the copy being run; they are never synced in Tooki configuration. Opening System Settings does not grant access. Verification must not change Accessibility permissions without the user’s approval. Non-macOS builds do not display this macOS-specific prompt.

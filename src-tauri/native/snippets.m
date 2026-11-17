@@ -1,3 +1,4 @@
+#import "permissions.h"
 #import <AppKit/AppKit.h>
 #import <ApplicationServices/ApplicationServices.h>
 #import <Carbon/Carbon.h>
@@ -119,12 +120,12 @@ static id Configure(NSDictionary *args) {
     for (NSDictionary *entry in args[@"triggers"]) { if ([entry[@"instant"] boolValue]) instant[entry[@"trigger"]]=entry; else space[entry[@"trigger"]]=entry; }
     spaceTriggers=space; instantTriggers=instant;
     excludedApps=[NSSet setWithArray:args[@"excludedApps"] ?: @[]];
-    if ([args[@"enabled"] boolValue] && AXIsProcessTrusted()) {
+    if ([args[@"enabled"] boolValue] && tooki_accessibility_granted()) {
         CGEventMask mask=CGEventMaskBit(kCGEventKeyDown)|CGEventMaskBit(kCGEventLeftMouseDown)|CGEventMaskBit(kCGEventRightMouseDown);
         snippetTap=CGEventTapCreate(kCGSessionEventTap,kCGTailAppendEventTap,kCGEventTapOptionListenOnly,mask,ObserveTyping,NULL);
         if (snippetTap) { snippetSource=CFMachPortCreateRunLoopSource(NULL,snippetTap,0); CFRunLoopAddSource(CFRunLoopGetMain(),snippetSource,kCFRunLoopCommonModes); CGEventTapEnable(snippetTap,true); }
     }
-    return @{ @"supported":@YES, @"permission":@(AXIsProcessTrusted()), @"active":@(snippetTap && CGEventTapIsEnabled(snippetTap)) };
+    return @{ @"supported":@YES, @"permission":@(tooki_accessibility_granted()), @"active":@(snippetTap && CGEventTapIsEnabled(snippetTap)) };
 }
 static BOOL TargetUnchanged(TookiSnippetTarget *target) {
     if (!target) return NO;
@@ -154,8 +155,7 @@ static id Commit(NSDictionary *args) {
 }
 static id Perform(NSString *operation, NSDictionary *args) {
     if ([operation isEqual:@"configure"]) return Configure(args);
-    if ([operation isEqual:@"permission"]) { AXIsProcessTrustedWithOptions((__bridge CFDictionaryRef)@{(__bridge NSString *)kAXTrustedCheckOptionPrompt:@YES}); }
-    if ([operation isEqual:@"status"] || [operation isEqual:@"permission"]) return @{ @"supported":@YES,@"permission":@(AXIsProcessTrusted()),@"active":@(snippetTap && CGEventTapIsEnabled(snippetTap)) };
+    if ([operation isEqual:@"status"]) return @{ @"supported":@YES,@"permission":@(tooki_accessibility_granted()),@"active":@(snippetTap && CGEventTapIsEnabled(snippetTap)) };
     if ([operation isEqual:@"target"]) return @(tooki_clipboard_target_pid());
     if ([operation isEqual:@"current"]) return @(pendingTarget && [pendingTarget.token isEqual:args[@"context"]] && TargetUnchanged(pendingTarget));
     if ([operation isEqual:@"cancel"]) { pendingTarget=nil; generation++; return @YES; }

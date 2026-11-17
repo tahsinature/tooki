@@ -23,7 +23,7 @@ pub fn initialize(app: &tauri::AppHandle) {
     let mut state = Status {
         available: cfg!(any(target_os = "macos", target_os = "windows")),
         helper_required: cfg!(target_os = "linux"),
-        permission_required: adapter::permission_required(false),
+        permission_required: crate::permissions::required(),
         ..Default::default()
     };
     match (|| -> Result<bool, String> {
@@ -96,6 +96,15 @@ pub async fn hyper_request(
     if operation == "set" && enabled.is_none() {
         return Err("Choose whether Hyper Key is enabled".into());
     }
+    crate::permissions::request(
+        &app,
+        if operation == "openPermissions" {
+            "open"
+        } else {
+            "status"
+        },
+    )
+    .await?;
     // Status reads also run on the main thread, where macOS owns the event tap.
     let (tx, rx) = std::sync::mpsc::sync_channel(1);
     let handle = app.clone();
@@ -108,18 +117,8 @@ pub async fn hyper_request(
                 crate::config::save(&handle, "hyperEnabled", &enabled)?;
                 state.enabled = enabled;
             }
-            let was_blocked = state.permission_required;
-            state.permission_required =
-                adapter::permission_required(operation == "set" && state.enabled);
-            if operation == "openPermissions" {
-                state.permission_required = adapter::permission_required(true);
-                adapter::open_permissions()?;
-            }
-            let permission_granted = operation == "recheck"
-                && was_blocked
-                && !state.permission_required
-                && state.enabled;
-            if operation == "set" || operation == "retry" || permission_granted {
+            state.permission_required = crate::permissions::required();
+            if operation == "set" || operation == "retry" {
                 state.apply(
                     |enabled| {
                         if operation == "retry" {
@@ -152,9 +151,20 @@ pub fn reload_preferences(app: &tauri::AppHandle) -> Result<(), String> {
     let mut current = state.0.lock().map_err(|e| e.to_string())?;
     if current.enabled != enabled {
         current.enabled = enabled;
-        current.permission_required = adapter::permission_required(false);
+        current.permission_required = crate::permissions::required();
         current.apply(|enabled| apply(app, enabled), adapter::active);
         let _ = app.emit("hyper-changed", ());
     }
     Ok(())
+}
+
+/// Called on the main thread when the shared Accessibility grant changes.
+pub fn permission_changed(app: &tauri::AppHandle) {
+    let state = app.state::<Hyper>();
+    let mut current = state.0.lock().unwrap();
+    current.permission_required = crate::permissions::required();
+    let should_run = current.enabled && !current.permission_required;
+    current.error = apply(app, should_run).err().unwrap_or_default();
+    current.refresh(adapter::active());
+    let _ = app.emit("hyper-changed", ());
 }

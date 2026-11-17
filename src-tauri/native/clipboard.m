@@ -1,3 +1,4 @@
+#import "permissions.h"
 #import <AppKit/AppKit.h>
 #import <Vision/Vision.h>
 #import <Quartz/Quartz.h>
@@ -31,7 +32,7 @@ static void postPaste(void) {
 }
 pid_t tooki_clipboard_target_pid(void) { return pasteTarget; }
 static id paste(pid_t destination) {
-    if (!AXIsProcessTrusted()) return failure(@"Enable Accessibility for Tooki in System Settings to paste into another app.");
+    if (!tooki_accessibility_granted()) return failure(@"Enable Accessibility for Tooki in System Settings to paste into another app.");
     NSRunningApplication *target = [NSRunningApplication runningApplicationWithProcessIdentifier:destination];
     if (!target || target.terminated) return failure(@"The previous application is no longer available. Copy the item and paste manually.");
     if (target.active) { postPaste(); return @YES; }

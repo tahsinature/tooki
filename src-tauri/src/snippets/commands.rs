@@ -51,8 +51,9 @@ pub async fn snippet_request(
         }
         "permission" | "recheck" => {
             if operation == "permission" {
-                native::call(&app, "permission", json!({})).await?;
+                crate::permissions::request(&app, "open").await?;
             }
+            crate::permissions::request(&app, "status").await?;
             configure(&app).await
         }
         "preview" => {

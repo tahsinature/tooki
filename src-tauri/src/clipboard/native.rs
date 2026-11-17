@@ -36,6 +36,9 @@ pub fn call(_: &str, _: Value) -> Result<Value, String> {
 }
 
 pub fn on_main(app: &AppHandle, operation: &str, payload: Value) -> Result<Value, String> {
+    if operation == "paste" {
+        crate::permissions::require_accessibility(app)?;
+    }
     let (tx, rx) = std::sync::mpsc::sync_channel(1);
     let operation = operation.to_string();
     app.run_on_main_thread(move || {

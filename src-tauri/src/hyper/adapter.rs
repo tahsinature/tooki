@@ -53,36 +53,3 @@ pub fn set(enabled: bool, _: &Path) -> Result<(), String> {
         Ok(())
     }
 }
-
-// Non-macOS adapters do not require Apple's Accessibility grant.
-pub fn permission_required(prompt: bool) -> bool {
-    #[cfg(target_os = "macos")]
-    {
-        unsafe extern "C" {
-            fn tooki_hyper_accessibility(prompt: bool) -> bool;
-        }
-        unsafe { !tooki_hyper_accessibility(prompt) }
-    }
-    #[cfg(not(target_os = "macos"))]
-    {
-        let _ = prompt;
-        false
-    }
-}
-pub fn open_permissions() -> Result<(), String> {
-    #[cfg(target_os = "macos")]
-    {
-        unsafe extern "C" {
-            fn tooki_hyper_open_accessibility() -> bool;
-        }
-        if unsafe { tooki_hyper_open_accessibility() } {
-            Ok(())
-        } else {
-            Err("Could not open Accessibility Settings.".into())
-        }
-    }
-    #[cfg(not(target_os = "macos"))]
-    {
-        Err("Accessibility Settings is only available on macOS.".into())
-    }
-}

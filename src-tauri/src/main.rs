@@ -14,6 +14,7 @@ mod launcher_placement;
 mod launcher_presentation;
 mod launcher_shortcut;
 mod notes;
+mod permissions;
 mod platform;
 mod popup_position;
 mod settings_window;
@@ -24,8 +25,8 @@ mod snippets;
 mod system_actions;
 mod system_monitor;
 mod tool_commands;
-mod window_toggle;
 mod updates;
+mod window_toggle;
 
 use tauri::Manager;
 
@@ -38,7 +39,8 @@ fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, args, _| {
             if !args.iter().any(|arg| {
-                (arg.starts_with("tooki://") || arg.starts_with("tooki-preview://"))
+                (arg.starts_with("tooki://")
+                    || arg.starts_with("tooki-preview://"))
                     || arg == "--autostart"
             }) {
                 if app.get_webview_window("main").is_some() {
@@ -70,6 +72,7 @@ fn main() {
         .manage(keep_awake::KeepAwake::default())
         .invoke_handler(tauri::generate_handler![
             quit_app,
+            permissions::permission_request,
             updates::check_for_updates,
             updates::open_release_notes,
             config::portable_preferences,
@@ -174,10 +177,14 @@ fn main() {
             launcher_shortcut::register(app.handle());
             applications::preferences::initialize(app.handle());
             config::start_watching(app.handle());
-            if !std::env::args().any(|arg| {
-                arg == "--autostart"
-                    || (arg.starts_with("tooki://") || arg.starts_with("tooki-preview://"))
-            }) {
+            permissions::initialize(app.handle());
+            if !permissions::required()
+                && !std::env::args().any(|arg| {
+                    arg == "--autostart"
+                        || (arg.starts_with("tooki://")
+                            || arg.starts_with("tooki-preview://"))
+                })
+            {
                 launcher_presentation::request(app.handle())?;
             }
             Ok(())
