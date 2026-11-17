@@ -1,5 +1,6 @@
 .settings-shell { flex-direction: row; border-radius: var(--shell-radius); font-size: 12px; }
-.settings-sidebar { width: 175px; flex-shrink: 0; display: flex; flex-direction: column; gap: 8px; padding: 42px 8px 10px; background: var(--sidebar); border-right: 1px solid var(--line); }
+.settings-sidebar { width: 175px; min-height: 0; flex-shrink: 0; display: flex; flex-direction: column; gap: 8px; padding: 42px 8px 16px; overflow: hidden; background: var(--sidebar); border-right: 1px solid var(--line); }
+.settings-sidebar > :not(nav) { flex-shrink: 0; }
 .settings-window-drag { position: absolute; left: 0; top: 0; width: 175px; height: 38px; }
 .settings-brand { display: flex; align-items: center; gap: 9px; min-height: 40px; padding: 7px 9px; color: var(--ink); background: var(--hover); border: 1px solid var(--line); border-radius: var(--radius-card); text-align: left; }
 .settings-brand img { width: 20px; height: 20px; border-radius: var(--radius-small); }
@@ -7,7 +8,8 @@
 .settings-version { margin-left: auto; padding: 3px 6px; border-radius: var(--radius-card); background: var(--selected); color: var(--muted); font-size: 10px; }
 .settings-app-icon { display: grid; place-items: center; width: 32px; height: 32px; border: 1px solid var(--line); background: var(--selected); border-radius: var(--shell-radius); }
 .sidebar-label { display: block; padding: 4px 7px 5px; font-size: 11px; color: var(--muted); }
-.settings-sidebar nav { display: grid; gap: 12px; margin-top: 4px; }
+/* Keep navigation inside the sidebar's inset, even in shorter windows. */
+.settings-sidebar nav { display: grid; align-content: start; flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--line) transparent; gap: 12px; margin-top: 4px; }
 .settings-nav-group { display: grid; gap: 1px; }
 .settings-sidebar nav button { display: flex; align-items: center; gap: 8px; padding: 5px 7px; border-radius: var(--row-radius); background: transparent; text-align: left; color: var(--muted); }
 .settings-sidebar nav button:hover { background: var(--hover); }
@@ -85,7 +87,7 @@ h1 { margin: 0; font-size: 19px; font-weight: 600; letter-spacing: -.6px; }
   .settings-row-control { margin-left: auto; flex-wrap: wrap; }
 }
 @media (max-width: 540px) {
-  .settings-sidebar { width: 145px; padding: 18px 8px 8px; }
+  .settings-sidebar { width: 145px; padding: 18px 8px 16px; }
   .settings-brand { padding: 0; gap: 8px; }
   .settings-brand small { display: none; }
   .settings-app-icon { width: 30px; height: 30px; }
