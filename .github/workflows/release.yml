@@ -1,7 +1,4 @@
 name: Release
-
-# Every push to master ships a new version: tag, DMG, GitHub release and Homebrew cask.
-# The commit messages decide the version (see scripts/next-version.sh).
 on:
   push:
     branches: [master]
@@ -12,64 +9,40 @@ on:
         type: choice
         options: [auto, patch, minor, major]
         default: auto
-
 permissions:
   contents: write
-
-# Releases run one at a time, in push order, so two pushes never claim the same version.
 concurrency:
   group: release
   cancel-in-progress: false
-
 jobs:
   release:
     runs-on: xcode-27
     env:
       DEVELOPER_DIR: /Applications/Xcode_27.2.app/Contents/Developer
+      MACOSX_DEPLOYMENT_TARGET: '14.0'
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
       - name: Pick the version
         id: version
         run: |
           version="$(scripts/next-version.sh "${{ inputs.bump || 'auto' }}")"
-          if [[ -z "$version" ]]; then
-            echo "No new commits since the last release."
-          else
-            echo "Releasing $version"
-          fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
-
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.4.2'
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+      - name: Install frontend dependencies
+        run: bun install --frozen-lockfile
       - name: Test
         if: steps.version.outputs.version != ''
-        env:
-          SNAPSHOT_ARTIFACTS: ${{ runner.temp }}/snapshot-artifacts
-        run: |
-          sw_vers
-          xcrun swift --version
-          system_profiler SPDisplaysDataType
-          make test
-
-      - name: Save failed visual comparisons
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: snapshot-failures
-          path: ${{ runner.temp }}/snapshot-artifacts
-          if-no-files-found: ignore
-
-      - name: Require the update signing key
-        if: steps.version.outputs.version != ''
-        env:
-          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
-        run: |
-          if [[ -z "$SPARKLE_PRIVATE_KEY" ]]; then
-            echo "::error::SPARKLE_PRIVATE_KEY is required to publish verifiable Sparkle updates. See docs/RELEASING.md."
-            exit 1
-          fi
-
+        run: make test
       # Signing every release with the same certificate makes macOS see updates as the same app,
       # so they keep the Accessibility permission. Ad hoc signatures change with every build.
       - name: Load the signing certificate
@@ -97,24 +70,27 @@ jobs:
           rm "$RUNNER_TEMP/signing.p12"
           echo "identity=Tooki Release Signing" >> "$GITHUB_OUTPUT"
 
-      - name: Build universal DMG
-        if: steps.version.outputs.version != ''
-        run: make dmg ARCHS="arm64 x86_64" SIGN_ID="${{ steps.signing.outputs.identity }}" CHANNEL=release VERSION="${{ steps.version.outputs.version }}" BUILD_NUMBER="${{ github.run_number }}"
 
-      - name: Check the signature
-        if: steps.version.outputs.version != ''
-        run: codesign --verify --deep --strict build/Tooki.app
-
-      - name: Generate signed update feed
+      - name: Build universal Tauri DMG
         if: steps.version.outputs.version != ''
         env:
-          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+          APPLE_SIGNING_IDENTITY: ${{ steps.signing.outputs.identity }}
           VERSION: ${{ steps.version.outputs.version }}
+          BUILD_NUMBER: ${{ github.run_number }}
+          TAURI_TARGET: universal-apple-darwin
         run: |
-          mkdir -p build/appcast
-          cp build/Tooki.dmg build/appcast/Tooki.dmg
-          scripts/generate-appcast.sh build/appcast "https://github.com/tahsinature/tooki/releases/download/v$VERSION/"
-
+          make dmg
+          codesign --verify --deep --strict build/Tooki.app
+          lipo -verify_arch arm64 x86_64 build/Tooki.app/Contents/MacOS/tooki
+          test "$(/usr/libexec/PlistBuddy -c 'Print CFBundleIdentifier' build/Tooki.app/Contents/Info.plist)" = 'us.tahsin.tooki'
+          test "$(/usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' build/Tooki.app/Contents/Info.plist)" = "$VERSION"
+      - name: Preserve the final Swift update feed
+        if: steps.version.outputs.version != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p build/legacy-feed
+          gh release download v0.11.0 --pattern appcast.xml --dir build/legacy-feed
       - name: Publish release
         if: steps.version.outputs.version != ''
         env:
@@ -124,15 +100,19 @@ jobs:
           previous="$(git describe --tags --abbrev=0 --match 'v[0-9]*' 2>/dev/null || true)"
           range="${previous:+$previous..}HEAD"
           {
-            echo "## Changes"
+            echo 'Tooki now uses its Rust/Tauri implementation. The Swift sources are preserved in .playground/tooki-swift.'
+            echo
+            echo 'Includes clipboard history, snippets, emoji, notes, Keep Awake, Hyper Key, Shortcut Detective and the Shelferry integration.'
+            echo
+            echo 'Install or replace the Swift app with `brew update && brew reinstall --cask tahsinature/tap/tooki`.'
+            echo 'Future updates use Homebrew. This version does not include the Swift menu bar organizer or Sparkle updater.'
+            echo 'Existing Swift settings, snippets, clipboard history and shelves remain untouched; they are not automatically imported.'
+            echo 'Shelf operations require the standalone Shelferry app: `brew install --cask tahsinature/tap/shelferry`.'
+            echo
+            echo '## Changes'
             git log "$range" --no-merges --format='- %s (%h)'
-            echo
-            echo "Install with Homebrew: \`brew tap tahsinature/tap && brew trust tahsinature/tap && brew install --cask tooki\`"
-            echo
-            echo "Update with \`brew upgrade --cask tooki\`."
-          } > notes.md
-          gh release create "v$VERSION" build/Tooki.dmg build/appcast/appcast.xml --target "$GITHUB_SHA" --title "v$VERSION" --notes-file notes.md
-
+          } > "$RUNNER_TEMP/tooki-release-notes.md"
+          gh release create "v$VERSION" build/Tooki.dmg build/legacy-feed/appcast.xml --target "$GITHUB_SHA" --title "v$VERSION" --notes-file "$RUNNER_TEMP/tooki-release-notes.md"
       - name: Update Homebrew cask
         if: steps.version.outputs.version != ''
         env:
@@ -140,17 +120,17 @@ jobs:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
           if [[ -z "$TAP_TOKEN" ]]; then
-            echo "::warning::HOMEBREW_TAP_TOKEN is not set, so the Homebrew cask was not updated."
-            exit 0
+            echo '::error::HOMEBREW_TAP_TOKEN is required to publish the cask.'
+            exit 1
           fi
           sha="$(shasum -a 256 build/Tooki.dmg | cut -d ' ' -f 1)"
-          git clone --depth 1 "https://x-access-token:$TAP_TOKEN@github.com/tahsinature/homebrew-tap.git" tap
+          git clone --depth 1 "https://x-access-token:$TAP_TOKEN@github.com/tahsinature/homebrew-tap.git" "$RUNNER_TEMP/tooki-tap"
           sed -e "s/^  version \".*\"/  version \"$VERSION\"/" \
               -e "s/^  sha256 \".*\"/  sha256 \"$sha\"/" \
-              packaging/tooki.rb > tap/Casks/tooki.rb
-          cd tap
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+              packaging/tooki.rb > "$RUNNER_TEMP/tooki-tap/Casks/tooki.rb"
+          cd "$RUNNER_TEMP/tooki-tap"
+          git config user.name 'Tahsin'
+          git config user.email '41298152+tahsinature@users.noreply.github.com'
           git add Casks/tooki.rb
           git commit -m "tooki $VERSION"
           git push

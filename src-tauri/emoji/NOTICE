@@ -1,0 +1,4 @@
+Emoji names, keywords and GitHub shortcodes are bundled from emojibase-data 18.0.0.
+Source: https://github.com/milesj/emojibase (MIT license).
+emojibase derives emoji and CLDR data from Unicode.
+This catalog was preserved from Swift Tooki; scripts/update-emoji.py regenerates it.

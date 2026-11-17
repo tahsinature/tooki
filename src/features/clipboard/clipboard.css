@@ -1,0 +1,76 @@
+.clipboard-list-column {
+  display: flex;
+  flex-direction: column;
+  width: 38%;
+  min-width: 220px;
+  min-height: 0;
+  border-right: 1px solid var(--line);
+}
+.split .clipboard-list-column .result-list {
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  border-right: 0;
+}
+.clipboard-image {
+  display: block;
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: var(--row-radius);
+  margin-bottom: 0;
+}
+.clipboard-color {
+  height: 100px;
+  border-radius: var(--row-radius);
+  margin-bottom: 12px;
+}
+.clipboard-paging {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+  padding: 8px;
+  color: var(--muted);
+  font-size: 11px;
+  border-top: 1px solid var(--line);
+}
+.clipboard-paging button {
+  padding: 4px;
+}
+.clipboard-settings {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+.clipboard-limit {
+  width: 76px;
+  text-align: right;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  padding: 5px;
+}
+.clipboard-exclusions {
+  display: block;
+  width: calc(100% - 24px);
+  margin: 0 12px 12px;
+  padding: 8px;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: var(--row-radius);
+  resize: vertical;
+  font:
+    12px ui-monospace,
+    monospace;
+  user-select: text;
+}
+.popup {
+  max-height: calc(100dvh - 100px);
+  overflow-y: auto;
+}

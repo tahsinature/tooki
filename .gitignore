@@ -23,4 +23,12 @@ xcuserdata/
 .claude/settings.local.json
 
 # Design mockups
-.playground/
+.playground/*
+!.playground/tooki-swift/
+
+# Tauri and frontend build output
+node_modules/
+dist/
+src-tauri/target/
+src-tauri/gen/
+src-tauri/crates/*/target/

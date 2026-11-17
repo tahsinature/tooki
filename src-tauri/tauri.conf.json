@@ -1,0 +1,124 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Tooki",
+  "version": "0.12.0",
+  "identifier": "us.tahsin.tooki",
+  "build": {
+    "beforeDevCommand": "bun run dev",
+    "devUrl": "http://127.0.0.1:1421",
+    "beforeBuildCommand": "bun run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "visible": false,
+        "title": "Tooki",
+        "width": 760,
+        "height": 94,
+        "minWidth": 680,
+        "minHeight": 84,
+        "center": true,
+        "decorations": false,
+        "backgroundColor": "#00000000",
+        "transparent": true,
+        "url": "index.html",
+        "backgroundThrottling": "disabled"
+      },
+      {
+        "label": "settings",
+        "url": "index.html?window=settings",
+        "title": "Tooki Settings",
+        "width": 800,
+        "height": 590,
+        "resizable": false,
+        "maximizable": false,
+        "fullscreen": false,
+        "visible": false,
+        "focus": false,
+        "center": true,
+        "decorations": false,
+        "backgroundColor": "#00000000",
+        "transparent": true
+      },
+      {
+        "label": "snap-guides",
+        "url": "index.html?window=snap-guides",
+        "title": "Tooki Alignment Guides",
+        "width": 100,
+        "height": 100,
+        "visible": false,
+        "focus": false,
+        "focusable": false,
+        "decorations": false,
+        "transparent": true,
+        "backgroundColor": "#00000000",
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "resizable": false,
+        "shadow": false
+      },
+      {
+        "label": "app-menu",
+        "url": "index.html?window=app-menu",
+        "title": "Tooki Menu",
+        "width": 350,
+        "height": 228,
+        "visible": false,
+        "focus": false,
+        "decorations": false,
+        "transparent": true,
+        "backgroundColor": "#00000000",
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "resizable": false,
+        "maximizable": false,
+        "minimizable": false
+      },
+      {
+        "label": "filter-popup",
+        "url": "index.html?window=filter-popup",
+        "title": "Tooki Filter",
+        "width": 222,
+        "height": 322,
+        "visible": false,
+        "focus": false,
+        "decorations": false,
+        "transparent": true,
+        "backgroundColor": "#00000000",
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "resizable": false,
+        "maximizable": false,
+        "minimizable": false
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src ipc: http://ipc.localhost"
+    },
+    "macOSPrivateApi": true
+  },
+  "bundle": {
+    "active": true,
+    "icon": [
+      "icons/icon.png"
+    ],
+    "macOS": {
+      "minimumSystemVersion": "14.0"
+    },
+    "targets": [
+      "app"
+    ]
+  },
+  "plugins": {
+    "deep-link": {
+      "desktop": {
+        "schemes": [
+          "tooki",
+          "tooki-preview"
+        ]
+      }
+    }
+  }
+}

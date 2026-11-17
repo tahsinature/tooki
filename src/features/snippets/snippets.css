@@ -1,0 +1,205 @@
+.snippet-section-heading,
+.snippet-preview-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 18px 0 10px;
+}
+.snippet-section-heading h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+.snippet-section-heading h3,
+.snippet-preview-heading h3 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+.snippet-hint {
+  margin: 6px 0 12px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.55;
+}
+.snippet-hint code,
+.snippet-trigger {
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  color: var(--ink);
+}
+.snippet-field-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin: 14px 0;
+}
+.snippet-field-grid label,
+.snippet-input label {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.snippet-editor .text-field,
+.snippet-advanced .text-field,
+.snippet-input .text-field {
+  width: 100%;
+}
+.snippet-template {
+  resize: vertical;
+  min-height: 110px;
+  font-family: ui-monospace, monospace;
+  line-height: 1.65;
+}
+.snippet-starters,
+.snippet-button-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.snippet-starters {
+  margin: 12px 0 20px;
+}
+.snippet-library {
+  margin: 12px 0 24px;
+  min-height: 100px;
+  max-height: 280px;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.snippet-choice-head,
+.snippet-choice-row {
+  display: grid;
+  grid-template-columns: 64px minmax(90px, 1fr) minmax(120px, 2fr) 28px;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.snippet-choice-head {
+  font-size: 11px;
+  color: var(--muted);
+}
+.snippet-choice-row .text-field {
+  width: 100%;
+  min-width: 0;
+}
+.snippet-choice-button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  text-align: left;
+  gap: 12px;
+}
+.snippet-input-editor {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0 12px;
+  margin: 12px 0;
+}
+.snippet-required {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+}
+.snippet-advanced {
+  border-top: 1px solid var(--line);
+  margin: 18px 0;
+  padding-top: 14px;
+}
+.snippet-advanced summary {
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--muted);
+}
+.snippet-advanced > textarea {
+  display: block;
+  margin: 12px 0;
+}
+.snippet-value-row {
+  display: grid;
+  grid-template-columns: minmax(90px, 1fr) minmax(150px, 2fr) 28px;
+  gap: 8px;
+  margin: 12px 0;
+}
+.snippet-preview {
+  border-top: 1px solid var(--line);
+  margin-top: 20px;
+  padding-top: 16px;
+}
+.snippet-inputs {
+  display: grid;
+  gap: 14px;
+}
+.snippet-inputs:empty {
+  display: none;
+}
+.snippet-preview-heading span {
+  font-size: 11px;
+  color: var(--muted);
+}
+.snippet-output {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.65;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 16px;
+  margin: 0;
+  max-height: 260px;
+  overflow: auto;
+  user-select: text;
+}
+.snippet-editor-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 14px 0;
+  position: sticky;
+  bottom: -24px;
+  background: var(--panel);
+  border-top: 1px solid var(--line);
+  margin-top: 20px;
+  z-index: 1;
+}
+.snippet-delete {
+  margin-top: 16px;
+}
+.snippet-detail {
+  flex: 1;
+  overflow: auto;
+  padding: 22px;
+  min-width: 0;
+}
+.snippet-detail h2 {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0 0 8px;
+}
+.snippet-detail .snippet-preview {
+  margin-top: 18px;
+}
+.snippet-pending-note {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+@media (max-width: 640px) {
+  .snippet-field-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .snippet-choice-head,
+  .snippet-choice-row {
+    grid-template-columns: 48px minmax(65px, 1fr) minmax(90px, 2fr) 24px;
+    gap: 5px;
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "id": "porcelain",
+  "name": "Porcelain",
+  "author": "Tooki",
+  "appearance": "light",
+  "tokens": {
+    "surface": "#f5f5f6",
+    "panel": "#eaeaed",
+    "sidebar": "#eeeef0",
+    "ink": "#252528",
+    "muted": "#73737b",
+    "line": "#d8d8dd",
+    "selected": "#dce7fc",
+    "hover": "#e9e9ee",
+    "accent": "#007aff",
+    "accentInk": "#ffffff",
+    "danger": "#b42332",
+    "selectionMark": "#007aff",
+    "shellRadius": 18,
+    "rowRadius": 8,
+    "rowHeight": 38,
+    "headerHeight": 54,
+    "fontSize": 14,
+    "searchFontSize": 20,
+    "contentSpacing": 16,
+    "cornerRadius": 18
+  },
+  "components": {}
+}

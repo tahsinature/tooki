@@ -1,0 +1,139 @@
+[
+  {
+    "id": "command:emoji.open",
+    "tool": "emoji",
+    "title": "Emoji Picker",
+    "root": "emoji"
+  },
+  {
+    "id": "command:snippets.open",
+    "tool": "snippets",
+    "title": "Open Snippets",
+    "root": "snippets"
+  },
+  {
+    "id": "command:notes.open",
+    "tool": "notes",
+    "title": "Open Notes",
+    "root": "notes"
+  },
+  {
+    "id": "command:notes.new",
+    "tool": "notes",
+    "title": "New Note"
+  },
+  {
+    "id": "command:notes.browse",
+    "tool": "notes",
+    "title": "Browse Notes"
+  },
+  {
+    "id": "command:shelf.open",
+    "tool": "shelf",
+    "title": "Shelf Manager",
+    "root": "shelf",
+    "capability": "extension.shelferry"
+  },
+  {
+    "id": "command:shelf.new",
+    "tool": "shelf",
+    "title": "New Shelf",
+    "capability": "extension.shelferry"
+  },
+  {
+    "id": "command:shelf.toggle",
+    "tool": "shelf",
+    "title": "Show / Hide All Shelves",
+    "capability": "extension.shelferry"
+  },
+  {
+    "id": "command:clipboard.open",
+    "tool": "clipboard",
+    "title": "Clipboard History",
+    "root": "clipboard"
+  },
+  {
+    "id": "command:clipboard.pinned",
+    "tool": "clipboard",
+    "title": "Pinned Clips"
+  },
+  {
+    "id": "command:clipboard.links",
+    "tool": "clipboard",
+    "title": "Copied Links"
+  },
+  {
+    "id": "command:system.open",
+    "tool": "system",
+    "title": "System Actions",
+    "root": "system",
+    "capability": "system.actions"
+  },
+  {
+    "id": "command:system.sleep",
+    "tool": "system",
+    "title": "Sleep",
+    "capability": "power.sleep"
+  },
+  {
+    "id": "command:system.emptyTrash",
+    "tool": "system",
+    "title": "Empty Trash",
+    "capability": "trash.empty"
+  },
+  {
+    "id": "command:system.eject",
+    "tool": "system",
+    "title": "Eject Disk\u2026",
+    "capability": "storage.eject"
+  },
+  {
+    "id": "command:system.keepAwakeToggle",
+    "tool": "keepAwake",
+    "title": "Toggle Keep Awake",
+    "capability": "power.keepAwake"
+  },
+  {
+    "id": "command:system.keepAwake15",
+    "tool": "keepAwake",
+    "title": "Keep Awake for 15 Minutes",
+    "capability": "power.keepAwake"
+  },
+  {
+    "id": "command:system.keepAwake60",
+    "tool": "keepAwake",
+    "title": "Keep Awake for 1 Hour",
+    "capability": "power.keepAwake"
+  },
+  {
+    "id": "command:system.keepAwake120",
+    "tool": "keepAwake",
+    "title": "Keep Awake for 2 Hours",
+    "capability": "power.keepAwake"
+  },
+  {
+    "id": "command:system.keepAwakeOn",
+    "tool": "keepAwake",
+    "title": "Keep Awake Until Turned Off",
+    "capability": "power.keepAwake"
+  },
+  {
+    "id": "command:system.keepAwakeOff",
+    "tool": "keepAwake",
+    "title": "Turn Off Keep Awake",
+    "capability": "power.keepAwake"
+  },
+  {
+    "id": "command:keepAwake.open",
+    "tool": "keepAwake",
+    "title": "Keep Awake",
+    "root": "keepAwake",
+    "capability": "power.keepAwake"
+  },
+  {
+    "id": "command:shelf.settings",
+    "tool": "shelf",
+    "title": "Open Shelferry Settings",
+    "capability": "extension.shelferry"
+  }
+]

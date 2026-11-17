@@ -1,0 +1,55 @@
+fn main() {
+    if std::env::var("CARGO_CFG_TARGET_OS").as_deref() == Ok("macos") {
+        cc::Build::new()
+            .file("native/clipboard.m")
+            .file("native/emoji.m")
+            .file("native/settings_chrome.m")
+            .file("native/utility_window.m")
+            .file("native/preview.m")
+            .file("native/launcher.m")
+            .file("native/applications.m")
+            .file("native/system_actions.m")
+            .file("native/keep_awake.m")
+            .file("native/menu_bar_icon.m")
+            .file("native/snippets.m")
+            .file("native/hyper.m")
+            .file("native/shelf.m")
+            .file("native/shelf_files.m")
+            .file("native/shelf_conversion.m")
+            .file("native/shelf_drag.m")
+            .flag("-fobjc-arc")
+            .flag("-fblocks")
+            .compile("tooki_clipboard");
+        for framework in [
+            "IOKit",
+            "CoreText",
+            "AppKit",
+            "Carbon",
+            "Foundation",
+            "Vision",
+            "Quartz",
+            "QuickLookThumbnailing",
+            "ImageIO",
+            "ApplicationServices",
+        ] {
+            println!("cargo:rustc-link-lib=framework={framework}");
+        }
+        println!("cargo:rerun-if-changed=native/clipboard.m");
+        println!("cargo:rerun-if-changed=native/emoji.m");
+        println!("cargo:rerun-if-changed=native/settings_chrome.m");
+        println!("cargo:rerun-if-changed=native/utility_window.m");
+        println!("cargo:rerun-if-changed=native/preview.m");
+        println!("cargo:rerun-if-changed=native/launcher.m");
+        println!("cargo:rerun-if-changed=native/applications.m");
+        println!("cargo:rerun-if-changed=native/system_actions.m");
+        println!("cargo:rerun-if-changed=native/keep_awake.m");
+        println!("cargo:rerun-if-changed=native/menu_bar_icon.m");
+        println!("cargo:rerun-if-changed=native/snippets.m");
+        println!("cargo:rerun-if-changed=native/hyper.m");
+        println!("cargo:rerun-if-changed=native/shelf.m");
+        println!("cargo:rerun-if-changed=native/shelf_files.m");
+        println!("cargo:rerun-if-changed=native/shelf_conversion.m");
+        println!("cargo:rerun-if-changed=native/shelf_drag.m");
+    }
+    tauri_build::build()
+}

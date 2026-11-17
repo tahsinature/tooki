@@ -1,0 +1,312 @@
+.shelf-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 42px;
+  flex-shrink: 0;
+  padding: 0 12px;
+  cursor: default;
+}
+.shelf-header > strong {
+  font-size: 13px;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.floating-shelf button {
+  color: inherit;
+  cursor: default;
+}
+.floating-shelf button:hover {
+  background: var(--hover);
+}
+.floating-shelf button:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: -2px;
+}
+.shelf-stack {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  flex: 1;
+  min-height: 0;
+  padding: 0 14px;
+}
+.shelf-pile {
+  position: relative;
+  width: 78px;
+  height: 72px;
+  flex-shrink: 0;
+  background: transparent;
+  cursor: grab !important;
+}
+.shelf-pile > span {
+  --depth: calc(var(--pile-count) - 1 - var(--pile-index));
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  left: 15px;
+  top: 8px;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-row);
+  filter: drop-shadow(0 2px 3px #0004);
+  transform: translate(
+      calc(var(--depth) * -6px + (var(--pile-count) - 1) * 3px),
+      calc(var(--depth) * 4px - (var(--pile-count) - 1) * 2px)
+    )
+    rotate(calc(var(--depth) * -8deg));
+  transition: transform 150ms;
+}
+.shelf-pile:hover > span {
+  transform: translate(
+      calc(var(--depth) * -10.8px + (var(--pile-count) - 1) * 5.4px),
+      calc(var(--depth) * 7.2px - (var(--pile-count) - 1) * 3.6px)
+    )
+    rotate(calc(var(--depth) * -14.4deg));
+}
+.shelf-pile img {
+  display: block;
+  width: 48px;
+  height: 48px;
+  flex: none;
+  object-fit: contain;
+}
+.shelf-names {
+  min-width: 0;
+  flex: 1;
+  font-size: 11px;
+  font-weight: 600;
+}
+.shelf-names > div {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 5px;
+}
+.shelf-names span {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.floating-shelf i {
+  display: block;
+  flex-shrink: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ff9f0a;
+}
+.floating-shelf i.copy {
+  background: #30d158;
+}
+.shelf-names small {
+  margin-left: 12px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.shelf-bottom {
+  display: flex;
+  gap: 8px;
+  padding: 0 9px 9px;
+  flex-shrink: 0;
+}
+.shelf-bottom button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: color-mix(in srgb, var(--ink) 9%, transparent);
+  border-radius: var(--radius-row);
+  min-height: 26px;
+  padding: 0 9px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.shelf-bottom button:first-child {
+  flex: 1;
+}
+.shelf-bottom span {
+  color: var(--muted);
+}
+.shelf-empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.shelf-empty strong {
+  color: var(--ink);
+  font-size: 12px;
+}
+.shelf-rows {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 3px 9px 8px;
+  overscroll-behavior: contain;
+}
+.shelf-error {
+  position: absolute;
+  bottom: 0;
+  left: 5px;
+  right: 5px;
+  background: var(--panel);
+  padding: 5px;
+  font-size: 10px;
+  max-height: 42px;
+  overflow: auto;
+}
+.shelf-header > strong {
+  cursor: grab;
+}
+.shelf-rows {
+  padding: 0 8px 6px;
+}
+.shelf-bottom {
+  padding: 7px 10px 10px;
+  gap: 8px;
+}
+.shelf-empty {
+  margin: 0 8px 8px;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-card);
+  gap: 4px;
+}
+.shelf-rename {
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.shelf-rename p {
+  font-size: 11px;
+  color: var(--muted);
+}
+.shelf-rename > div {
+  display: flex;
+  justify-content: end;
+  gap: 8px;
+}
+.shelf-rename button {
+  background: var(--hover);
+  padding: 5px 10px;
+  border-radius: var(--radius-control);
+}
+.floating-shelf .destructive {
+  background: #e54545;
+  color: white;
+}
+.shelf-drop,
+.shelf-hold {
+  position: absolute;
+  inset: 0;
+  background: var(--panel);
+  display: flex;
+  padding: 8px;
+  gap: 6px;
+  border-radius: var(--radius-window);
+}
+.shelf-drop > div {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  text-align: center;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-card);
+  font-size: 11px;
+}
+.shelf-drop small {
+  font-size: 10px;
+  color: var(--muted);
+}
+.shelf-drop .active {
+  border: 2px solid #ff9f0a;
+  background: #ff9f0a22;
+}
+.shelf-drop .copy.active {
+  border-color: #30d158;
+  background: #30d15822;
+}
+.shelf-hold {
+  background: #c4353577;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
+.floating-shelf {
+  transition:
+    transform 0.18s,
+    opacity 0.18s;
+}
+.floating-shelf.holding {
+  transform: scale(0.88);
+  transition: transform 1s linear;
+  border-color: #e54545;
+}
+.floating-shelf.leaving {
+  transform: translateY(16px);
+  opacity: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .floating-shelf,
+  .shelf-pile > span {
+    transition: none !important;
+  }
+}
+.shelf-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.shelf-bottom.expanded {
+  border-top: 1px solid var(--line);
+  height: 36px;
+  padding: 4px 12px 4px 8px;
+}
+.shelf-footer-summary {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex: 1;
+  font-size: 10px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.shelf-bottom .shelf-footer-summary button {
+  flex: 0 0 28px;
+  background: transparent;
+  width: 28px;
+  height: 26px;
+  padding: 0;
+}
+.shelf-bottom.expanded > button {
+  flex: 0;
+  font-size: 10px;
+  min-height: 22px;
+  padding: 0 6px;
+}
+
+.shelf-copy-progress {
+  position: absolute;
+  left: 9px;
+  right: 9px;
+  bottom: 8px;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-row);
+  background: var(--panel);
+  font-size: 11px;
+  color: var(--muted);
+}

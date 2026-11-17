@@ -1,0 +1,2 @@
+# An empty final shortcode field is meaningful in the generated TSV catalog.
+src-tauri/emoji/catalog.tsv whitespace=-blank-at-eol

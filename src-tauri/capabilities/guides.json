@@ -1,0 +1,10 @@
+{
+  "identifier": "guides",
+  "windows": [
+    "snap-guides"
+  ],
+  "permissions": [
+    "core:event:allow-listen",
+    "core:event:allow-unlisten"
+  ]
+}

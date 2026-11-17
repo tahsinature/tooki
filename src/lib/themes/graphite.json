@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "id": "graphite",
+  "name": "Graphite",
+  "author": "Tooki",
+  "appearance": "dark",
+  "tokens": {
+    "surface": "#101113",
+    "panel": "#1b1d21",
+    "sidebar": "#181a1e",
+    "ink": "#e8e9ed",
+    "muted": "#a5aab3",
+    "line": "#34373d",
+    "selected": "#2b2d33",
+    "hover": "#222429",
+    "accent": "#c7cbd1",
+    "accentInk": "#101113",
+    "danger": "#ef7777",
+    "selectionMark": "#dce0e6",
+    "shellRadius": 18,
+    "rowRadius": 8,
+    "rowHeight": 38,
+    "headerHeight": 54,
+    "fontSize": 14,
+    "searchFontSize": 20,
+    "contentSpacing": 16,
+    "cornerRadius": 18
+  },
+  "components": {}
+}

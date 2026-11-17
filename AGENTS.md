@@ -1,6 +1,6 @@
 # Agent instructions for Tooki
 
-See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for building, testing and the project layout.
+See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for building, testing and the project layout. Rust/Tauri at the repository root is the primary implementation. The Swift app is archived in `.playground/tooki-swift/` for reference; do not build it as the production app.
 
 ## Focused implementation workflow
 
@@ -42,10 +42,10 @@ This includes, but is not limited to:
 
 ## Module boundaries
 
-- Put shared panel UI, themes and interaction behavior in `TookiDesignSystem`. Reuse it from every feature and the component gallery.
-- Keep feature reducers independent of AppKit and the design system. `ClipboardFeature` is the first reference implementation; native services are supplied through dependencies by the application.
+- Put shared panel UI and interaction behavior in `src/components`, themes and common helpers in `src/lib`, and feature UI in `src/features`. Reuse shared components from every feature and the component gallery.
+- Keep Rust feature logic independent of native UI. Platform adapters belong in `src-tauri/native` and `src-tauri/src/platform`; invoke shared services from every entry point.
 - Keep developer sample data isolated from real configuration, clipboard history and monitoring.
-- See [docs/MODERNIZATION.md](docs/MODERNIZATION.md) for migration scope, validation commands and baseline measurements.
+- See [docs/MIGRATION.md](docs/MIGRATION.md) for current migration scope. The archived modernization notes describe the Swift implementation.
 
 ## Established tools and reliable implementations
 

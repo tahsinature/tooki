@@ -1,0 +1,68 @@
+.detective-modes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 0 12px 12px;
+}
+.detective-modes button {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--row-radius);
+  background: transparent;
+  color: var(--muted);
+  text-align: left;
+}
+.detective-modes button.chosen {
+  background: var(--selected);
+  border-color: var(--accent);
+  color: var(--ink);
+}
+.detective-modes svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.detective-modes strong,
+.detective-modes small {
+  display: block;
+}
+.detective-modes strong {
+  font-size: 12px;
+  font-weight: 500;
+}
+.detective-modes small {
+  font-size: 11px;
+  line-height: 1.5;
+  margin-top: 3px;
+  color: var(--muted);
+}
+.detective-local {
+  padding: 0 12px 12px;
+}
+.detective-local label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 11px;
+}
+.sidebar-icon.detective {
+  background: linear-gradient(#ff6488, #e63662);
+}
+
+.detective-page {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.detective-log {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+.detective-page > :first-child {
+  flex-shrink: 0;
+}

@@ -1,0 +1,33 @@
+.emoji-list {
+  flex: 1;
+  min-height: 0;
+}
+.emoji-grid-row {
+  display: grid;
+  grid-template-columns: repeat(10, minmax(0, 1fr));
+  gap: 4px;
+  margin-bottom: 4px;
+}
+.emoji-cell {
+  height: 56px;
+  min-width: 0;
+  border: 0;
+  cursor: pointer;
+  font-family:
+    'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
+  font-size: 30px;
+  background: var(--result-row-background, transparent);
+  color: var(--result-row-text, var(--ink));
+  border-radius: var(--result-row-radius, var(--row-radius));
+}
+.emoji-cell:hover {
+  background: var(--result-row-hover, var(--hover));
+}
+.emoji-cell.selected,
+.emoji-cell.selected:hover {
+  background: var(--result-row-selected, var(--selected));
+}
+.emoji-cell:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}

@@ -1,130 +1,35 @@
 # Releasing Tooki
 
-Releases are automatic. Every push to `master` builds Tooki, publishes a GitHub release with a signed Sparkle appcast and updates the Homebrew cask. There is nothing to run by hand.
+The Release workflow publishes the primary Rust/Tauri application. A push to `master` chooses the next version from commit messages, runs `make test`, builds a universal macOS app, signs it with the existing release certificate, publishes `Tooki.dmg`, and updates `tahsinature/homebrew-tap`.
 
-## Quick version
-
-1. Write commit messages with a type prefix (see below).
-2. Push to `master`.
-3. Watch the **Release** workflow in the Actions tab. When it is green, users can run `brew upgrade --cask tooki`.
-
-## How the version is chosen
-
-`scripts/next-version.sh` reads the commit messages since the last `v*` tag and picks the bump:
-
-| Commit message | Bump | Example |
-| --- | --- | --- |
-| `feat!: ...` (any type with `!`) or a body line starting with `BREAKING CHANGE:` | major | 1.4.2 → 2.0.0 |
-| `feat: ...` or `feat(scope): ...` | minor | 1.4.2 → 1.5.0 |
-| anything else (`fix:`, `chore:`, no prefix, ...) | patch | 1.4.2 → 1.4.3 |
-
-The biggest bump wins. One `feat:` among ten `fix:` commits makes a minor release.
-
-You can preview the next version locally:
+## Install and update
 
 ```sh
-scripts/next-version.sh          # what a push would release
-scripts/next-version.sh minor    # force a bump type
+brew install --cask tahsinature/tap/tooki
+brew update
+brew reinstall --cask tahsinature/tap/tooki
 ```
 
-It prints nothing when there are no commits since the last tag.
+Homebrew 7 or later may require `brew trust tahsinature/tap` once. The cask installs `/Applications/Tooki.app`, identifier `us.tahsin.tooki`, for macOS 14 or later. The DMG contains both Apple Silicon and Intel executables. Ordinary updates use `brew upgrade --cask tooki`.
 
-## What the workflow does
+The Tauri version does not yet include an in-app updater. The cask no longer declares `auto_updates`, so Homebrew can offer updates normally. Each Tauri release retains the unchanged v0.11.0 Sparkle appcast for existing Swift installations; this keeps their feed valid without advertising an incompatible in-app transition. Use Homebrew or the DMG to switch from Swift.
 
-`.github/workflows/release.yml` runs these steps on a macOS runner:
+Existing Swift settings, snippets, clipboard history and shelf files are preserved. They are not automatically imported into Tauri. Shelferry is a separate optional installation: `brew install --cask tahsinature/tap/shelferry`.
 
-The workflow uses GitHub's `xcode-27` image with Xcode 27.2 selected explicitly. Its macOS 27 environment matches the screenshot references and supports the required Swift 6.4 toolchain. GitHub currently labels this image as preview; availability and image updates should be monitored.
+## Version and workflow
 
-1. **Pick the version** with `scripts/next-version.sh`. If there are no new commits, every later step is skipped.
-2. **Test** with `make test`. A failing test stops the release.
-3. **Build** a universal (Apple Silicon and Intel) DMG with `make dmg`, stamping the version and increasing workflow run number into the app. Sparkle and its helpers are embedded and signed inside out before the app is signed.
-4. **Generate the appcast** with Sparkle’s official `generate_appcast` tool and the `SPARKLE_PRIVATE_KEY` secret. This signs the update archive; a missing key stops the release.
-5. **Publish** the GitHub release `vX.Y.Z` with the DMG and `appcast.xml` attached. Creating the release also creates the tag. The notes list the commit subjects since the previous release.
-6. **Update Homebrew** by copying `packaging/tooki.rb` into the tap repository with the new `version` and `sha256` filled in.
+`scripts/next-version.sh` uses the latest published `v*` tag. `feat:` selects a minor bump, a conventional breaking-change marker selects major, and other commits select patch. The workflow can also be dispatched with an explicit bump. Do not create version tags manually; the release creates its tag at the tested commit.
 
-Releases run one at a time in push order, so two quick pushes never claim the same version.
+`scripts/package-macos.sh` accepts `VERSION`, `BUILD_NUMBER`, `APPLE_SIGNING_IDENTITY`, `TAURI_TARGET`, and `CONFIGURATION`. CI sets the build number to its increasing run number. The build checks the bundle identity, version, signature, and both architectures before publication.
 
-## Releasing on demand
+CI uses Bun 1.4.2, stable Rust with both macOS targets, and the existing Xcode runner. Cargo dependencies and frontend dependencies use committed lockfiles. Source changes, including the Swift archive, are versioned together; generated output is ignored.
 
-To release without a new commit, or to force a bump type, open **Actions → Release → Run workflow** and choose `auto`, `patch`, `minor` or `major`. With `auto` and no new commits, the run does nothing.
+## Existing secrets
 
-## Homebrew
+- `SIGNING_CERT_P12` and `SIGNING_CERT_PASSWORD`: the stable Tooki release signing identity. Keep it stable to preserve macOS app recognition across updates.
+- `HOMEBREW_TAP_TOKEN`: Contents read/write access to the tap. A missing token fails publication of the cask rather than reporting success.
+- `SPARKLE_PRIVATE_KEY`: retained for the archived Swift app; the Tauri workflow does not export or use it.
 
-Users install with:
+The existing distribution remains self-signed and not notarized. Homebrew retains its existing quarantine handling. This transition does not claim Developer ID signing or notarization.
 
-```sh
-brew tap tahsinature/tap
-brew trust tahsinature/tap    # Homebrew 7+ refuses casks from taps you have not trusted
-brew install --cask tooki
-```
-
-The cask lives in [tahsinature/homebrew-tap](https://github.com/tahsinature/homebrew-tap) at `Casks/tooki.rb`. Its source of truth is `packaging/tooki.rb` in this repository. Edit that file, not the tap, because the workflow overwrites the tap copy on every release. The `version` and `sha256` lines in `packaging/tooki.rb` are replaced by the workflow on each release.
-
-The workflow pushes to the tap with the `HOMEBREW_TAP_TOKEN` repository secret. This is a fine-grained personal access token named `tooki-homebrew-tap`, limited to the tap repository with **Contents: Read and write**. If the secret is missing, the release still happens and the workflow logs a warning instead of updating the cask.
-
-### Replacing the token
-
-If the token is revoked or leaked:
-
-1. Delete it at GitHub → Settings → Developer settings → Fine-grained tokens.
-2. Create a new one: resource owner `tahsinature`, only the `homebrew-tap` repository, Contents read and write.
-3. Save it: `gh secret set HOMEBREW_TAP_TOKEN -R tahsinature/tooki` and paste the token.
-
-## Things to know
-
-- **The app is not notarized.** It is signed with a self-signed certificate, "Tooki Release Signing". The cask removes the quarantine flag after install so the app opens. People who download the DMG directly have to right-click → Open the first time.
-- **The signing certificate keeps Accessibility across updates.** macOS remembers the permission for the certificate, not for one build. It lives in the `SIGNING_CERT_P12` (base64 .p12) and `SIGNING_CERT_PASSWORD` secrets. Keep a backup: a new certificate makes every user grant Accessibility once more. Without the secrets, the workflow falls back to ad hoc signing and warns.
-- **Local builds show the version from `Resources/Info.plist`.** Only release builds get the real version number. You do not need to edit `Info.plist` when releasing.
-- **Dev or release is shown at the bottom of the sidebar.** `make app` marks builds as `dev` with the git commit (the Tooki card shows an orange `Dev · abc1234`, with `•` for uncommitted changes). The workflow passes `CHANNEL=release`, so releases show `Version X.Y.Z` instead.
-- **Do not create `v*` tags by hand.** The workflow treats the latest tag as the last release, so a manual tag changes the next version number.
-- **A broken release** can be removed with `gh release delete vX.Y.Z --cleanup-tag`. Then push a fix. If the cask was already updated, the next successful release overwrites it.
-
-
-## Sparkle update signing
-
-Sparkle 2.10.1 is pinned in Package.swift. In-app updates use its standard window, download verification and installer. Development builds never start Sparkle. Users of the previous custom updater may need a one-time manual DMG or Homebrew upgrade; see the transition instructions below.
-
-The feed is `https://github.com/tahsinature/tooki/releases/latest/download/appcast.xml`. Each appcast points to the version-specific DMG asset. It contains the current complete update; historical archives and delta generation are not required for this initial setup.
-
-The public Ed25519 key is embedded as `SUPublicEDKey` in Resources/Info.plist. Its private counterpart was generated in the login Keychain under account `us.tahsin.tooki`, using Sparkle’s `generate_keys`. Keep a secure backup. Do not regenerate it for each release or commit an exported private key. This key is separate from the existing application code-signing certificate; both identities must remain stable.
-
-The private key has been uploaded, with authorization, as the encrypted GitHub Actions repository secret `SPARKLE_PRIVATE_KEY`. The temporary export was removed. To restore or transfer this setup later, use the procedure below. Use Sparkle’s `generate_keys --account us.tahsin.tooki -x <private-file>` to export it into a protected temporary file, upload through `gh secret set SPARKLE_PRIVATE_KEY --repo tahsinature/tooki < <private-file>`, then delete the temporary file. Run these commands only with authorization to export/upload the private key. The workflow passes the secret to `generate_appcast` through standard input, never a command argument or repository file.
-
-Local feed generation uses the Keychain directly:
-
-```sh
-mkdir -p build/appcast
-cp build/Tooki.dmg build/appcast/Tooki.dmg
-scripts/generate-appcast.sh build/appcast https://github.com/tahsinature/tooki/releases/download/vX.Y.Z/
-```
-
-`CFBundleVersion` is the increasing GitHub Actions run number in releases. Local builds default to the Git commit count; set `BUILD_NUMBER` explicitly when testing older/newer pairs. Do not reset the release build sequence below already published values when moving the workflow.
-
-The legacy JSON `updates.checkAutomatically` value seeds Sparkle’s preference once, on the first Sparkle-enabled launch. Subsequent changes in About or Sparkle’s window use Sparkle’s own persisted preference. Editing that legacy JSON field after migration does not overwrite the user’s current choice. The old `updateFeedURL` GitHub-JSON override and custom skipped-version preference are no longer used. Isolated test bundles can set Sparkle’s standard `SUFeedURL` override without changing the production feed.
-
-The existing self-signed distribution and Homebrew quarantine handling remain in place. This migration does not add Developer ID signing or notarization. Version 0.11.0 has been published with the production HTTPS feed and configured CI secret; this does not certify Gatekeeper behavior.
-
-
-## Migration verification (November 15, 2026)
-
-- All 335 automated tests passed, including updater development-build isolation and error classification, native panel checks, and screenshot comparisons.
-- A separate disposable application compiled the production `Updater` and `BuildInfo` sources. Its local feed delivered a correctly signed build 2 over build 1; Sparkle installed and relaunched it. The installed bundle passed strict nested-signature verification.
-- An invalid archive signature was rejected before extraction; an HTTP 404 download showed Sparkle’s error UI. Both left build 1 unchanged. Skip persisted version 2, and a later manual check still offered it. Retrying the valid update successfully installed and relaunched build 2.
-- `make dmg CONFIGURATION=debug CHANNEL=release` produced an isolated test DMG. The production appcast script generated the expected version-specific HTTPS enclosure, build number and archive size. CryptoKit independently verified the DMG’s Ed25519 signature against the public key embedded in Info.plist.
-- Release YAML parsed, shell scripts passed syntax checks, and the packaged development and test-release apps passed strict nested-signature verification.
-
-The subsequent v0.11.0 release passed CI, including universal build, strict signing, signed appcast generation and Homebrew publication. The installed v0.10.3 updater restarted but left v0.10.3 installed. Installing the verified v0.11.0 DMG directly succeeded, retained Accessibility permission and the same designated signing requirement, and Sparkle reported Up to date against the public feed. Permission-denied installation and Gatekeeper/notarization behavior remain unverified. Temporary test bundles used their own identifier and defaults, a loopback-only server, and test-only HTTP transport settings; production uses HTTPS.
-
-
-## One-time transition from the old updater
-
-If Install and Restart returns to the same older version, quit Tooki and install the latest DMG from GitHub Releases into Applications, replacing the old app. Homebrew users can instead run `brew upgrade --cask tooki`. Open Tooki, confirm the version in About, and check that General still reports Accessibility Granted. Keep the existing settings and application data folders; no reset is required.
-
-The observed v0.10.3 failure does not establish a root cause. The new release uses Sparkle; the removed legacy installer is not being patched retroactively.
-
-## Remaining acceptance checks
-
-- On the next independently warranted release, use v0.11.0's Check for Updates control to download, install and restart into that release. Confirm version, signing requirement, settings and Accessibility permission. The public no-update check and isolated installation tests do not substitute for this production-to-production upgrade. Do not publish a version solely to make this checklist green without an explicit release decision.
-- On physical Macs or macOS virtual machines running supported older versions, check launch, Root Search, Clipboard, Snippets, Emoji, Shelf, keyboard navigation, paste delivery and update checking. This machine runs macOS 27.0.1; iOS simulators cannot verify older macOS runtime compatibility.
-- With VoiceOver enabled, check search-field names, result and action labels, selected state, grouping headings, focus restoration and keyboard access to Details. Inspecting accessibility properties alone is not a complete spoken-navigation test.
-- With a pointer, check normal, hovered and selected rows/cells in Root Search, Clipboard, Snippets, Emoji, Shelf Manager and floating Shelf, plus Actions and Filter menus. Hover should be visible without changing keyboard selection; selected styling must remain dominant.
+The source cask is `packaging/tooki.rb`; CI replaces its version and SHA-256 when publishing to `Casks/tooki.rb` in the tap. Verify that the public cask version and checksum match the release asset before reporting a release complete.

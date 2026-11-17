@@ -1,0 +1,36 @@
+/* Embedded inputs inherit their container's layout. Focus belongs to its border,
+   never a second rectangular outline around the text. */
+.text-input {
+  min-width: 0;
+  color: inherit;
+  font: inherit;
+  background: transparent;
+  border: 0;
+  padding: 0;
+}
+.text-input:focus-visible,
+.text-field:focus-visible {
+  outline: none;
+  border-color: var(--input-focus-border);
+}
+.input-frame:focus-within {
+  border-color: var(--input-focus-border);
+}
+.text-input.rename-input {
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  padding: 5px 6px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  background: var(--panel);
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 600;
+}
+.text-input.rename-input:focus-visible {
+  border-color: var(--input-focus-border);
+}
+
+.text-field, .text-input.text-field { width: 100%; border: 1px solid var(--line); border-radius: var(--radius-control); padding: 10px; color: var(--ink); background: var(--surface); }
+.text-input.text-field:focus-visible { border-color: var(--input-focus-border); }
