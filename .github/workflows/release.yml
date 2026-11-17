@@ -82,7 +82,8 @@ jobs:
         run: |
           make dmg
           codesign --verify --deep --strict build/Tooki.app
-          lipo build/Tooki.app/Contents/MacOS/tooki -verify_arch arm64 x86_64
+          lipo build/Tooki.app/Contents/MacOS/tooki -verify_arch arm64
+          lipo build/Tooki.app/Contents/MacOS/tooki -verify_arch x86_64
           cmp src-tauri/emoji/NOTICE build/Tooki.app/Contents/Resources/EmojiNotices.txt
           test "$(/usr/libexec/PlistBuddy -c 'Print CFBundleIdentifier' build/Tooki.app/Contents/Info.plist)" = 'us.tahsin.tooki'
           test "$(/usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' build/Tooki.app/Contents/Info.plist)" = "$VERSION"
