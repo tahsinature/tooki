@@ -112,7 +112,13 @@ static id perform(NSString *op, NSDictionary *args) {
         NSPasteboard *pb=clipboardBoard();
         NSString *mode=str(args[@"mode"]); NSDictionary *item=args[@"item"];
         if ([mode isEqual:@"ocr"] || [mode isEqual:@"paths"] || [mode isEqual:@"plain"]) {
-            NSString *text=[mode isEqual:@"ocr"] ? str(item[@"ocr"]) : [mode isEqual:@"paths"] ? [item[@"files"] componentsJoinedByString:@"\n"] : str(item[@"content"]);
+            NSString *text;
+            if ([mode isEqual:@"paths"]) {
+                text = [item[@"files"] count] ? [item[@"files"] componentsJoinedByString:@"\n"] : str(item[@"image"]);
+                if (!text.length) return failure(@"This clipboard item has no file on disk.");
+            } else {
+                text = [mode isEqual:@"ocr"] ? str(item[@"ocr"]) : str(item[@"content"]);
+            }
             [pb clearContents]; [pb setString:text forType:NSPasteboardTypeString];
         } else if ([item[@"files"] count]) { [pb clearContents]; [pb writeObjects:fileURLs(item[@"files"])]; }
         else if (str(item[@"image"]).length) {

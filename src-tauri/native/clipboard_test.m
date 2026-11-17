@@ -31,8 +31,17 @@ int main(void) {
   NSArray *apps=perform(@"apps",@{@"path":captured[@"image"]});CHECK(apps.count>0);
   [pb clearContents];[pb writeObjects:@[[NSURL fileURLWithPath:captured[@"image"]]]];
   CHECK([capture(args)[@"files"] count]==1);
+  perform(@"copy",@{@"item":@{@"image":captured[@"image"]},@"mode":@"paths"});
+  CHECK([[pb stringForType:NSPasteboardTypeString] isEqual:captured[@"image"]]);
+  CHECK(![pb.types containsObject:NSPasteboardTypePNG]);
+  CHECK(capture(args)==NSNull.null);
+  NSArray *paths=@[@"/tmp/a file.png",@"/tmp/second.txt"];
+  perform(@"copy",@{@"item":@{@"files":paths,@"image":captured[@"image"]},@"mode":@"paths"});
+  CHECK([[pb stringForType:NSPasteboardTypeString] isEqual:[paths componentsJoinedByString:@"\n"]]);
+  CHECK(perform(@"copy",@{@"item":@{@"content":@"text only"},@"mode":@"paths"})[@"error"] != nil);
+  CHECK([[pb stringForType:NSPasteboardTypeString] isEqual:[paths componentsJoinedByString:@"\n"]]);
   [NSFileManager.defaultManager removeItemAtPath:directory error:nil];[pb releaseGlobally];
-  puts("Native capture, privacy skip, rich copy, image capture, Vision OCR, file capture, Open With discovery passed.");
+  puts("Native capture, privacy skip, rich copy, image capture, Vision OCR, file capture, path copy, Open With discovery passed.");
  }
  return 0;
 }

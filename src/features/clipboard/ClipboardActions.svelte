@@ -8,6 +8,7 @@
     ExternalLink,
     FileText,
     ScanText,
+    Folder,
   } from '@lucide/svelte';
   import PopupSurface from '../../components/PopupSurface.svelte';
   import ActionsMenu from '../../components/ActionsMenu.svelte';
@@ -62,11 +63,19 @@
               },
             ]
           : []),
-        ...(item.kind === 'file'
+        ...(item.files.length > 0 || item.image
           ? [
               {
+                id: 'reveal',
+                label: /Mac/.test(navigator.platform)
+                  ? 'Show in Finder'
+                  : 'Show in File Manager',
+                icon: Folder,
+                run: () => void act('reveal'),
+              },
+              {
                 id: 'paths',
-                label: 'Copy File Paths',
+                label: item.files.length > 1 ? 'Copy Paths' : 'Copy Path',
                 icon: FileText,
                 run: () => void act('copy', 'paths'),
               },

@@ -24,11 +24,22 @@ fn item(app: &AppHandle, args: &Value) -> Result<Clip, String> {
     let db = state.database.lock().map_err(|e| e.to_string())?;
     db.get(args["id"].as_str().ok_or("Missing clipboard item")?)
 }
-fn paths(app: &AppHandle, clip: &Clip) -> Result<Vec<String>, String> {
+pub(super) fn file_paths(clip: &Clip) -> Result<Vec<String>, String> {
     let paths = if !clip.files.is_empty() {
         clip.files.clone()
     } else if !clip.image.is_empty() {
         vec![clip.image.clone()]
+    } else {
+        return Err("This clipboard item has no file on disk.".into());
+    };
+    if paths.iter().any(|p| !std::path::Path::new(p).exists()) {
+        return Err("A clipboard file has moved or been deleted.".into());
+    }
+    Ok(paths)
+}
+fn paths(app: &AppHandle, clip: &Clip) -> Result<Vec<String>, String> {
+    if !clip.files.is_empty() || !clip.image.is_empty() {
+        file_paths(clip)
     } else {
         let root = app
             .path()
@@ -38,12 +49,8 @@ fn paths(app: &AppHandle, clip: &Clip) -> Result<Vec<String>, String> {
         std::fs::create_dir_all(&root).map_err(|e| e.to_string())?;
         let path = root.join(format!("{}.txt", clip.id));
         std::fs::write(&path, &clip.content).map_err(|e| e.to_string())?;
-        vec![path.to_string_lossy().into()]
-    };
-    if paths.iter().any(|p| !std::path::Path::new(p).exists()) {
-        return Err("An original file has moved or been deleted.".into());
+        Ok(vec![path.to_string_lossy().into()])
     }
-    Ok(paths)
 }
 fn request(app: &AppHandle, operation: &str, args: Value) -> Result<Value, String> {
     let state = app.state::<Clipboard>();
@@ -159,8 +166,11 @@ fn request(app: &AppHandle, operation: &str, args: Value) -> Result<Value, Strin
         }
         "copy" | "paste" => {
             let clip = item(app, &args)?;
-            if !clip.files.is_empty() || !clip.image.is_empty() {
-                paths(app, &clip)?;
+            if args["mode"].as_str() == Some("paths")
+                || !clip.files.is_empty()
+                || !clip.image.is_empty()
+            {
+                file_paths(&clip)?;
             }
             native::on_main(
                 app,
@@ -169,6 +179,14 @@ fn request(app: &AppHandle, operation: &str, args: Value) -> Result<Value, Strin
             )?;
             if operation == "paste" {
                 native::on_main(app, "paste", json!({}))?;
+            }
+            crate::launcher_presentation::dismiss_launcher(app.clone())?;
+            Ok(Value::Null)
+        }
+        "reveal" => {
+            let files = file_paths(&item(app, &args)?)?;
+            for file in files {
+                crate::platform::file_action(app, "reveal", std::path::Path::new(&file), None)?;
             }
             crate::launcher_presentation::dismiss_launcher(app.clone())?;
             Ok(Value::Null)

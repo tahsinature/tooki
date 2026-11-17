@@ -30,6 +30,32 @@ fn capture(text: &str) -> Capture {
     }
 }
 #[test]
+fn file_actions_require_existing_files_and_never_export_text() {
+    let f = Fixture::new();
+    let id =
+        f.db.record(capture("plain text"), &Settings::default())
+            .unwrap();
+    let mut clip = f.db.get(&id).unwrap();
+    assert!(super::commands::file_paths(&clip).is_err());
+    let image = f.root.join("saved image.png");
+    std::fs::write(&image, b"test image").unwrap();
+    clip.image = image.to_string_lossy().into_owned();
+    assert_eq!(
+        super::commands::file_paths(&clip).unwrap(),
+        vec![clip.image.clone()]
+    );
+    let original = f.root.join("original.txt");
+    std::fs::write(&original, b"test file").unwrap();
+    clip.files = vec![original.to_string_lossy().into_owned(), clip.image.clone()];
+    assert_eq!(super::commands::file_paths(&clip).unwrap(), clip.files);
+    std::fs::remove_file(&original).unwrap();
+    assert!(super::commands::file_paths(&clip).is_err());
+    clip.files.clear();
+    std::fs::remove_file(&image).unwrap();
+    assert!(super::commands::file_paths(&clip).is_err());
+    assert!(!f.root.join("exports").exists());
+}
+#[test]
 fn deduplication_preserves_pin_and_first_copy() {
     let f = Fixture::new();
     let s = Settings::default();
