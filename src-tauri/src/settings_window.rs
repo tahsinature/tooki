@@ -20,6 +20,7 @@ pub fn open_settings(app: AppHandle, page: Option<String>) -> Result<(), String>
                 | "snippets"
                 | "shelf"
                 | "system"
+                | "systemMonitor"
                 | "keepAwake"
                 | "about"
         ) {

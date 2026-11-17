@@ -2,6 +2,7 @@ export type Item = {
   id: string;
   title: string;
   subtitle: string;
+  metadata?: string;
   icon?: string;
   alias?: string;
   kind:
@@ -20,6 +21,17 @@ export type Item = {
   pinned?: boolean;
 };
 export const commands: Item[] = [
+  {
+    id: 'systemMonitor',
+    title: 'System Monitor',
+    subtitle: 'Your Mac, at a glance',
+    kind: 'command',
+    group: 'Commands',
+    content:
+      'cpu memory ram storage disk battery power network performance activity monitor',
+    source: 'Tooki',
+    time: '',
+  },
   {
     id: 'emoji',
     title: 'Emoji Picker',

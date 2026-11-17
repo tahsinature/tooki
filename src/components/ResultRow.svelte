@@ -1,5 +1,12 @@
 <script lang="ts">
   import {
+    Activity,
+    Cpu,
+    MemoryStick,
+    HardDrive,
+    Battery,
+    Wifi,
+    LayoutDashboard,
     Smile,
     TextCursorInput,
     Image,
@@ -46,6 +53,14 @@
     color: Palette,
   };
   const toolIcons = {
+    'monitor:overview': LayoutDashboard,
+    'monitor:cpu': Cpu,
+    'monitor:memory': MemoryStick,
+    'monitor:storage': HardDrive,
+    'monitor:power': Battery,
+    'monitor:network': Wifi,
+    systemMonitor: Activity,
+    'command:systemMonitor.open': Activity,
     emoji: Smile,
     'command:emoji.open': Smile,
     snippets: TextCursorInput,
@@ -110,11 +125,12 @@
         class="muted"
       />{:else}<Pin size={12} class="muted" />{/if}{/if}
   <span class="row-metadata"
-    >{item.kind === 'command'
-      ? 'Command'
-      : item.kind === 'link'
-        ? 'Link'
-        : item.kind.charAt(0).toUpperCase() + item.kind.slice(1)}</span
+    >{item.metadata ??
+      (item.kind === 'command'
+        ? 'Command'
+        : item.kind === 'link'
+          ? 'Link'
+          : item.kind.charAt(0).toUpperCase() + item.kind.slice(1))}</span
   >
   <span class="row-enter" aria-hidden="true"><Keycap text="↵" /></span>
 </button>

@@ -36,7 +36,7 @@
     autocomplete="off"
     spellcheck="false"
   />
-  {#if clipboard || filterOptions}<PanelFilterMenu
+  {#if filterOptions ? filterOptions.length > 0 : clipboard}<PanelFilterMenu
       bind:value={filter}
       options={filterOptions ??
         (clipboard

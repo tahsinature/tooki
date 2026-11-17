@@ -4,7 +4,7 @@ pub fn supports(capability: &str, platform: &str) -> bool {
     platform == "macos"
         && matches!(
             capability,
-            "system.actions" | "power.sleep" | "power.keepAwake" | "trash.empty" | "storage.eject"
+            "system.monitor" | "system.actions" | "power.sleep" | "power.keepAwake" | "trash.empty" | "storage.eject"
         )
 }
 
@@ -106,6 +106,7 @@ mod tests {
     fn capabilities_fail_closed_for_unknown_platforms_and_actions() {
         for capability in [
             "system.actions",
+            "system.monitor",
             "power.sleep",
             "power.keepAwake",
             "trash.empty",

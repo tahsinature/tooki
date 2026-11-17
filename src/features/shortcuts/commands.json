@@ -1,5 +1,12 @@
 [
   {
+    "id": "command:systemMonitor.open",
+    "tool": "systemMonitor",
+    "title": "System Monitor",
+    "root": "systemMonitor",
+    "capability": "system.monitor"
+  },
+  {
     "id": "command:emoji.open",
     "tool": "emoji",
     "title": "Emoji Picker",

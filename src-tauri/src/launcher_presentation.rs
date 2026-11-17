@@ -54,7 +54,7 @@ pub fn set_launcher_view(app: tauri::AppHandle, window: tauri::WebviewWindow, vi
     if window.label() == "main"
         && matches!(
             view.as_str(),
-            "root" | "clipboard" | "system" | "keepAwake" | "snippets" | "emoji"
+            "root" | "systemMonitor" | "clipboard" | "system" | "keepAwake" | "snippets" | "emoji"
         )
     {
         app.state::<Presentation>().0.lock().unwrap().active_view = view;

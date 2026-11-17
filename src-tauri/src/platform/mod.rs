@@ -1,4 +1,5 @@
 //! OS integration boundary. Features own data and workflows; adapters own OS calls.
+pub mod system_monitor;
 pub mod launcher;
 pub mod preview;
 pub mod shelf;

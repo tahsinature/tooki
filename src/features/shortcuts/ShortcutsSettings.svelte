@@ -16,6 +16,7 @@
     shelf: 'Shelf',
     clipboard: 'Clipboard',
     system: 'System Actions',
+    systemMonitor: 'System Monitor',
   };
   let rows = $derived([
     launcherRow(),
@@ -75,7 +76,7 @@
     : 'Tool commands, the launcher, and saved application assignments.'} Edit here
   or in the tool’s settings.
 </p>
-{#each ['General', 'Notes', 'Shelf', 'Clipboard', 'System Actions', 'Applications'] as group}
+{#each ['General', 'Notes', 'Shelf', 'Clipboard', 'System Actions', 'System Monitor', 'Applications'] as group}
   {#if visible.some((item) => item.group === group)}
     <SettingsSection title={group}>
       {#each visible.filter((item) => item.group === group) as item (item.id)}<AssignmentRow

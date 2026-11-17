@@ -69,6 +69,7 @@ pub async fn execute_tool_command(app: tauri::AppHandle, id: String) -> Result<(
         return Err("Enable this tool in Settings first.".into());
     }
     let target = match id.as_str() {
+        "command:systemMonitor.open" => Some(("main", crate::launcher_presentation::active_view(&app) == "systemMonitor")),
         "command:notes.open" => Some(("notes", true)),
         "command:keepAwake.open" => Some((
             "main",
@@ -116,7 +117,7 @@ pub async fn execute_tool_command(app: tauri::AppHandle, id: String) -> Result<(
         "command:system.sleep" | "command:system.emptyTrash" => {
             crate::system_actions::execute(app, id).await?;
         }
-        "command:system.open" | "command:system.eject" | "command:keepAwake.open" => {
+        "command:systemMonitor.open" | "command:system.open" | "command:system.eject" | "command:keepAwake.open" => {
             crate::launcher_presentation::request_tool(&app, &id).map_err(|e| e.to_string())?;
         }
         "command:notes.open" | "command:notes.new" | "command:notes.browse" => {

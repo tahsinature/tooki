@@ -3,6 +3,7 @@ fn main() {
         cc::Build::new()
             .file("native/clipboard.m")
             .file("native/emoji.m")
+            .file("native/system_monitor.m")
             .file("native/settings_chrome.m")
             .file("native/utility_window.m")
             .file("native/preview.m")
@@ -22,6 +23,7 @@ fn main() {
             .compile("tooki_clipboard");
         for framework in [
             "IOKit",
+            "SystemConfiguration",
             "CoreText",
             "AppKit",
             "Carbon",
@@ -36,6 +38,7 @@ fn main() {
         }
         println!("cargo:rerun-if-changed=native/clipboard.m");
         println!("cargo:rerun-if-changed=native/emoji.m");
+        println!("cargo:rerun-if-changed=native/system_monitor.m");
         println!("cargo:rerun-if-changed=native/settings_chrome.m");
         println!("cargo:rerun-if-changed=native/utility_window.m");
         println!("cargo:rerun-if-changed=native/preview.m");

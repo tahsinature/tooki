@@ -21,6 +21,7 @@ mod shelf;
 mod shortcut_detective;
 mod snippets;
 mod system_actions;
+mod system_monitor;
 mod tool_commands;
 mod window_toggle;
 
@@ -63,10 +64,13 @@ fn main() {
         .manage(launcher_shortcut::LauncherShortcut::default())
         .manage(launcher_presentation::Presentation::default())
         .manage(system_actions::SystemActions::default())
+        .manage(system_monitor::SystemMonitor::default())
         .manage(keep_awake::KeepAwake::default())
         .invoke_handler(tauri::generate_handler![
             quit_app,
             emoji::emoji_request,
+            system_monitor::system_monitor_snapshot,
+            system_monitor::open_activity_monitor,
             snippets::commands::snippet_request,
             tool_commands::execute_tool_command,
             tool_commands::command_availability,

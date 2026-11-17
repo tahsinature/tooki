@@ -1,4 +1,6 @@
 <script lang="ts">
+  import SystemMonitorSettings from '../system-monitor/SystemMonitorSettings.svelte';
+  import { Activity } from '@lucide/svelte';
   import { getVersion } from '@tauri-apps/api/app';
   let version = $state('0.12.0');
   onMount(() => {
@@ -232,6 +234,15 @@
       keywords: 'wake lock caffeine coffee display sleep menu bar icon',
     },
     {
+      id: 'systemMonitor',
+      title: 'System Monitor',
+      icon: Activity,
+      group: 'Tools',
+      tone: 'monitor',
+      keywords:
+        'cpu memory ram storage disk power battery network performance activity',
+    },
+    {
       id: 'system',
       title: 'System Actions',
       icon: Power,
@@ -347,6 +358,7 @@
         {:else if page === 'hyper'}<HyperSettings />
         {:else if page === 'detective'}<DetectiveSettings />
         {:else if page === 'keepAwake'}<KeepAwakeSettings />
+        {:else if page === 'systemMonitor'}<SystemMonitorSettings />
         {:else if page === 'system'}<SystemSettings />
         {:else if page === 'notes'}<NotesSettings />
         {:else if page === 'shelf'}<ShelfSettings />

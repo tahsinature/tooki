@@ -1,0 +1,227 @@
+.monitor-detail {
+  overflow-y: auto;
+  gap: 16px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
+}
+.monitor-detail > * {
+  flex-shrink: 0;
+}
+.monitor-detail [data-tone='green'] {
+  --metric-color: color-mix(in srgb, #71d5b0 60%, var(--ink));
+}
+.monitor-detail [data-tone='amber'] {
+  --metric-color: color-mix(in srgb, #edc77a 60%, var(--ink));
+}
+.monitor-detail [data-tone='blue'] {
+  --metric-color: color-mix(in srgb, #88b9ee 60%, var(--ink));
+}
+.monitor-detail [data-tone='red'] {
+  --metric-color: var(--danger);
+}
+.monitor-detail [data-tone] {
+  color: var(--metric-color);
+}
+.monitor-heading h1 {
+  font-size: 22px;
+  letter-spacing: -0.5px;
+  line-height: 1.25;
+}
+.monitor-heading p {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+.monitor-card {
+  padding: 13px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  min-width: 0;
+}
+.monitor-detail h2 {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  margin: 0 0 12px;
+}
+.monitor-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.monitor-metrics.two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.monitor-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 11px;
+}
+.monitor-metric strong {
+  font-size: clamp(17px, 2.6vw, 24px);
+  font-weight: 600;
+  line-height: 1.25;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.monitor-label {
+  font-size: 11px;
+  color: var(--muted);
+}
+.monitor-note {
+  font-size: 11px;
+  line-height: 1.55;
+  color: var(--muted);
+  margin: 0;
+}
+.monitor-insight {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  width: 100%;
+  text-align: left;
+}
+.monitor-insight > svg {
+  flex-shrink: 0;
+}
+.monitor-insight span {
+  flex: 1;
+}
+.monitor-insight strong {
+  display: block;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 500;
+}
+.monitor-insight small {
+  display: block;
+  color: var(--muted);
+  margin-top: 4px;
+  font-size: 11px;
+}
+.monitor-insight:hover {
+  background: var(--hover);
+}
+.monitor-insight:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.monitor-value {
+  font-size: 32px;
+  line-height: 1.15;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  margin-bottom: 16px;
+}
+.monitor-value span {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 400;
+  margin-top: 7px;
+}
+.monitor-chart svg {
+  width: 100%;
+  height: 64px;
+  display: block;
+  overflow: visible;
+}
+.monitor-chart-grid {
+  stroke: var(--line);
+  stroke-width: 0.5;
+  fill: none;
+}
+.monitor-chart-line {
+  stroke: var(--metric-color, #71d5b0);
+  stroke-width: 2;
+  fill: none;
+  vector-effect: non-scaling-stroke;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.monitor-chart-axis {
+  display: flex;
+  justify-content: space-between;
+  color: var(--muted);
+  font-size: 10px;
+  margin-top: 7px;
+  gap: 8px;
+}
+.monitor-rows {
+  margin: 0;
+  font-size: 12px;
+}
+.monitor-rows > div {
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  padding: 8px 0;
+  align-items: baseline;
+}
+.monitor-rows > div + div {
+  border-top: 1px solid color-mix(in srgb, var(--line) 45%, transparent);
+}
+.monitor-rows dt {
+  color: var(--muted);
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.monitor-rows dd {
+  margin: 0;
+  max-width: 60%;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.monitor-cores {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+.monitor-cores > div {
+  display: grid;
+  gap: 6px;
+}
+.monitor-cores span {
+  color: var(--muted);
+  font-size: 10px;
+}
+.monitor-cores strong {
+  color: color-mix(in srgb, #71d5b0 60%, var(--ink));
+  font-size: 11px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.monitor-detail meter {
+  display: block;
+  width: 100%;
+  height: 6px;
+  border: 0;
+  background: var(--line);
+  border-radius: 3px;
+}
+.monitor-detail meter::-webkit-meter-bar {
+  background: var(--line);
+  border: 0;
+}
+.monitor-detail meter::-webkit-meter-optimum-value {
+  background: #71d5b0;
+}
+.monitor-detail meter::-moz-meter-bar {
+  background: #71d5b0;
+}
+.monitor-detail .monitor-storage-meter::-webkit-meter-optimum-value {
+  background: #edc77a;
+}
+.monitor-error {
+  padding: 12px;
+  border: 1px solid var(--danger);
+  border-radius: var(--radius-card);
+  color: var(--danger);
+  font-size: 12px;
+  line-height: 1.5;
+}

@@ -9,7 +9,10 @@ const preferences = {
 test('tool assignments preserve one root command per tool', () => {
   expect(commandItems('', preferences).map((item) => item.id)).toEqual(
     commands
-      .filter((item) => !['system', 'keepAwake', 'shelf'].includes(item.id))
+      .filter(
+        (item) =>
+          !['system', 'keepAwake', 'shelf', 'systemMonitor'].includes(item.id),
+      )
       .map((item) => item.id),
   );
   expect(
@@ -47,8 +50,8 @@ test('secondary commands appear only for exact aliases, including case and white
   expect(commandItems(' DRAFT ', preferences).at(-1)?.id).toBe(
     'command:notes.new',
   );
-  expect(commandItems('dra', preferences)).toHaveLength(commands.length - 3);
-  expect(commandItems('draft', {})).toHaveLength(commands.length - 3);
+  expect(commandItems('dra', preferences)).toHaveLength(commands.length - 4);
+  expect(commandItems('draft', {})).toHaveLength(commands.length - 4);
 });
 
 test('unsupported commands stay out of root search and exact alias results', () => {
@@ -95,5 +98,21 @@ test('Shelferry availability gates root and alias routes without losing assignme
     commandItems('shelves', preferences, {}).some(
       (item) => item.id === 'shelf' || item.id === 'command:shelf.toggle',
     ),
+  ).toBe(false);
+});
+
+test('System Monitor has one searchable root command and respects platform support', () => {
+  const support = { 'command:systemMonitor.open': { available: true } };
+  const matches = commandItems('', {}, support).filter(
+    (item) => item.id === 'systemMonitor',
+  );
+  expect(matches).toHaveLength(1);
+  expect(matches[0].content).toContain('cpu');
+  expect(
+    commandItems(
+      '',
+      {},
+      { 'command:systemMonitor.open': { available: false } },
+    ).some((item) => item.id === 'systemMonitor'),
   ).toBe(false);
 });

@@ -1,4 +1,6 @@
 <script lang="ts">
+  import SystemMonitorScreen from './features/system-monitor/SystemMonitorScreen.svelte';
+  let systemMonitor = $state(false);
   import EmojiScreen from './features/emoji/EmojiScreen.svelte';
   let emoji = $state(false);
   import SnippetsScreen from './features/snippets/SnippetsScreen.svelte';
@@ -59,17 +61,19 @@
   let system = $state(false);
   let systemTarget = $state('command:system.open');
   $effect(() => {
-    const view = emoji
-      ? 'emoji'
-      : snippets
-        ? 'snippets'
-        : system
-          ? systemTarget === 'command:keepAwake.open'
-            ? 'keepAwake'
-            : 'system'
-          : clipboard
-            ? 'clipboard'
-            : 'root';
+    const view = systemMonitor
+      ? 'systemMonitor'
+      : emoji
+        ? 'emoji'
+        : snippets
+          ? 'snippets'
+          : system
+            ? systemTarget === 'command:keepAwake.open'
+              ? 'keepAwake'
+              : 'system'
+            : clipboard
+              ? 'clipboard'
+              : 'root';
     if (isTauri())
       void invoke('set_launcher_view', { view }).catch(console.error);
   });
@@ -81,6 +85,7 @@
   let list = $state<HTMLDivElement>();
   let compact = $derived(
     preferences.compactLauncher &&
+      !systemMonitor &&
       !clipboard &&
       !system &&
       !snippets &&
@@ -146,6 +151,7 @@
           clipboard = target.startsWith('command:clipboard.');
           snippets = target === 'command:snippets.open';
           emoji = target === 'command:emoji.open';
+          systemMonitor = target === 'command:systemMonitor.open';
           filter = target.endsWith('.pinned')
             ? 'pinned'
             : target.endsWith('.links')
@@ -234,6 +240,7 @@
     document.getElementById('search')?.focus();
   }
   function back() {
+    systemMonitor = false;
     expanded = false;
     clipboard = false;
     system = false;
@@ -257,6 +264,16 @@
       try {
         await invoke('launch_application', { id: item.id.slice(4) });
         if (isTauri()) await invoke('dismiss_launcher');
+      } catch (error) {
+        status = String(error);
+      }
+      return;
+    }
+    if (item.id === 'systemMonitor') {
+      try {
+        await invoke('execute_tool_command', {
+          id: 'command:systemMonitor.open',
+        });
       } catch (error) {
         status = String(error);
       }
@@ -347,17 +364,19 @@
     actions = false;
     if (isTauri())
       void invoke('open_settings', {
-        page: emoji
-          ? 'emoji'
-          : snippets
-            ? 'snippets'
-            : system
-              ? systemTarget === 'command:keepAwake.open'
-                ? 'keepAwake'
-                : 'system'
-              : clipboard
-                ? 'clipboard'
-                : 'general',
+        page: systemMonitor
+          ? 'systemMonitor'
+          : emoji
+            ? 'emoji'
+            : snippets
+              ? 'snippets'
+              : system
+                ? systemTarget === 'command:keepAwake.open'
+                  ? 'keepAwake'
+                  : 'system'
+                : clipboard
+                  ? 'clipboard'
+                  : 'general',
       }).catch(() => {
         status = 'Could not open Settings.';
       });
@@ -365,7 +384,15 @@
       window.open('?window=settings', 'tooki-settings', 'width=800,height=590');
   }
   function keyboard(event: KeyboardEvent) {
-    if (clipboard || system || snippets || emoji || event.isComposing) return;
+    if (
+      systemMonitor ||
+      clipboard ||
+      system ||
+      snippets ||
+      emoji ||
+      event.isComposing
+    )
+      return;
     const command = event.metaKey || event.ctrlKey;
     if (appMenu || document.querySelector('dialog[open]')) return;
     if (command && event.key === ',') {
@@ -426,7 +453,10 @@
 </script>
 
 <svelte:window onkeydown={keyboard} />
-{#if emoji}<EmojiScreen
+{#if systemMonitor}<SystemMonitorScreen
+    onback={back}
+    onsettings={openSettings}
+  />{:else if emoji}<EmojiScreen
     onback={back}
     onsettings={openSettings}
   />{:else if snippets}<SnippetsScreen
