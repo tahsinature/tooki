@@ -54,6 +54,10 @@ fn failed_replacements_preserve_the_session_and_mode() {
         .is_err());
     assert_eq!(controller.mode, Mode::System);
     assert_eq!(controller.session.as_ref().unwrap().deadline, deadline);
+    assert_eq!(
+        controller.session.as_ref().unwrap().duration_minutes,
+        Some(15)
+    );
     for minutes in [0, 1, 16, u32::MAX] {
         assert!(controller
             .start(Some(minutes), now, |_, _| panic!(
@@ -83,6 +87,10 @@ fn mode_changes_keep_the_deadline_and_do_not_restart_expired_sessions() {
     assert_eq!(
         controller.session.as_ref().unwrap().deadline,
         Some(now + Duration::from_secs(900))
+    );
+    assert_eq!(
+        controller.session.as_ref().unwrap().duration_minutes,
+        Some(15)
     );
     controller
         .set_mode(Mode::System, now + Duration::from_secs(900), |_, _| {

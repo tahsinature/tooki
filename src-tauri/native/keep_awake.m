@@ -25,19 +25,18 @@ int tooki_keep_awake_release(IOPMAssertionID identifier) {
 
 #import <AppKit/AppKit.h>
 
-bool tooki_keep_awake_icon(unsigned char *pixels) {
-    NSImage *image = [NSImage imageWithSystemSymbolName:@"cup.and.saucer.fill"
+// Retain the SF Symbol as a native image so AppKit renders it at the screen's
+// backing scale, rather than stretching a small RGBA bitmap on Retina displays.
+bool tooki_set_keep_awake_icon(void *pointer) {
+    NSStatusItem *item = (__bridge NSStatusItem *)pointer;
+    NSStatusBarButton *button = item.button;
+    NSImage *image = [NSImage imageWithSystemSymbolName:@"mug"
                              accessibilityDescription:@"Keep Awake"];
-    if (!image) return false;
-    NSBitmapImageRep *bitmap = [[NSBitmapImageRep alloc]
-        initWithBitmapDataPlanes:NULL pixelsWide:22 pixelsHigh:22 bitsPerSample:8
-        samplesPerPixel:4 hasAlpha:YES isPlanar:NO colorSpaceName:NSDeviceRGBColorSpace
-        bytesPerRow:88 bitsPerPixel:32];
-    if (!bitmap) return false;
-    [NSGraphicsContext saveGraphicsState];
-    NSGraphicsContext.currentContext = [NSGraphicsContext graphicsContextWithBitmapImageRep:bitmap];
-    [image drawInRect:NSMakeRect(1, 1, 20, 20)];
-    [NSGraphicsContext restoreGraphicsState];
-    memcpy(pixels, bitmap.bitmapData, 22 * 22 * 4);
+    if (!button || !image) return false;
+    image = [image imageWithSymbolConfiguration:
+        [NSImageSymbolConfiguration configurationWithPointSize:16
+            weight:NSFontWeightRegular scale:NSImageSymbolScaleMedium]];
+    image.template = YES;
+    button.image = image;
     return true;
 }

@@ -16,13 +16,6 @@ pub fn update(app: &tauri::AppHandle, active: bool, visible: bool) -> Result<(),
     }
     #[cfg(target_os = "macos")]
     {
-        unsafe extern "C" {
-            fn tooki_keep_awake_icon(pixels: *mut u8) -> bool;
-        }
-        let mut pixels = vec![0; 22 * 22 * 4];
-        if !unsafe { tooki_keep_awake_icon(pixels.as_mut_ptr()) } {
-            return Err("Could not create Keep Awake menu bar icon.".into());
-        }
         let entries = [
             ("command:system.keepAwakeOff", "Turn Off Keep Awake"),
             ("command:system.keepAwake15", "15 Minutes"),
@@ -37,10 +30,7 @@ pub fn update(app: &tauri::AppHandle, active: bool, visible: bool) -> Result<(),
                 MenuItem::with_id(app, id, title, true, None::<&str>).map_err(|e| e.to_string())?;
             menu.append(&item).map_err(|e| e.to_string())?;
         }
-        TrayIconBuilder::with_id(ID)
-            .icon(tauri::image::Image::new_owned(pixels, 22, 22))
-            .icon_as_template(true)
-            .tooltip("Keep Awake is active")
+        let tray = TrayIconBuilder::with_id(ID)
             .menu(&menu)
             .on_menu_event(|app, event| {
                 let result = if event.id.as_ref() == "keep-awake-settings" {
@@ -54,6 +44,14 @@ pub fn update(app: &tauri::AppHandle, active: bool, visible: bool) -> Result<(),
             })
             .build(app)
             .map_err(|e| e.to_string())?;
+        if let Err(error) = crate::platform::menu_bar_icon::install_keep_awake(&tray) {
+            app.remove_tray_by_id(ID);
+            return Err(error);
+        }
+        // Set metadata after the native image: tray-icon also refreshes its
+        // clickable area here to match the final AppKit button dimensions.
+        tray.set_tooltip(Some("Keep Awake is active"))
+            .map_err(|error| error.to_string())?;
     }
     Ok(())
 }

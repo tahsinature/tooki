@@ -7,6 +7,7 @@ export type KeepAwakeStatus = {
   active: boolean;
   mode: 'system' | 'display';
   remainingSeconds: number | null;
+  durationMinutes: number | null;
 };
 
 export function statusText(status: KeepAwakeStatus): string {

@@ -20,3 +20,24 @@ pub fn install(tray: &tauri::tray::TrayIcon) -> Result<(), String> {
     .map_err(|error| error.to_string())?
     .map_err(str::to_owned)
 }
+
+/// Use AppKit's scalable outline mug while retaining Tauri's menu and lifetime.
+#[cfg(target_os = "macos")]
+pub fn install_keep_awake(tray: &tauri::tray::TrayIcon) -> Result<(), String> {
+    tray.with_inner_tray_icon(|inner| {
+        let item = inner
+            .ns_status_item()
+            .ok_or("Menu-bar item is unavailable")?;
+        unsafe extern "C" {
+            fn tooki_set_keep_awake_icon(item: *mut std::ffi::c_void) -> bool;
+        }
+        let pointer = (&*item) as *const _ as *mut std::ffi::c_void;
+        if unsafe { tooki_set_keep_awake_icon(pointer) } {
+            Ok(())
+        } else {
+            Err("Could not install Keep Awake menu-bar icon")
+        }
+    })
+    .map_err(|error| error.to_string())?
+    .map_err(str::to_owned)
+}

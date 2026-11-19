@@ -28,6 +28,7 @@ pub struct Status {
     active: bool,
     mode: Mode,
     remaining_seconds: Option<u64>,
+    duration_minutes: Option<u32>,
 }
 
 fn refresh(value: &mut Controller<Assertion>) {
@@ -56,6 +57,10 @@ pub fn keep_awake_status(app: tauri::AppHandle) -> Result<Status, String> {
         supported: cfg!(target_os = "macos"),
         active: value.session.is_some(),
         mode: value.mode,
+        duration_minutes: value
+            .session
+            .as_ref()
+            .and_then(|session| session.duration_minutes),
         remaining_seconds: value
             .session
             .as_ref()

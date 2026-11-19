@@ -12,6 +12,7 @@ pub enum Mode {
 pub struct Session<A> {
     pub assertion: A,
     pub deadline: Option<SystemTime>,
+    pub duration_minutes: Option<u32>,
 }
 
 pub struct Controller<A> {
@@ -49,6 +50,7 @@ impl<A> Controller<A> {
         self.session = Some(Session {
             assertion,
             deadline: duration.map(|value| now + value),
+            duration_minutes: minutes,
         });
         Ok(())
     }
