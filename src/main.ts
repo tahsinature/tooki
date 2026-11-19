@@ -7,6 +7,8 @@ import './settings.css';
 import './features/clipboard/clipboard.css';
 import { initializeThemes } from './lib/themes/store.svelte';
 import { initializePreferences } from './lib/preferences.svelte';
+import { disableBrowserContextMenu } from './lib/contextMenu';
+const cleanupContextMenu = disableBrowserContextMenu();
 const isGuides =
   new URLSearchParams(location.search).get('window') === 'snap-guides';
 const cleanupThemes = isGuides ? () => {} : initializeThemes();
@@ -15,6 +17,7 @@ if (import.meta.hot)
   import.meta.hot.dispose(() => {
     cleanupThemes();
     cleanupPreferences();
+    cleanupContextMenu();
   });
 const component =
   import.meta.env.DEV && new URLSearchParams(location.search).has('gallery')

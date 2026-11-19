@@ -347,6 +347,10 @@
           {index}
           selected={index === selected}
           onclick={() => (selected = index)}
+          onactions={() => {
+            apps = null;
+            actions = true;
+          }}
           onopen={() => {
             selected = index;
             open();

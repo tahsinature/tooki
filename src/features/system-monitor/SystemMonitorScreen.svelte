@@ -232,6 +232,7 @@
           {index}
           selected={index === selected}
           onclick={() => (view = row.id.slice(8) as View)}
+          onactions={() => (actions = true)}
           onopen={() => (view = row.id.slice(8) as View)}
         />{/snippet}
       {#snippet empty()}<EmptyState

@@ -29,18 +29,21 @@
   } from '@lucide/svelte';
   import Keycap from './Keycap.svelte';
   import type { Item } from '../lib/data';
+  import { openRowActions } from '../lib/contextMenu';
   let {
     item,
     selected,
     index,
     onclick,
     onopen,
+    onactions,
   }: {
     item: Item;
     selected: boolean;
     index: number;
     onclick: () => void;
     onopen: () => void;
+    onactions?: () => void;
   } = $props();
   const icons = {
     application: AppWindow,
@@ -93,6 +96,7 @@
   aria-current={selected ? 'true' : undefined}
   {onclick}
   ondblclick={onopen}
+  oncontextmenu={(event) => void openRowActions(event, onclick, onactions)}
   onkeydown={(event) => {
     if (event.key === 'Enter' && !event.metaKey && !event.ctrlKey) {
       event.preventDefault();

@@ -352,9 +352,9 @@
       return;
     }
   }
-  async function toggleActions() {
+  async function toggleActions(open = !actions) {
     appMenu = false;
-    actions = !actions;
+    actions = open;
     await tick();
     if (actions)
       document.querySelector<HTMLInputElement>('.actions-search')?.focus();
@@ -507,6 +507,7 @@
               {index}
               selected={index === selected}
               onclick={() => (selected = index)}
+              onactions={() => void toggleActions(true)}
               onopen={() => {
                 selected = index;
                 void primary();

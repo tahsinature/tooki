@@ -87,6 +87,7 @@
               {index}
               selected={item?.id === row.id}
               onclick={() => (selected = row.id)}
+              onactions={() => (actions = true)}
               onopen={() => (status = 'Preview action triggered')}
             />{/snippet}
           {#snippet empty()}<EmptyState />{/snippet}

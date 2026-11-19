@@ -277,6 +277,7 @@
           {index}
           selected={index === selected}
           onclick={() => (selected = index)}
+          onactions={() => (actions = true)}
           onopen={() => {
             selected = index;
             void run();

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { openRowActions } from '../../lib/contextMenu';
   import { onMount, tick, untrack } from 'svelte';
   import { invoke } from '@tauri-apps/api/core';
   import { Copy, ClipboardPaste, Text, Smile } from '@lucide/svelte';
@@ -177,6 +178,12 @@
             title={cell.item.name}
             disabled={busy}
             onmousedown={(event) => event.preventDefault()}
+            oncontextmenu={(event) =>
+              void openRowActions(
+                event,
+                () => (selected = cell.index),
+                () => (actions = true),
+              )}
             onclick={() => {
               selected = cell.index;
               void run();

@@ -187,8 +187,8 @@
       status = String(e);
     }
   }
-  async function toggleActions() {
-    actions = !actions;
+  async function toggleActions(open = !actions) {
+    actions = open;
     apps = null;
     await tick();
     if (actions)
@@ -321,6 +321,7 @@
             {index}
             selected={offset + index === selected}
             onclick={() => (selected = offset + index)}
+            onactions={() => void toggleActions(true)}
             onopen={() => {
               selected = offset + index;
               void act('copy');

@@ -220,6 +220,7 @@
           {index}
           selected={index === selected}
           onclick={() => choose(visible[index])}
+          onactions={() => (actions = true)}
           onopen={() => {
             if (index === selected) void run();
             else choose(visible[index]);
