@@ -109,6 +109,7 @@ fn main() {
             launcher_presentation::launcher_request_target,
             launcher_presentation::set_launcher_view,
             launcher_presentation::dismiss_launcher,
+            launcher_presentation::return_to_root_search,
             platform::launcher::resize_launcher,
             launcher_presentation::launcher_frontend_ready,
             launcher_presentation::present_prepared_launcher,

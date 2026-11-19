@@ -39,6 +39,15 @@ pub fn cancel(app: &tauri::AppHandle) -> bool {
 pub fn dismiss_launcher(app: tauri::AppHandle) -> Result<(), String> {
     dismiss(&app).map_err(|error| error.to_string())
 }
+/// Return from any Tooki window without toggling or closing the launcher.
+#[tauri::command]
+pub async fn return_to_root_search(app: tauri::AppHandle) -> Result<(), String> {
+    crate::snippets::cancel_pending(&app).await?;
+    crate::filter_popup::dismiss(&app, None, false);
+    crate::app_menu::dismiss(&app);
+    crate::platform::preview::close_window(&app, "main");
+    request(&app).map_err(|error| error.to_string())
+}
 pub fn dismiss(app: &tauri::AppHandle) -> tauri::Result<()> {
     cancel(app);
     crate::window_toggle::dismiss_popups(app, "main");

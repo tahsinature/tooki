@@ -77,10 +77,7 @@ pub async fn snippet_request(
             }
             Ok(json!(pending))
         }
-        "cancel" => {
-            *app.state::<Snippets>().pending.lock().unwrap() = None;
-            native::call(&app, "cancel", json!({})).await
-        }
+        "cancel" => cancel_pending(&app).await,
         "prepare" => {
             if window.label() != "main" {
                 return Err("Run saved snippets from the launcher.".into());

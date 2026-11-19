@@ -1,4 +1,5 @@
 import { mount } from 'svelte';
+import { invoke, isTauri } from '@tauri-apps/api/core';
 import App from './App.svelte';
 import SettingsScreen from './features/settings/SettingsScreen.svelte';
 import ComponentGallery from './ComponentGallery.svelte';
@@ -8,7 +9,12 @@ import './features/clipboard/clipboard.css';
 import { initializeThemes } from './lib/themes/store.svelte';
 import { initializePreferences } from './lib/preferences.svelte';
 import { disableBrowserContextMenu } from './lib/contextMenu';
+import { initializeRootSearchShortcut } from './lib/rootSearchShortcut';
 const cleanupContextMenu = disableBrowserContextMenu();
+const cleanupRootSearchShortcut = initializeRootSearchShortcut(() => {
+  if (isTauri()) void invoke('return_to_root_search').catch(console.error);
+  else window.dispatchEvent(new Event('tooki-root-search'));
+});
 const isGuides =
   new URLSearchParams(location.search).get('window') === 'snap-guides';
 const cleanupThemes = isGuides ? () => {} : initializeThemes();
@@ -18,6 +24,7 @@ if (import.meta.hot)
     cleanupThemes();
     cleanupPreferences();
     cleanupContextMenu();
+    cleanupRootSearchShortcut();
   });
 const component =
   import.meta.env.DEV && new URLSearchParams(location.search).has('gallery')

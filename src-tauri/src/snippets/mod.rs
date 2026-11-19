@@ -25,6 +25,11 @@ use std::{
 use tauri::{Emitter, Manager};
 use tauri_plugin_clipboard_manager::ClipboardExt;
 
+pub async fn cancel_pending(app: &tauri::AppHandle) -> Result<Value, String> {
+    *app.state::<Snippets>().pending.lock().unwrap() = None;
+    native::call(app, "cancel", json!({})).await
+}
+
 #[derive(Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Pending {

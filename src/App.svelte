@@ -103,12 +103,14 @@
     });
   });
   onMount(() => {
+    window.addEventListener('tooki-root-search', back);
     void loadCommandSupport();
     void focusSearch();
     const stopApplications = observeApplications();
     const stopPreferences = observeAppPreferences((error) => (status = error));
     if (!isTauri())
       return () => {
+        window.removeEventListener('tooki-root-search', back);
         stopApplications();
         stopPreferences();
       };
@@ -136,8 +138,6 @@
     void listen<number>('launcher-prepare', async ({ payload: revision }) => {
       try {
         back();
-        selected = 0;
-        appMenu = false;
         const target = await invoke<string | null>('launcher_request_target', {
           revision,
         });
@@ -180,6 +180,7 @@
       })
       .catch(console.error);
     return () => {
+      window.removeEventListener('tooki-root-search', back);
       disposed = true;
       unlisten?.();
       stopMenu?.();
@@ -240,6 +241,9 @@
     document.getElementById('search')?.focus();
   }
   function back() {
+    selected = 0;
+    appMenu = false;
+    status = '';
     systemMonitor = false;
     expanded = false;
     clipboard = false;

@@ -110,10 +110,7 @@
 
 <svelte:window
   onkeydowncapture={(event) => {
-    if (
-      (event.metaKey || event.ctrlKey) &&
-      ['Escape', ',', 'k'].includes(event.key)
-    ) {
+    if ((event.metaKey || event.ctrlKey) && [',', 'k'].includes(event.key)) {
       event.preventDefault();
       event.stopImmediatePropagation();
       if (current)
