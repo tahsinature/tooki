@@ -124,18 +124,20 @@ fn request(app: &AppHandle, operation: &str, args: Value) -> Result<Value, Strin
             let _ = app.emit("clipboard-changed", ());
             Ok(json!(next))
         }
-        "pin" | "delete" | "retryOcr" => {
+        "recognizeText" | "retryOcr" => super::ocr::run(
+            app,
+            args["id"].as_str().ok_or("Missing clipboard item")?,
+            operation == "retryOcr" || args["force"].as_bool().unwrap_or(false),
+        )
+        .map(|text| json!(text)),
+        "pin" | "delete" => {
             let settings = state.settings.lock().map_err(|e| e.to_string())?.clone();
             let db = state.database.lock().map_err(|e| e.to_string())?;
             let mut clip = db.get(args["id"].as_str().ok_or("Missing clipboard item")?)?;
             if operation == "delete" {
                 db.remove(&clip.id)?;
             } else {
-                if operation == "pin" {
-                    clip.pinned = !clip.pinned;
-                } else {
-                    clip.ocr_state = "pending".into();
-                }
+                clip.pinned = !clip.pinned;
                 db.update(&clip)?;
                 if operation == "pin" {
                     db.trim(&settings)?;

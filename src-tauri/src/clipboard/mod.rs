@@ -2,6 +2,7 @@ mod commands;
 mod database;
 mod model;
 pub(crate) mod native;
+mod ocr;
 pub mod preferences;
 pub use commands::*;
 use database::Database;
@@ -13,6 +14,7 @@ use tauri::{Emitter, Manager};
 pub struct Clipboard {
     database: Mutex<Database>,
     settings: Mutex<Settings>,
+    recognition: Mutex<()>,
 }
 pub fn start(app: &tauri::AppHandle) -> Result<(), String> {
     let root = app
@@ -53,6 +55,7 @@ pub fn start(app: &tauri::AppHandle) -> Result<(), String> {
     app.manage(Clipboard {
         database: Mutex::new(database),
         settings: Mutex::new(settings),
+        recognition: Mutex::new(()),
     });
     let app = app.clone();
     std::thread::spawn(move || loop {
@@ -98,23 +101,8 @@ pub fn start_ocr(app: &tauri::AppHandle) {
         } else {
             None
         };
-        if let Some(mut clip) = pending {
-            let result = native::call("ocr", json!({"path":clip.image}));
-            if let Ok(db) = state.database.lock() {
-                if let Ok(current) = db.get(&clip.id) {
-                    clip = current;
-                    match result {
-                        Ok(value) => {
-                            clip.ocr = value.as_str().unwrap_or_default().into();
-                            clip.ocr_state = "done".into();
-                        }
-                        Err(_) => clip.ocr_state = "failed".into(),
-                    }
-                    if db.update(&clip).is_ok() {
-                        let _ = app.emit("clipboard-changed", ());
-                    }
-                }
-            }
+        if let Some(clip) = pending {
+            let _ = ocr::run(&app, &clip.id, false);
         } else {
             std::thread::sleep(Duration::from_secs(1));
         }

@@ -41,9 +41,17 @@
   >(null);
   let list = $state<HTMLDivElement>();
   let revision = $state(0);
+  let textItemId = $state('');
+  let textRevision = $state(0);
   let generation = 0;
   let item = $derived(clips[selected - offset]);
   let rows = $derived(clips.map(row));
+  $effect(() => {
+    if (item?.id !== textItemId) {
+      textItemId = '';
+      textRevision = 0;
+    }
+  });
   async function load(index = selected, preserve = false) {
     const token = ++generation;
     const id = preserve
@@ -165,7 +173,15 @@
     apps = null;
     status = '';
     try {
-      if (operation === 'apps') {
+      if (operation === 'showText' || operation === 'retryOcr') {
+        textItemId = id;
+        textRevision = operation === 'retryOcr' ? textRevision + 1 : 0;
+        await closeQuickLook('clipboard');
+      } else if (operation === 'showImage') {
+        textItemId = '';
+        textRevision = 0;
+        document.getElementById('search')?.focus();
+      } else if (operation === 'apps') {
         apps = await request('apps', { id });
         actions = true;
       } else if (operation === 'drag') {
@@ -261,6 +277,8 @@
       return;
     }
     if (actions) return;
+    // Let the read-only text preview own selection, scrolling, and Cmd+C.
+    if ((e.target as HTMLElement).closest('.clipboard-recognized-text')) return;
     if (cmd && ['y', 'o'].includes(e.key.toLowerCase())) {
       e.preventDefault();
       void act(e.key.toLowerCase() === 'y' ? 'preview' : 'apps');
@@ -366,6 +384,7 @@
         {item}
         {apps}
         {act}
+        showingText={textItemId === item.id}
         onclose={() => {
           actions = false;
           apps = null;
@@ -373,4 +392,10 @@
       />{/if}
   {/snippet}
 </PanelLayout>
-{#snippet preview()}<ClipboardDetail id={item?.id} {revision} />{/snippet}
+{#snippet preview()}<ClipboardDetail
+    id={item?.id}
+    {revision}
+    showingText={!!item && textItemId === item.id}
+    {textRevision}
+    onshowimage={() => void act('showImage')}
+  />{/snippet}

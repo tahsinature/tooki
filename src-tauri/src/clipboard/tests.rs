@@ -29,6 +29,60 @@ fn capture(text: &str) -> Capture {
         ..Default::default()
     }
 }
+
+#[test]
+fn requested_recognition_caches_text_even_when_automatic_recognition_is_off() {
+    let f = Fixture::new();
+    let settings = Settings {
+        ocr_enabled: false,
+        ..Settings::default()
+    };
+    let db = std::sync::Mutex::new(Database::open(&f.root.join("ocr"), false).unwrap());
+    let id = db
+        .lock()
+        .unwrap()
+        .record(capture("image fixture"), &settings)
+        .unwrap();
+    let mut clip = db.lock().unwrap().get(&id).unwrap();
+    clip.kind = "image".into();
+    clip.image = "test.png".into();
+    db.lock().unwrap().update(&clip).unwrap();
+    // Use an isolated database fixture rather than native Vision in this test.
+    let text =
+        super::ocr::recognize(&db, &id, false, |_| Ok("First line\nSecond line".into())).unwrap();
+    assert_eq!(text, "First line\nSecond line");
+    assert_eq!(
+        super::ocr::recognize(&db, &id, false, |_| panic!(
+            "cached result must not run OCR"
+        ))
+        .unwrap(),
+        text
+    );
+    assert_eq!(db.lock().unwrap().get(&id).unwrap().image, "test.png");
+    // A retry can legitimately find no text, and must replace the old result.
+    assert_eq!(
+        super::ocr::recognize(&db, &id, true, |_| Ok(String::new())).unwrap(),
+        ""
+    );
+    assert_eq!(db.lock().unwrap().get(&id).unwrap().ocr_state, "done");
+    assert!(super::ocr::recognize(&db, &id, true, |_| Err("Unreadable image".into())).is_err());
+    assert_eq!(db.lock().unwrap().get(&id).unwrap().ocr_state, "failed");
+    super::ocr::recognize(&db, &id, false, |_| {
+        let database = db.lock().unwrap();
+        let mut current = database.get(&id).unwrap();
+        current.pinned = true;
+        database.update(&current).unwrap();
+        Ok("Recovered text".into())
+    })
+    .unwrap();
+    assert!(db.lock().unwrap().get(&id).unwrap().pinned);
+    assert!(super::ocr::recognize(&db, &id, true, |_| {
+        db.lock().unwrap().remove(&id).unwrap();
+        Ok("Deleted while recognizing".into())
+    })
+    .is_err());
+    assert!(db.lock().unwrap().get(&id).is_err());
+}
 #[test]
 fn file_actions_require_existing_files_and_never_export_text() {
     let f = Fixture::new();

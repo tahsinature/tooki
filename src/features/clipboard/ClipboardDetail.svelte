@@ -3,16 +3,33 @@
   import DetailLayout from '../../components/DetailLayout.svelte';
   import InformationList from '../../components/InformationList.svelte';
   import EmptyState from '../../components/EmptyState.svelte';
-  let { id, revision = 0 }: { id?: string; revision?: number } = $props();
+  import RecognizedText from './RecognizedText.svelte';
+  let {
+    id,
+    revision = 0,
+    showingText = false,
+    textRevision = 0,
+    onshowimage,
+  }: {
+    id?: string;
+    revision?: number;
+    showingText?: boolean;
+    textRevision?: number;
+    onshowimage: () => void;
+  } = $props();
   let clip = $state<Clip>();
   let image = $state('');
   let error = $state('');
+  let loadedId: string | undefined;
   $effect(() => {
     const selected = id;
     revision;
     let cancelled = false;
-    clip = undefined;
-    image = '';
+    if (loadedId !== selected) {
+      clip = undefined;
+      image = '';
+      loadedId = selected;
+    }
     error = '';
     if (selected)
       void request<Clip>('detail', { id: selected })
@@ -37,7 +54,13 @@
   {#if error}<p role="alert">{error}</p>
   {:else if clip}
     {#if clip.kind === 'image'}
-      {#if image}<img
+      {#if showingText}
+        {#key clip.id}<RecognizedText
+            id={clip.id}
+            revision={textRevision}
+            {onshowimage}
+          />{/key}
+      {:else if image}<img
           class="clipboard-image"
           src={image}
           alt={clip.title}

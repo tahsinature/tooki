@@ -9,6 +9,7 @@
     FileText,
     ScanText,
     Folder,
+    Image,
   } from '@lucide/svelte';
   import PopupSurface from '../../components/PopupSurface.svelte';
   import ActionsMenu from '../../components/ActionsMenu.svelte';
@@ -18,11 +19,13 @@
     apps,
     act,
     onclose,
+    showingText = false,
   }: {
     item: Clip;
     apps: { path: string; name: string; isDefault: boolean }[] | null;
     act: (operation: string, mode?: string, app?: string) => Promise<void>;
     onclose: () => void;
+    showingText?: boolean;
   } = $props();
 </script>
 
@@ -85,13 +88,9 @@
           ? [
               {
                 id: 'show-ocr',
-                label:
-                  item.ocrState === 'pending'
-                    ? 'Recognizing text…'
-                    : 'Show Recognized Text',
-                icon: Eye,
-                disabled: item.ocrState !== 'done',
-                run: () => void act('preview', 'ocr'),
+                label: showingText ? 'Show Image' : 'Show Recognized Text',
+                icon: showingText ? Image : ScanText,
+                run: () => void act(showingText ? 'showImage' : 'showText'),
               },
               {
                 id: 'ocr',
