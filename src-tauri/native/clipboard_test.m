@@ -40,6 +40,9 @@ int main(void) {
   CHECK([[pb stringForType:NSPasteboardTypeString] isEqual:[paths componentsJoinedByString:@"\n"]]);
   CHECK(perform(@"copy",@{@"item":@{@"content":@"text only"},@"mode":@"paths"})[@"error"] != nil);
   CHECK([[pb stringForType:NSPasteboardTypeString] isEqual:[paths componentsJoinedByString:@"\n"]]);
+  CHECK(tooki_clipboard_copy_expansion(@"Unicode ✓\nsecond line"));
+  CHECK([[pb stringForType:NSPasteboardTypeString] isEqual:@"Unicode ✓\nsecond line"]);
+  CHECK(capture(args)==NSNull.null);
   [NSFileManager.defaultManager removeItemAtPath:directory error:nil];[pb releaseGlobally];
   puts("Native capture, privacy skip, rich copy, image capture, Vision OCR, file capture, path copy, Open With discovery passed.");
  }

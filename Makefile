@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: help dev clean app dmg test install clean-builds size test-clipboard-native test-detective-native test-hyper-native test-preview-native test-instance-guard-native
+.PHONY: help dev clean app dmg test install clean-builds size test-clipboard-native test-detective-native test-hyper-native test-preview-native test-instance-guard-native test-snippets-native
 
 help: ## Show available commands
 	@awk 'BEGIN {FS = ":.*## "} /^[a-zA-Z_-]+:.*## / {printf "  %-24s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -46,3 +46,6 @@ test-preview-native: ## Verify native Quick Look ownership and navigation
 
 test-instance-guard-native: ## Verify local dev/production session exclusion
 	@sh scripts/test-instance-guard-native.sh
+
+test-snippets-native: ## Verify snippet replacement events without typing into apps
+	@sh scripts/test-snippets-native.sh

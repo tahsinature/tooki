@@ -46,6 +46,13 @@ async fn handle(app: &tauri::AppHandle, payload: &str) -> Result<(), String> {
             Err(reason) => error = reason,
         }
     }
+    // Opening an argument form would replace Tooki's own search/editor surface
+    // and destroy its insertion target. Keep that input intact; the launcher
+    // already offers matching snippets with their argument form on Enter.
+    if data["internal"] == true {
+        native::call(app, "cancel", json!({})).await?;
+        return if error.is_empty() { Ok(()) } else { Err(error) };
+    }
     // Continuing to type or moving to another field cancels this attempt.
     // Do not steal focus to show an obsolete argument form or failure.
     if native::call(app, "current", json!({"context":context}))

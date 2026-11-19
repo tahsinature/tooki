@@ -12,8 +12,11 @@ static NSMutableString *typed;
 static pid_t typingPID;
 static unsigned long generation;
 static void (*snippetCallback)(const char *);
+static id applicationObserver;
 
 static id SnippetFailure(NSString *message) { return @{ @"error":message }; }
+#import "snippet_insertion.h"
+
 static id Attribute(AXUIElementRef element, CFStringRef name) {
     CFTypeRef value = NULL;
     if (!element || AXUIElementCopyAttributeValue(element, name, &value) != kAXErrorSuccess) return nil;
@@ -26,6 +29,11 @@ static AXUIElementRef FocusedElement(pid_t pid) {
     AXUIElementCopyAttributeValue(app, kAXFocusedUIElementAttribute, (CFTypeRef *)&focused);
     CFRelease(app);
     return focused;
+}
+static BOOL SecureField(AXUIElementRef element) {
+    NSString *role = Attribute(element, kAXRoleAttribute);
+    NSString *subrole = Attribute(element, kAXSubroleAttribute);
+    return [subrole isEqualToString:@"AXSecureTextField"] || [role isEqualToString:@"AXSecureTextField"];
 }
 static BOOL SafeField(AXUIElementRef element) {
     if (IsSecureEventInputEnabled() || !element) return NO;
@@ -45,47 +53,91 @@ static BOOL Selection(AXUIElementRef element, CFRange *range) {
 @property (copy) NSString *original;
 @property (copy) NSString *suffix;
 @property CFRange selection;
+@property unsigned long generation;
+@property BOOL keyboard;
+@property AXUIElementRef window;
+@property (weak) NSWindow *ownWindow;
+@property (weak) NSResponder *ownResponder;
 @end
 @implementation TookiSnippetTarget
-- (void)dealloc { if (_element) CFRelease(_element); }
+- (void)dealloc { if (_element) CFRelease(_element); if (_window) CFRelease(_window); }
 @end
 static TookiSnippetTarget *pendingTarget;
 
-static TookiSnippetTarget *Capture(pid_t pid, NSString *suffix) {
+static TookiSnippetTarget *Capture(pid_t pid, NSString *suffix, BOOL *unsupported) {
+    *unsupported = YES;
+    if (pid == NSProcessInfo.processInfo.processIdentifier) return nil;
     AXUIElementRef element = FocusedElement(pid);
     if (!element) return nil;
     if (!SafeField(element)) { CFRelease(element); return nil; }
+    // Terminals can expose a read-only screen buffer and selection, neither of
+    // which represents an editable input cursor. Use tracked keys for these.
+    Boolean writable = false;
+    if (AXUIElementIsAttributeSettable(element, kAXSelectedTextAttribute, &writable) != kAXErrorSuccess || !writable) {
+        CFRelease(element); return nil;
+    }
     CFRange selection;
     NSString *value = Attribute(element, kAXValueAttribute);
-    BOOL valid = SafeField(element) && [value isKindOfClass:NSString.class] && value.length <= 1048576 && Selection(element, &selection)
-        && selection.length == 0 && selection.location >= (CFIndex)suffix.length && selection.location <= (CFIndex)value.length;
+    if (![value isKindOfClass:NSString.class] || !Selection(element, &selection)) { CFRelease(element); return nil; }
+    *unsupported = NO;
+    BOOL valid = value.length <= 1048576 && selection.length == 0 && selection.location >= (CFIndex)suffix.length && selection.location <= (CFIndex)value.length;
     if (valid) valid = [[value substringWithRange:NSMakeRange(selection.location-suffix.length,suffix.length)] isEqualToString:suffix];
     if (!valid) { CFRelease(element); return nil; }
     TookiSnippetTarget *target = [TookiSnippetTarget new];
     target.element = element; target.pid = pid; target.token = NSUUID.UUID.UUIDString;
-    target.original = value; target.suffix = suffix; target.selection = selection;
+    target.original = value; target.suffix = suffix; target.selection = selection; target.generation = generation;
+    return target;
+}
+// Keyboard targets rely on the observed trigger, not on AX text-editing support.
+// AX identity is retained when available; custom-rendered editors can have none.
+static TookiSnippetTarget *CaptureKeyboard(pid_t pid, NSString *suffix) {
+    if (IsSecureEventInputEnabled() || !tooki_accessibility_granted()) return nil;
+    TookiSnippetTarget *target = [TookiSnippetTarget new];
+    target.pid = pid; target.token = NSUUID.UUID.UUIDString;
+    target.suffix = suffix; target.generation = generation; target.keyboard = YES;
+    if (pid == NSProcessInfo.processInfo.processIdentifier) {
+        NSWindow *window = NSApp.keyWindow;
+        // Do not expand while editing snippet triggers or other configuration.
+        if (!window || [window.title isEqual:@"Tooki Settings"] ||
+            ![window.firstResponder conformsToProtocol:@protocol(NSTextInputClient)]) return nil;
+        target.ownWindow = window; target.ownResponder = window.firstResponder;
+    } else {
+        target.element = FocusedElement(pid);
+        if (SecureField(target.element)) return nil;
+        AXUIElementRef app = AXUIElementCreateApplication(pid);
+        AXUIElementRef window = NULL;
+        AXUIElementCopyAttributeValue(app, kAXFocusedWindowAttribute, (CFTypeRef *)&window);
+        CFRelease(app);
+        target.window = window;
+    }
     return target;
 }
 static void NotifyMatch(NSDictionary *invocation, NSString *suffix, pid_t pid, unsigned long version, int attempt) {
     if (version != generation || NSWorkspace.sharedWorkspace.frontmostApplication.processIdentifier != pid || IsSecureEventInputEnabled()) return;
-    TookiSnippetTarget *target = Capture(pid, suffix);
+    BOOL unsupported = NO;
+    TookiSnippetTarget *target = Capture(pid, suffix, &unsupported);
     // Key-down notification precedes the destination consuming the key. Wait for
     // the actual AX suffix, never delete based on a guessed processing delay.
-    if (!target && attempt < 8) {
+    if (!target && !unsupported && attempt < 8) {
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 15*NSEC_PER_MSEC), dispatch_get_main_queue(), ^{ NotifyMatch(invocation,suffix,pid,version,attempt+1); });
         return;
     }
-    if (!target) return; // Unsupported/secure fields remain completely untouched.
+    if (!target && unsupported) target = CaptureKeyboard(pid, suffix);
+    if (!target) return;
     pendingTarget = target;
     NSMutableDictionary *payload = [invocation mutableCopy]; payload[@"context"] = target.token;
+    payload[@"internal"] = @(pid == NSProcessInfo.processInfo.processIdentifier);
     NSData *data = [NSJSONSerialization dataWithJSONObject:payload options:0 error:nil];
     if (snippetCallback) snippetCallback([[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding].UTF8String);
 }
 static CGEventRef ObserveTyping(CGEventTapProxy proxy, CGEventType type, CGEventRef event, void *context) {
     (void)proxy; (void)context;
     if (type == kCGEventTapDisabledByTimeout || type == kCGEventTapDisabledByUserInput) { if (snippetTap) CGEventTapEnable(snippetTap,true); [typed setString:@""]; generation++; return event; }
+    if (!event || CGEventGetIntegerValueField(event, kCGEventSourceUserData) == TookiSnippetEventTag) return event;
     NSRunningApplication *front = NSWorkspace.sharedWorkspace.frontmostApplication;
-    if (front.processIdentifier == NSProcessInfo.processInfo.processIdentifier) { [typed setString:@""]; return event; }
+    // Typing arguments in Tooki must not invalidate the untouched external target.
+    if (front.processIdentifier == NSProcessInfo.processInfo.processIdentifier &&
+        pendingTarget && pendingTarget.pid != front.processIdentifier) { [typed setString:@""]; return event; }
     generation++;
     if (IsSecureEventInputEnabled() || [excludedApps containsObject:front.bundleIdentifier ?: @""]) { [typed setString:@""]; return event; }
     if (front.processIdentifier != typingPID) { [typed setString:@""]; typingPID = front.processIdentifier; }
@@ -93,7 +145,10 @@ static CGEventRef ObserveTyping(CGEventTapProxy proxy, CGEventType type, CGEvent
     CGEventFlags flags = CGEventGetFlags(event);
     if (flags & (kCGEventFlagMaskCommand|kCGEventFlagMaskControl)) { [typed setString:@""]; return event; }
     int code = (int)CGEventGetIntegerValueField(event,kCGKeyboardEventKeycode);
-    if (code == 51) { if (typed.length) [typed deleteCharactersInRange:[typed rangeOfComposedCharacterSequenceAtIndex:typed.length-1]]; return event; }
+    if (code == 51 && !(flags & kCGEventFlagMaskAlternate)) { if (typed.length) [typed deleteCharactersInRange:[typed rangeOfComposedCharacterSequenceAtIndex:typed.length-1]]; return event; }
+    if (code == 51 || code == 117 || (code >= 115 && code <= 126) || code == 36 || code == 48 || code == 53) {
+        [typed setString:@""]; return event;
+    }
     UniChar chars[16]; UniCharCount length=0;
     CGEventKeyboardGetUnicodeString(event,16,&length,chars);
     NSString *text = [NSString stringWithCharacters:chars length:length];
@@ -112,6 +167,10 @@ static CGEventRef ObserveTyping(CGEventTapProxy proxy, CGEventType type, CGEvent
 static void StopExpansion(void) {
     if (snippetTap) { CGEventTapEnable(snippetTap,false); CFMachPortInvalidate(snippetTap); CFRelease(snippetTap); snippetTap=NULL; }
     if (snippetSource) { CFRunLoopRemoveSource(CFRunLoopGetMain(),snippetSource,kCFRunLoopCommonModes); CFRelease(snippetSource); snippetSource=NULL; }
+    if (applicationObserver) {
+        [NSWorkspace.sharedWorkspace.notificationCenter removeObserver:applicationObserver];
+        applicationObserver = nil;
+    }
     pendingTarget=nil; typed=[NSMutableString new]; generation++;
 }
 static id Configure(NSDictionary *args) {
@@ -121,16 +180,40 @@ static id Configure(NSDictionary *args) {
     spaceTriggers=space; instantTriggers=instant;
     excludedApps=[NSSet setWithArray:args[@"excludedApps"] ?: @[]];
     if ([args[@"enabled"] boolValue] && tooki_accessibility_granted()) {
-        CGEventMask mask=CGEventMaskBit(kCGEventKeyDown)|CGEventMaskBit(kCGEventLeftMouseDown)|CGEventMaskBit(kCGEventRightMouseDown);
+        applicationObserver = [NSWorkspace.sharedWorkspace.notificationCenter addObserverForName:NSWorkspaceDidActivateApplicationNotification object:nil queue:NSOperationQueue.mainQueue usingBlock:^(NSNotification *note) {
+            [typed setString:@""];
+            pid_t pid = [note.userInfo[NSWorkspaceApplicationKey] processIdentifier];
+            if (!pendingTarget || (pid != pendingTarget.pid && pid != NSProcessInfo.processInfo.processIdentifier)) {
+                generation++; pendingTarget = nil;
+            }
+        }];
+        CGEventMask mask=CGEventMaskBit(kCGEventKeyDown)|CGEventMaskBit(kCGEventLeftMouseDown)|CGEventMaskBit(kCGEventRightMouseDown)|CGEventMaskBit(kCGEventOtherMouseDown)|CGEventMaskBit(kCGEventScrollWheel);
         snippetTap=CGEventTapCreate(kCGSessionEventTap,kCGTailAppendEventTap,kCGEventTapOptionListenOnly,mask,ObserveTyping,NULL);
         if (snippetTap) { snippetSource=CFMachPortCreateRunLoopSource(NULL,snippetTap,0); CFRunLoopAddSource(CFRunLoopGetMain(),snippetSource,kCFRunLoopCommonModes); CGEventTapEnable(snippetTap,true); }
     }
     return @{ @"supported":@YES, @"permission":@(tooki_accessibility_granted()), @"active":@(snippetTap && CGEventTapIsEnabled(snippetTap)) };
 }
 static BOOL TargetUnchanged(TookiSnippetTarget *target) {
-    if (!target) return NO;
+    if (!target || IsSecureEventInputEnabled() || !tooki_accessibility_granted()) return NO;
     NSRunningApplication *front=NSWorkspace.sharedWorkspace.frontmostApplication;
     if (front.processIdentifier != target.pid) return NO;
+    if (target.keyboard) {
+        if (generation != target.generation) return NO;
+        if (target.pid == NSProcessInfo.processInfo.processIdentifier)
+            return target.ownWindow && NSApp.keyWindow == target.ownWindow && target.ownResponder && target.ownWindow.firstResponder == target.ownResponder;
+        AXUIElementRef focused = FocusedElement(target.pid);
+        BOOL valid = !SecureField(focused) && (!target.element || (focused && CFEqual(focused, target.element)));
+        if (focused) CFRelease(focused);
+        if (valid && target.window) {
+            AXUIElementRef app = AXUIElementCreateApplication(target.pid);
+            AXUIElementRef window = NULL;
+            AXUIElementCopyAttributeValue(app, kAXFocusedWindowAttribute, (CFTypeRef *)&window);
+            valid = window && CFEqual(window, target.window);
+            if (window) CFRelease(window);
+            CFRelease(app);
+        }
+        return valid;
+    }
     AXUIElementRef focused=FocusedElement(target.pid);
     CFRange selection;
     BOOL valid=focused && CFEqual(focused,target.element) && SafeField(focused) && Selection(focused,&selection) && selection.location==target.selection.location && selection.length==0 && [Attribute(focused,kAXValueAttribute) isEqual:target.original];
@@ -141,14 +224,20 @@ static id Commit(NSDictionary *args) {
     TookiSnippetTarget *target=pendingTarget;
     if (!target || ![target.token isEqualToString:args[@"context"]]) return SnippetFailure(@"The expansion has expired. Your typed text was not changed.");
     if (!TargetUnchanged(target)) return SnippetFailure(@"The original app, text, or cursor changed. Your trigger was not replaced. Copy the result instead.");
+    NSString *output=args[@"text"] ?: @"";
+    if ([target.suffix hasSuffix:@" "]) output=[output stringByAppendingString:@" "];
     Boolean writable=false;
-    if (AXUIElementIsAttributeSettable(target.element,kAXSelectedTextAttribute,&writable)!=kAXErrorSuccess || !writable) return SnippetFailure(@"This app does not support safe text replacement. Copy the result instead.");
+    if (target.keyboard || AXUIElementIsAttributeSettable(target.element,kAXSelectedTextAttribute,&writable)!=kAXErrorSuccess || !writable) {
+        if (generation != target.generation) return SnippetFailure(@"Typing changed before expansion. Your text was not replaced.");
+        NSDictionary *error = InsertSnippetWithKeyboard(target.suffix, output);
+        if (error) return error;
+        pendingTarget=nil; [typed setString:@""]; generation++;
+        return @YES;
+    }
     CFRange replacement=CFRangeMake(target.selection.location-target.suffix.length,target.suffix.length);
     AXValueRef range=AXValueCreate(kAXValueCFRangeType,&replacement);
     AXError error=AXUIElementSetAttributeValue(target.element,kAXSelectedTextRangeAttribute,range); CFRelease(range);
     if (error!=kAXErrorSuccess) return SnippetFailure(@"Could not select the trigger. Copy the result instead.");
-    NSString *output=args[@"text"] ?: @"";
-    if ([target.suffix hasSuffix:@" "]) output=[output stringByAppendingString:@" "];
     error=AXUIElementSetAttributeValue(target.element,kAXSelectedTextAttribute,(__bridge CFTypeRef)output);
     if (error!=kAXErrorSuccess) { CFRange originalRange=target.selection; range=AXValueCreate(kAXValueCFRangeType,&originalRange); AXUIElementSetAttributeValue(target.element,kAXSelectedTextRangeAttribute,range); CFRelease(range); return SnippetFailure(@"This app could not insert the snippet. Your trigger is unchanged; copy the result instead."); }
     pendingTarget=nil; [typed setString:@""]; return @YES;

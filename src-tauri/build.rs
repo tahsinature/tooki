@@ -53,6 +53,7 @@ fn main() {
         println!("cargo:rerun-if-changed=native/keep_awake.m");
         println!("cargo:rerun-if-changed=native/menu_bar_icon.m");
         println!("cargo:rerun-if-changed=native/snippets.m");
+        println!("cargo:rerun-if-changed=native/snippet_insertion.h");
         println!("cargo:rerun-if-changed=native/hyper.m");
         println!("cargo:rerun-if-changed=native/shelf.m");
         println!("cargo:rerun-if-changed=native/shelf_files.m");

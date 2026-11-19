@@ -119,7 +119,8 @@ static id perform(NSString *op, NSDictionary *args) {
             } else {
                 text = [mode isEqual:@"ocr"] ? str(item[@"ocr"]) : str(item[@"content"]);
             }
-            [pb clearContents]; [pb setString:text forType:NSPasteboardTypeString];
+            [pb clearContents];
+            if (![pb setString:text forType:NSPasteboardTypeString]) return failure(@"Could not write to the clipboard.");
         } else if ([item[@"files"] count]) { [pb clearContents]; [pb writeObjects:fileURLs(item[@"files"])]; }
         else if (str(item[@"image"]).length) {
             NSData *image=[NSData dataWithContentsOfFile:item[@"image"]]; if (!image) return failure(@"The image is no longer available.");
@@ -153,6 +154,9 @@ static id perform(NSString *op, NSDictionary *args) {
         return @YES;
     }
     return failure(@"Unsupported native clipboard action.");
+}
+bool tooki_clipboard_copy_expansion(NSString *text) {
+    return [perform(@"copy", @{@"item":@{@"content":text}, @"mode":@"plain"}) isEqual:@YES];
 }
 char *tooki_clipboard(const char *operation, const char *input) {
     @autoreleasepool {
