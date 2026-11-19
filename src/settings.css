@@ -8,9 +8,9 @@
 .settings-version { margin-left: auto; padding: 3px 6px; border-radius: var(--radius-card); background: var(--selected); color: var(--muted); font-size: 10px; }
 .settings-app-icon { display: grid; place-items: center; width: 32px; height: 32px; border: 1px solid var(--line); background: var(--selected); border-radius: var(--shell-radius); }
 .sidebar-label { display: block; padding: 4px 7px 5px; font-size: 11px; color: var(--muted); }
-/* Keep navigation inside the sidebar's inset, even in shorter windows. */
-.settings-sidebar nav { display: grid; align-content: start; flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--line) transparent; gap: 12px; margin-top: 4px; }
-.settings-nav-group { display: grid; gap: 1px; }
+/* Keep rows inset while giving the native scrollbar its own space at the edge. */
+.settings-sidebar nav { display: grid; align-content: start; flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; gap: 12px; margin: 4px -6px 0 0; }
+.settings-nav-group { display: grid; gap: 1px; margin-right: 10px; }
 .settings-sidebar nav button { display: flex; align-items: center; gap: 8px; padding: 5px 7px; border-radius: var(--row-radius); background: transparent; text-align: left; color: var(--muted); }
 .settings-sidebar nav button:hover { background: var(--hover); }
 .settings-sidebar nav button.active { background: var(--selected); color: var(--ink); }
@@ -19,7 +19,7 @@
 
 .settings-main { display: flex; flex-direction: column; min-width: 0; flex: 1; }
 .settings-toolbar { height: 42px; display: flex; align-items: center; flex-shrink: 0; gap: 10px; padding: 0 14px; border-bottom: 1px solid var(--line); color: var(--muted); }
-.settings-content { flex: 1; min-height: 0; overflow: auto; scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
+.settings-content { flex: 1; min-height: 0; overflow: auto; }
 /* Padding belongs to the flowing body so it remains after overflowing pages. */
 .settings-content-body {
   min-height: 100%;

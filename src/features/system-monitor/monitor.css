@@ -1,8 +1,6 @@
 .monitor-detail {
   overflow-y: auto;
   gap: 16px;
-  scrollbar-width: thin;
-  scrollbar-color: var(--line) transparent;
 }
 .monitor-detail > * {
   flex-shrink: 0;
