@@ -2,12 +2,28 @@ use super::model::*;
 use crate::config::{files, Config};
 use serde_json::json;
 use sha2::{Digest, Sha256};
-use std::path::{Path, PathBuf};
+#[cfg(test)]
+use std::path::Path;
+use std::path::PathBuf;
 pub struct Storage {
     root: PathBuf,
+    config: Config,
 }
 impl Storage {
+    pub fn loaded(config: Config) -> Self {
+        Self {
+            root: config.root.clone(),
+            config,
+        }
+    }
+    #[cfg(test)]
     pub fn open(root: &Path, legacy: &Path, import_legacy: bool) -> Result<Self, String> {
+        Self::open_config(Config::new(root.into(), legacy.into(), import_legacy))
+    }
+    pub fn open_config(config: Config) -> Result<Self, String> {
+        let root = &config.root;
+        let legacy = &config.legacy;
+        let import_legacy = config.import_legacy;
         let directory = root.join("snippets");
         // The old SQLite database stays intact. Only a new destination is populated.
         if !directory.exists() {
@@ -27,11 +43,6 @@ impl Storage {
                 files::write(&path, &json!(record), before.as_deref())?;
             }
             validate_conflicts(&records)?;
-            let config = Config {
-                root: root.into(),
-                legacy: legacy.into(),
-                import_legacy,
-            };
             config.migrate(
                 "settings.json",
                 "snippets",
@@ -39,14 +50,21 @@ impl Storage {
                 Preferences::default(),
             )?;
             std::fs::rename(stage, &directory).map_err(|e| e.to_string())?;
+            config.refresh_group("snippets");
         }
-        // Validate on each read so a repaired synced file recovers without a restart.
-        Ok(Self { root: root.into() })
+        // Reads use the loaded snapshot. Explicit reload validates repaired files.
+        Ok(Self {
+            root: root.into(),
+            config,
+        })
     }
     pub fn list(&self) -> Result<Vec<Record>, String> {
         let mut records = vec![];
-        for path in files::entries(&self.root.join("snippets"))? {
-            let bytes = files::read(&path)?.ok_or("Snippet disappeared during reload")?;
+        for path in self.config.entries(&self.root.join("snippets"))? {
+            let bytes = self
+                .config
+                .bytes(&path)?
+                .ok_or("Snippet disappeared during reload")?;
             let mut record: Record =
                 serde_json::from_slice(&bytes).map_err(|e| format!("{}: {e}", path.display()))?;
             record
@@ -70,12 +88,13 @@ impl Storage {
         Ok(records)
     }
     pub fn save(&mut self, mut record: Record) -> Result<Record, String> {
+        let _writes = crate::config::WRITES.lock().map_err(|e| e.to_string())?;
         record.validate()?;
         let path = self
             .root
             .join("snippets")
             .join(filename(&record.definition.id));
-        let before = files::read(&path)?;
+        let before = self.config.bytes(&path)?;
         if before.as_deref().map(revision).unwrap_or(0) != record.revision {
             return Err("This snippet changed on disk. Reopen it before saving.".into());
         }
@@ -89,38 +108,42 @@ impl Storage {
         // Revision is a content fingerprint, so edits from two computers with equal
         // counters still conflict. Keep runtime fingerprints out of portable files.
         record.revision = 0;
-        files::write(&path, &json!(record), before.as_deref())?;
-        let bytes = files::read(&path)?.ok_or("Snippet disappeared after saving")?;
+        self.config
+            .write_file(&path, &json!(record), before.as_deref())?;
+        let bytes = self
+            .config
+            .bytes(&path)?
+            .ok_or("Snippet disappeared after saving")?;
         record.revision = revision(&bytes);
         Ok(record)
     }
     pub fn delete(&mut self, id: &str, expected: i64) -> Result<(), String> {
+        let _writes = crate::config::WRITES.lock().map_err(|e| e.to_string())?;
         let path = self.root.join("snippets").join(filename(id));
-        if files::read(&path)?.as_deref().map(revision) != Some(expected) {
+        if self.config.bytes(&path)?.as_deref().map(revision) != Some(expected) {
             return Err("This snippet changed on disk. Reopen it before deleting.".into());
         }
-        std::fs::remove_file(path).map_err(|e| e.to_string())
+        let before = self.config.bytes(&path)?;
+        self.config.remove_file(&path, before.as_deref())
     }
-    fn config(&self) -> Config {
-        Config {
-            root: self.root.clone(),
-            legacy: PathBuf::new(),
-            import_legacy: false,
-        }
+    #[cfg(test)]
+    pub fn reload(&self) {
+        self.config.refresh_group("snippets");
+        self.config.refresh_group("settings.json");
     }
     pub fn preferences(&self) -> Result<Preferences, String> {
         let preferences: Preferences =
-            self.config()
+            self.config
                 .read("settings.json", "snippets", Preferences::default())?;
         validate_preferences(&preferences)?;
         Ok(preferences)
     }
     pub fn set_preferences(&self, preferences: &Preferences) -> Result<(), String> {
         validate_preferences(preferences)?;
-        self.config().set("settings.json", "snippets", preferences)
+        self.config.set("settings.json", "snippets", preferences)
     }
 }
-fn validate_preferences(value: &Preferences) -> Result<(), String> {
+pub(super) fn validate_preferences(value: &Preferences) -> Result<(), String> {
     if value.excluded_apps.len() > 200
         || value
             .excluded_apps
@@ -177,6 +200,10 @@ mod tests {
         external["definition"]["template"] = json!("Edited elsewhere");
         let bytes = files::read(&path).unwrap();
         files::write(&path, &external, bytes.as_deref()).unwrap();
+        assert_eq!(store.list().unwrap()[0].definition.template, "Hello");
+        assert!(store.save(saved.clone()).is_err());
+        assert!(store.delete("test", saved.revision).is_err());
+        store.reload();
         assert_eq!(
             store.list().unwrap()[0].definition.template,
             "Edited elsewhere"
@@ -197,6 +224,8 @@ mod tests {
         let store = Storage::open(&root, &root.join("old"), false).unwrap();
         assert!(store.list().is_err());
         files::write(&path, &json!(record()), Some(b"broken")).unwrap();
+        assert!(store.list().is_err());
+        store.reload();
         assert_eq!(store.list().unwrap().len(), 1);
         std::fs::remove_dir_all(root).unwrap();
     }

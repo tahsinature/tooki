@@ -22,9 +22,16 @@ export async function loadPreferences() {
     preferences.notesFont = isNoteFont(value.notesFont)
       ? value.notesFont
       : 'system';
-    const defaults = { notesToolbar: true, notesKeepOnTop: false, compactLauncher: true, groupByDate: true, rememberPosition: true };
+    const defaults = {
+      notesToolbar: true,
+      notesKeepOnTop: false,
+      compactLauncher: true,
+      groupByDate: true,
+      rememberPosition: true,
+    };
     for (const name of Object.keys(defaults) as (keyof typeof defaults)[])
-      preferences[name] = typeof value[name] === 'boolean' ? value[name] : defaults[name];
+      preferences[name] =
+        typeof value[name] === 'boolean' ? value[name] : defaults[name];
     preferences.error = '';
   } catch (error) {
     preferences.error = String(error);
@@ -35,13 +42,15 @@ export async function setPreference<K extends PreferenceName>(
   name: K,
   value: (typeof preferences)[K],
 ) {
+  const previous = preferences[name];
   preferences[name] = value;
   try {
     if (isTauri()) await invoke('set_portable_preference', { name, value });
     else localStorage.setItem(key, JSON.stringify(preferences));
     preferences.error = '';
-  } catch {
-    preferences.error = 'This preference could not be saved on this device.';
+  } catch (reason) {
+    preferences[name] = previous;
+    preferences.error = String(reason);
   }
 }
 

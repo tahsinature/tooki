@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::{cmp::Ordering, time::Duration};
 
 const ENDPOINT: &str = "https://api.github.com/repos/tahsinature/tooki/releases/latest";
-const UPDATE_COMMAND: &str = "brew update && brew upgrade --cask tahsinature/tap/tooki";
+const UPDATE_COMMAND: &str = "brew update && brew upgrade --cask --greedy tahsinature/tap/tooki";
 const MAX_RESPONSE: usize = 1024 * 1024;
 
 #[derive(Deserialize)]
@@ -11,6 +11,13 @@ struct Release {
     tag_name: String,
     draft: bool,
     prerelease: bool,
+    #[serde(default)]
+    assets: Vec<Asset>,
+}
+
+#[derive(Deserialize)]
+struct Asset {
+    name: String,
 }
 
 #[derive(Serialize, Debug)]
@@ -20,6 +27,7 @@ pub struct UpdateCheck {
     status: &'static str,
     release_tag: String,
     update_command: Option<&'static str>,
+    signed_update: bool,
 }
 
 fn parse_release(status: u16, body: &[u8], current: &Version) -> Result<UpdateCheck, String> {
@@ -48,6 +56,9 @@ fn parse_release(status: u16, body: &[u8], current: &Version) -> Result<UpdateCh
             Ordering::Equal => "current",
             Ordering::Less => "ahead",
         },
+        signed_update: ["latest.json", "Tooki.app.tar.gz", "Tooki.app.tar.gz.sig"]
+            .iter()
+            .all(|name| release.assets.iter().any(|asset| asset.name == *name)),
         release_tag: release.tag_name,
         update_command: cfg!(target_os = "macos").then_some(UPDATE_COMMAND),
     })
@@ -137,6 +148,24 @@ mod tests {
         assert_eq!(check("v0.12.0", "0.13.0").status, "ahead");
         assert_eq!(check("v0.12.0", "0.12.0-beta.1").status, "available");
         assert_eq!(check("0.12.0", "0.12.0+dev").status, "current");
+    }
+    #[test]
+    fn installation_requires_all_published_update_assets() {
+        let current = Version::parse("0.12.0").unwrap();
+        let mut body = serde_json::json!({"tag_name":"v0.16.0","draft":false,"prerelease":false,
+            "assets":[{"name":"latest.json"},{"name":"Tooki.app.tar.gz"},{"name":"Tooki.app.tar.gz.sig"}]});
+        assert!(
+            parse_release(200, &serde_json::to_vec(&body).unwrap(), &current)
+                .unwrap()
+                .signed_update
+        );
+        body["assets"].as_array_mut().unwrap().pop();
+        assert!(
+            !parse_release(200, &serde_json::to_vec(&body).unwrap(), &current)
+                .unwrap()
+                .signed_update
+        );
+        assert!(!check("v0.16.0", "0.12.0").signed_update);
     }
     #[test]
     fn rejects_failed_requests_and_invalid_or_unstable_releases() {

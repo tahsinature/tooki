@@ -10,7 +10,11 @@ pub fn read(path: &Path) -> Result<Option<Vec<u8>>, String> {
     match fs::read(path) {
         Ok(bytes) if bytes.len() <= 8 * 1024 * 1024 => Ok(Some(bytes)),
         Ok(_) => Err(format!("{} exceeds 8 MB", path.display())),
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
+        Err(e)
+            if e.kind() == std::io::ErrorKind::NotFound && fs::symlink_metadata(path).is_err() =>
+        {
+            Ok(None)
+        }
         Err(e) => Err(format!("{}: {e}", path.display())),
     }
 }
@@ -69,7 +73,7 @@ pub fn write(path: &Path, value: &Value, expected: Option<&[u8]>) -> Result<(), 
     result
 }
 pub fn entries(root: &Path) -> Result<Vec<PathBuf>, String> {
-    if !root.exists() {
+    if !root.exists() && fs::symlink_metadata(root).is_err() {
         return Ok(Vec::new());
     }
     let mut paths = Vec::new();

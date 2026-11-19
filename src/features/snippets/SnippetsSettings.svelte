@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { snippetDraft } from './draft.svelte';
   import { onMount } from 'svelte';
   import { listen } from '@tauri-apps/api/event';
   import {
@@ -18,11 +19,9 @@
   import ExpansionSettings from './ExpansionSettings.svelte';
   import ToolCommands from '../shortcuts/ToolCommands.svelte';
   import './snippets.css';
-  let library = $state<Library>(),
-    draft = $state<Record>();
+  let library = $state<Library>();
   let query = $state(''),
-    error = $state(''),
-    baseline = '';
+    error = $state('');
   let confirmation = $state<'discard' | 'delete' | null>(null);
   let visible = $derived(
     (library?.records ?? []).filter((record) =>
@@ -39,12 +38,13 @@
     }
   }
   function edit(record: Record) {
-    draft = JSON.parse(JSON.stringify(record));
-    baseline = JSON.stringify(draft);
+    snippetDraft.record = JSON.parse(JSON.stringify(record));
+    snippetDraft.baseline = JSON.stringify(snippetDraft.record);
   }
   function cancel() {
-    if (JSON.stringify(draft) !== baseline) confirmation = 'discard';
-    else draft = undefined;
+    if (JSON.stringify(snippetDraft.record) !== snippetDraft.baseline)
+      confirmation = 'discard';
+    else snippetDraft.record = undefined;
   }
   onMount(() => {
     void refresh();
@@ -62,16 +62,16 @@
 </script>
 
 {#if error}<p class="error-message" role="alert">{error}</p>{/if}
-{#if draft}
+{#if snippetDraft.record}
   <SnippetEditor
-    bind:record={draft}
+    bind:record={snippetDraft.record}
     onsaved={() => {
-      draft = undefined;
+      snippetDraft.record = undefined;
       void refresh();
     }}
     oncancel={cancel}
   />
-  {#if draft?.revision}<div class="snippet-delete">
+  {#if snippetDraft.record?.revision}<div class="snippet-delete">
       <Button destructive onclick={() => (confirmation = 'delete')}
         >Delete Snippet</Button
       >
@@ -131,13 +131,13 @@
     confirmLabel={confirmation === 'delete' ? 'Delete Snippet' : 'Discard'}
     onclose={() => (confirmation = null)}
     onconfirm={async () => {
-      if (confirmation === 'delete' && draft)
+      if (confirmation === 'delete' && snippetDraft.record)
         await request('delete', {
-          id: draft.definition.id,
-          revision: draft.revision,
+          id: snippetDraft.record.definition.id,
+          revision: snippetDraft.record.revision,
         });
       confirmation = null;
-      draft = undefined;
+      snippetDraft.record = undefined;
       await refresh();
     }}
   />{/if}

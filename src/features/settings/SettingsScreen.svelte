@@ -1,6 +1,6 @@
 <script lang="ts">
   import PermissionNotice from '../permissions/PermissionNotice.svelte';
-  import UpdateCheck from './UpdateCheck.svelte';
+  import AboutSettings from './AboutSettings.svelte';
   import SystemMonitorSettings from '../system-monitor/SystemMonitorSettings.svelte';
   import { Activity } from '@lucide/svelte';
   import { getVersion } from '@tauri-apps/api/app';
@@ -30,7 +30,6 @@
     Palette,
     ClipboardList,
     Info,
-    Command,
     Settings,
     Keyboard,
     NotebookPen,
@@ -381,15 +380,6 @@
                 onchange={(value) => setPreference('groupByDate', value)}
               /></SettingsRow
             >
-            <SettingsRow
-              title="Remember position"
-              description="Restore the selected clip when returning to Clipboard."
-              ><Toggle
-                label="Remember position"
-                checked={preferences.rememberPosition}
-                onchange={(value) => setPreference('rememberPosition', value)}
-              /></SettingsRow
-            >
           </SettingsSection>
           <SettingsSection title="Keyboard navigation">
             <SettingsRow title="Return to root search"
@@ -404,22 +394,7 @@
           </SettingsSection>
           <ClipboardSettings />
         {:else}
-          <div class="about-identity">
-            <span class="settings-app-icon"><Command size={32} /></span>
-            <h1>Tooki</h1>
-            <p>Version {version}</p>
-            <UpdateCheck />
-          </div>
-          <SettingsSection title="Built with"
-            ><SettingsRow title="Desktop runtime">Tauri · Rust</SettingsRow
-            ><SettingsRow title="Interface">Svelte · TypeScript</SettingsRow
-            ></SettingsSection
-          >
-          <p class="settings-note">
-            A keyboard-first launcher with clipboard history, snippets, emoji,
-            notes, and native macOS tools. Updates are available through
-            Homebrew.
-          </p>
+          <AboutSettings {version} />
         {/if}
       </div>
     </div>

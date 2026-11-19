@@ -1,4 +1,4 @@
-// These tests parse fixture strings only. They never remap keys or post events.
+// These tests use fixture mappings and temporary locks. They never remap keys or post events.
 #import "hyper.m"
 int main(void) {
   @autoreleasepool {
@@ -28,6 +28,22 @@ int main(void) {
     assert(parseMapping(different, &error) == nil && error);
     error = nil;
     assert(parseMapping(@"Unexpected output", &error) == nil && error);
-    puts("Hyper Key mapping parser: numeric and malformed mapping checks passed (no system changes).");
+    NSDictionary *owned = @{@"HIDKeyboardModifierMappingSrc": @(capsUsage), @"HIDKeyboardModifierMappingDst": @(f18Usage)};
+    NSDictionary *foreign = @{@"HIDKeyboardModifierMappingSrc": @(capsUsage), @"HIDKeyboardModifierMappingDst": @42};
+    NSDictionary *unrelated = @{@"HIDKeyboardModifierMappingSrc": @12, @"HIDKeyboardModifierMappingDst": @13};
+    BOOL owns = NO;
+    assert([restoredMapping(@[], @[owned, unrelated], &owns) isEqual:@[unrelated]] && owns);
+    assert(([restoredMapping(@[], @[foreign, unrelated], &owns) isEqual:@[foreign, unrelated]] && !owns));
+    assert([restoredMapping(@[], @[], &owns) count] == 0 && !owns);
+    NSString *lock = [NSTemporaryDirectory() stringByAppendingPathComponent:NSUUID.UUID.UUIDString];
+    mappingLocks = [NSMutableArray array];
+    assert(acquireMappingLock(lock));
+    assert(!acquireMappingLock(lock));
+    releaseMappingLocks();
+    mappingLocks = [NSMutableArray array];
+    assert(acquireMappingLock(lock));
+    releaseMappingLocks();
+    [NSFileManager.defaultManager removeItemAtPath:lock error:nil];
+    puts("Hyper Key parsing, recovery ownership and lock exclusion passed (no system changes).");
   }
 }

@@ -123,10 +123,30 @@ static BOOL writeMapping(NSArray *mapping, NSString **error) {
              ],
              error) != nil;
 }
-static BOOL restoreMapping(NSString **error) {
-  if (![[NSFileManager defaultManager] fileExistsAtPath:backupPath])
+// Remove only the exact pair installed by Tooki. Other current mappings win.
+static NSArray *restoredMapping(NSArray *previous, NSArray *current, BOOL *owns) {
+  NSMutableArray *next = [NSMutableArray array];
+  *owns = NO;
+  for (NSDictionary *entry in current) {
+    if ([entry[@"HIDKeyboardModifierMappingSrc"] unsignedLongLongValue] ==
+            capsUsage &&
+        [entry[@"HIDKeyboardModifierMappingDst"] unsignedLongLongValue] ==
+            f18Usage)
+      *owns = YES;
+    else
+      [next addObject:entry];
+  }
+  if (*owns) {
+    for (NSDictionary *entry in previous)
+      if ([entry[@"HIDKeyboardModifierMappingSrc"] unsignedLongLongValue] == capsUsage)
+        [next addObject:entry];
+  }
+  return next;
+}
+static BOOL restoreMappingAtPath(NSString *path, NSString **error) {
+  if (![[NSFileManager defaultManager] fileExistsAtPath:path])
     return YES;
-  NSData *data = [NSData dataWithContentsOfFile:backupPath];
+  NSData *data = [NSData dataWithContentsOfFile:path];
   NSArray *previous = data ? normalizeMapping([NSJSONSerialization JSONObjectWithData:data options:0 error:nil], error) : nil;
   if (!previous) {
     *error = @"Could not read the Hyper Key recovery file.";
@@ -135,27 +155,30 @@ static BOOL restoreMapping(NSString **error) {
   NSArray *current = readMapping(error);
   if (!current)
     return NO;
-  NSMutableArray *next = [NSMutableArray array];
   BOOL owns = NO;
-  for (NSDictionary *entry in current) {
-    if ([entry[@"HIDKeyboardModifierMappingSrc"] unsignedLongLongValue] ==
-            capsUsage &&
-        [entry[@"HIDKeyboardModifierMappingDst"] unsignedLongLongValue] ==
-            f18Usage)
-      owns = YES;
-    else
-      [next addObject:entry];
+  NSArray *next = restoredMapping(previous, current, &owns);
+  if (owns && !writeMapping(next, error)) return NO;
+  NSError *removalError = nil;
+  if (![NSFileManager.defaultManager removeItemAtPath:path error:&removalError]) {
+    *error = @"Could not remove the restored Hyper Key recovery record.";
+    return NO;
   }
-  // Preserve modifications made by another remapper while Tooki was running.
-  if (owns) {
-    for (NSDictionary *entry in previous)
-      if ([entry[@"HIDKeyboardModifierMappingSrc"] unsignedLongLongValue] ==
-          capsUsage)
-        [next addObject:entry];
-    if (!writeMapping(next, error))
-      return NO;
+  return YES;
+}
+// Compatibility with builds before shared ownership. Both legacy locks must be
+// held before reading recovery records, so a live old build is never disturbed.
+static NSArray<NSString *> *legacyRecoveryPaths(void) {
+  NSString *support = [NSHomeDirectory() stringByAppendingPathComponent:@"Library/Application Support"];
+  return @[
+    [support stringByAppendingPathComponent:@"us.tahsin.tooki/hyper/mapping-recovery.json"],
+    [support stringByAppendingPathComponent:@"us.tahsin.tooki.dev/hyper/mapping-recovery.json"]
+  ];
+}
+static BOOL restoreMapping(NSString **error) {
+  if (!restoreMappingAtPath(backupPath, error)) return NO;
+  for (NSString *path in legacyRecoveryPaths()) {
+    if (![path isEqualToString:backupPath] && !restoreMappingAtPath(path, error)) return NO;
   }
-  [[NSFileManager defaultManager] removeItemAtPath:backupPath error:nil];
   return YES;
 }
 static void toggleCaps(void) {
@@ -285,24 +308,41 @@ static char *applyHyper(bool enabled, const char *recovery) {
   }
 }
 
-// A dev process and a packaged build may share the same app-data directory.
-// Hold an OS lock while enabled so a second instance cannot restore our
-// mapping.
-static int mappingLock = -1;
+// Every build owns the shared lock and the old per-build locks for its entire
+// Hyper session. OS locks release on a crash; recovery data survives for startup.
+static NSMutableArray<NSNumber *> *mappingLocks;
+static void releaseMappingLocks(void) {
+  for (NSNumber *descriptor in mappingLocks) close(descriptor.intValue);
+  mappingLocks = nil;
+}
+static BOOL acquireMappingLock(NSString *path) {
+  int descriptor = open(path.fileSystemRepresentation, O_CREAT | O_RDWR | O_CLOEXEC | O_NOFOLLOW, 0600);
+  if (descriptor < 0) return NO;
+  if (flock(descriptor, LOCK_EX | LOCK_NB) != 0) { close(descriptor); return NO; }
+  [mappingLocks addObject:@(descriptor)];
+  return YES;
+}
 char *tooki_hyper_set(bool enabled, const char *recovery) {
-  if (mappingLock < 0) {
-    NSString *lockPath = [[NSString stringWithUTF8String:recovery]
-        stringByAppendingString:@".lock"];
-    int descriptor =
-        open(lockPath.fileSystemRepresentation, O_CREAT | O_RDWR, 0600);
-    if (descriptor < 0)
-      return strdup("Could not open the Hyper Key ownership lock.");
-    if (flock(descriptor, LOCK_EX | LOCK_NB) != 0) {
-      close(descriptor);
-      return strdup("Hyper Key is active in another Tooki instance. Disable it "
-                    "there first.");
+  if (!mappingLocks) {
+    mappingLocks = [NSMutableArray array];
+    NSString *shared = [NSString stringWithUTF8String:recovery];
+    NSMutableArray *paths = [NSMutableArray arrayWithObject:shared];
+    for (NSString *path in legacyRecoveryPaths()) {
+      if (![path isEqualToString:shared]) {
+        NSError *directoryError = nil;
+        if (![NSFileManager.defaultManager createDirectoryAtPath:path.stringByDeletingLastPathComponent withIntermediateDirectories:YES attributes:@{NSFilePosixPermissions:@0700} error:&directoryError]) {
+          releaseMappingLocks();
+          return strdup("Could not prepare the Hyper Key ownership directory. No keyboard mapping was changed.");
+        }
+        [paths addObject:path];
+      }
     }
-    mappingLock = descriptor;
+    for (NSString *path in paths) {
+      if (!acquireMappingLock([path stringByAppendingString:@".lock"])) {
+        releaseMappingLocks();
+        return strdup("Another Tooki version owns Hyper Key, or its ownership lock is unavailable. Quit that version normally, then try again. No keyboard mapping was changed.");
+      }
+    }
   }
   char *error = NULL;
   @try {
@@ -312,9 +352,7 @@ char *tooki_hyper_set(bool enabled, const char *recovery) {
     error = strdup([[NSString stringWithFormat:@"Hyper Key could not update its mapping: %@", exception.reason] UTF8String]);
   }
   if (!hyperTap) {
-    flock(mappingLock, LOCK_UN);
-    close(mappingLock);
-    mappingLock = -1;
+    releaseMappingLocks();
   }
   return error;
 }

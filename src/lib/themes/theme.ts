@@ -2,40 +2,15 @@ import graphite from './graphite.json';
 import porcelain from './porcelain.json';
 import { radiusVariables } from './radii';
 
-// The allowlist is the theme contract. No selectors, scripts or remote resources.
-export const colorTokens = [
-  'surface',
-  'panel',
-  'sidebar',
-  'ink',
-  'muted',
-  'line',
-  'selected',
-  'hover',
-  'accent',
-  'accentInk',
-  'danger',
-  'selectionMark',
-] as const;
-export const dimensions = {
-  shellRadius: [0, 24],
-  rowRadius: [0, 16],
-  rowHeight: [32, 64],
-  headerHeight: [44, 80],
-  fontSize: [12, 18],
-  searchFontSize: [14, 28],
-  contentSpacing: [12, 32],
-} as const;
-export const componentFields = {
-  activityLog: ['background', 'hover', 'selected', 'text', 'radius'],
-  sectionHeader: ['background', 'text', 'radius'],
-  resultRow: ['background', 'hover', 'selected', 'text', 'radius'],
-  searchHeader: ['background', 'text', 'radius'],
-  popup: ['background', 'text', 'radius'],
-  settingsSection: ['background', 'text', 'radius'],
-  button: ['background', 'text', 'radius'],
-} as const;
-export type ColorToken = (typeof colorTokens)[number];
+// Shared with Rust so explicit reload validates the same contract as the editor.
+import contract from './contract.json';
+type PresetTokens = typeof graphite.tokens;
+export type ColorToken = {
+  [K in keyof PresetTokens]: PresetTokens[K] extends string ? K : never;
+}[keyof PresetTokens];
+export const colorTokens = contract.colorTokens as ColorToken[];
+export const dimensions = contract.dimensions;
+export const componentFields = contract.componentFields;
 export type DimensionToken = keyof typeof dimensions;
 export type ComponentName = keyof typeof componentFields;
 export type Theme = {

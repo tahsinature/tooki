@@ -122,6 +122,13 @@
           "tooki-preview"
         ]
       }
+    },
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEZBRUNGMTFEODI3NzNBNzgKUldSNE9uZUNIZkhzK25va1MzQkF6SnQ3clE5M3JtNDJoZGpCU2NZeFpwNmFRcDNBY1Ntdkwvb2kK",
+      "endpoints": [
+        "https://github.com/tahsinature/tooki/releases/latest/download/latest.json"
+      ],
+      "requireSignedVersion": true
     }
   }
 }

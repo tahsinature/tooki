@@ -56,7 +56,7 @@ pub struct Snippets {
 pub fn initialize(app: &tauri::AppHandle) {
     let store = (|| {
         let config = crate::config::get(app);
-        let mut store = storage::Storage::open(&config.root, &config.legacy, config.import_legacy)?;
+        let mut store = storage::Storage::open_config((*config).clone())?;
         let source = config.root.join("snippets.json");
         let imported: bool = config.read("settings.json", "swiftSnippetsImported", false)?;
         if source.exists() && !imported {
@@ -116,4 +116,26 @@ pub fn stop(app: &tauri::AppHandle) {
     tauri::async_runtime::spawn(async move {
         let _ = native::call(&handle, "configure", json!({"enabled":false,"triggers":[]})).await;
     });
+}
+
+/// Validate the proposed snapshot without importing or writing any files.
+pub fn validate_configuration(config: &crate::config::Config) -> Result<usize, String> {
+    let store = storage::Storage::loaded(config.clone());
+    store.preferences()?;
+    Ok(store.list()?.len())
+}
+
+pub fn reload_storage(app: &tauri::AppHandle) -> Result<(), String> {
+    let config = crate::config::get(app);
+    validate_configuration(&config)?;
+    *app.state::<Snippets>()
+        .store
+        .lock()
+        .map_err(|e| e.to_string())? = Ok(storage::Storage::loaded((*config).clone()));
+    Ok(())
+}
+pub fn validate_preferences(config: &crate::config::Config) -> Result<(), String> {
+    storage::Storage::loaded(config.clone())
+        .preferences()
+        .map(|_| ())
 }

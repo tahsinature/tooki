@@ -14,7 +14,6 @@ export type Library = {
   canPaste: boolean;
 };
 export type Section = { title: string; items: Emoji[] };
-export const position = { query: '', filter: 'all', selection: '' };
 export const columns = 10;
 
 export function sections(

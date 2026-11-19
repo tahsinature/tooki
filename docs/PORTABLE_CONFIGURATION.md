@@ -12,7 +12,7 @@ The Rust desktop app stores portable preferences in `~/.config/tooki/`, resolvin
 
 The settings and shortcut documents have `"version": 1`. App assignments on macOS use `bundle:<bundle identifier>`; Tooki resolves these to the local installation. Assignments for missing applications remain saved. Tools use their existing `command:` identifiers.
 
-Tooki writes these files directly from Settings. External changes are checked every two seconds, including when Settings is closed. Files are written atomically, with private file permissions on Unix. Existing file and directory symlinks are preserved. Keep symlink targets available; broken links are reported rather than replaced.
+Tooki writes these files directly from Settings. Configuration is loaded at startup. External changes are applied only when you choose **Settings → General → Configuration → Reload Configuration**. The panel shows the actual folder, the last successful load, category results, and runtime warnings such as unavailable shortcuts. UI saves apply immediately. Files are written atomically, with private file permissions on Unix. Existing file and directory symlinks are preserved. Keep symlink targets available; broken links are reported rather than replaced.
 
 Use your preferred file sync or private dotfiles system to distribute this directory. Tooki does not provide a cloud sync service. Snippet configurations can contain personal information. Avoid publishing them accidentally. Exclude temporary files and migration staging directories from synchronization.
 
@@ -24,7 +24,7 @@ The older Swift `config.json` is not interpreted or modified. If a Swift `snippe
 
 ## Conflicts and errors
 
-Invalid JSON and unsupported document versions are reported without overwriting the file. Invalid snippet libraries are not applied to automatic expansion. Reopen a snippet or theme editor if its file changed externally while editing; stale saves are rejected using content checks, not revision counters shared between machines.
+Invalid JSON and unsupported document versions are reported without overwriting the file. Invalid snippet libraries are not applied to automatic expansion. A failed reload retains the previous loaded category. Reload the configuration and reopen a snippet or theme editor if its file changed externally while editing; stale saves are rejected using content checks, not revision counters shared between machines.
 
 Atomic writes and stale-edit detection do not provide distributed conflict merging. Two computers editing the same file before either receives the other's changes still require the sync provider's conflict handling. Keep conflict copies until you have reconciled them. A theme or snippet filename must match its identifier; unexpected conflict copies produce an error rather than silently replacing an entry.
 
@@ -39,3 +39,9 @@ The app's Application Support and WebKit directories still contain machine-speci
 - Whether clipboard history is persisted between launches. This stays local so another computer cannot switch this Mac's history storage policy.
 
 Shelferry continues to own its data and configuration. Tooki syncs only whether its integration is enabled.
+
+## Dev and production
+
+Both builds use the same portable folder. Starting the other version asks you to **Switch to This Version** or cancel. Switching requests a normal quit, waits for it to finish, and ends any active Keep Awake session. Accessibility grants remain separate for the two app identities.
+
+On macOS, Hyper Key ownership and crash recovery live in `~/Library/Application Support/us.tahsin.tooki.shared/hyper/`, outside the synced configuration. Existing per-build recovery records are recovered only while their ownership locks are free. Another remapper's Caps Lock assignment is never cleared to enable Tooki.

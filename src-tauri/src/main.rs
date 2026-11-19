@@ -2,6 +2,7 @@
 mod activity_log;
 mod app_menu;
 mod applications;
+mod build_info;
 mod clipboard;
 mod config;
 mod emoji;
@@ -26,6 +27,7 @@ mod snippets;
 mod system_actions;
 mod system_monitor;
 mod tool_commands;
+mod update_install;
 mod updates;
 mod window_toggle;
 
@@ -40,13 +42,15 @@ fn main() {
     let context = tauri::generate_context!();
     // Waiting for the other app pumps AppKit events. Do this before creating
     // webviews, so frontend IPC cannot run before managed services are ready.
-    let _instance_guard = match instance_guard::acquire(&context.config().identifier) {
-        Ok(guard) => guard,
-        Err(error) => {
-            eprintln!("Could not start Tooki: {error}");
-            return;
-        }
-    };
+    let mut instance_guard = Some(
+        match instance_guard::acquire(&context.config().identifier) {
+            Ok(guard) => guard,
+            Err(error) => {
+                eprintln!("Could not start Tooki: {error}");
+                return;
+            }
+        },
+    );
     tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, args, _| {
             if !args.iter().any(|arg| {
@@ -67,6 +71,8 @@ fn main() {
                 .macos_launcher(tauri_plugin_autostart::MacosLauncher::LaunchAgent)
                 .build(),
         )
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .manage(update_install::Installer::default())
         .manage(general_settings::GeneralSettings::default())
         .manage(filter_popup::FilterPopup::default())
         .manage(applications::Catalog::default())
@@ -85,8 +91,14 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             quit_app,
             permissions::permission_request,
+            build_info::build_info,
+            update_install::update_install_status,
+            update_install::install_update,
             updates::check_for_updates,
             updates::open_release_notes,
+            config::configuration_status,
+            config::reload_configuration,
+            config::open_configuration_folder,
             config::portable_preferences,
             config::set_portable_preference,
             config::portable_themes,
@@ -106,7 +118,7 @@ fn main() {
             system_actions::system_volumes,
             system_actions::eject_system_volume,
             system_actions::open_automation_settings,
-            launcher_presentation::launcher_request_target,
+            launcher_presentation::launcher_request_entry,
             launcher_presentation::set_launcher_view,
             launcher_presentation::dismiss_launcher,
             launcher_presentation::return_to_root_search,
@@ -189,7 +201,7 @@ fn main() {
             launcher_placement::restore(app.handle());
             launcher_shortcut::register(app.handle());
             applications::preferences::initialize(app.handle());
-            config::start_watching(app.handle());
+            config::initialize_report(app.handle());
             permissions::initialize(app.handle());
             if !permissions::required()
                 && !std::env::args().any(|arg| {
@@ -205,7 +217,7 @@ fn main() {
         })
         .build(context)
         .expect("Could not start Tooki")
-        .run(|app, event| match event {
+        .run(move |app, event| match event {
             tauri::RunEvent::ExitRequested { .. } => launcher_placement::remember(app),
             #[cfg(target_os = "macos")]
             tauri::RunEvent::Reopen { .. } => {
@@ -221,6 +233,8 @@ fn main() {
 
                 shortcut_detective::stop(app);
                 clipboard::cleanup(app);
+                // Release our session lock before Tauri launches the updated app.
+                instance_guard.take();
             }
             _ => {}
         });

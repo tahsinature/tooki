@@ -79,16 +79,17 @@
   </SettingsRow>
   {#if hyperStatus.available}
     <SettingsRow
-      title="Status"
-      description={hyperStatus.permissionRequired && hyperStatus.enabled
-        ? 'Allow Accessibility access so Tooki can remap Caps Lock. Enable Tooki in System Settings, then return here.'
+      title={hyperStatus.error || (hyperStatus.enabled && !hyperStatus.active)
+        ? 'Blocked'
         : hyperStatus.active
-          ? hyperStatus.enabled
-            ? 'Hyper Key is running.'
-            : 'Remapping is still running. Retry to finish disabling it.'
-          : hyperStatus.enabled
-            ? 'Enabled in preferences. Remapping is not running.'
-            : 'Hyper Key is off.'}
+          ? 'Active'
+          : 'Off'}
+      description={hyperStatus.permissionRequired && hyperStatus.enabled
+        ? 'Allow Accessibility access for this version of Tooki in System Settings.'
+        : hyperStatus.error ||
+          (hyperStatus.active
+            ? 'Hold Caps Lock to use Hyper. Tap it to toggle Caps Lock.'
+            : 'Caps Lock works normally.')}
     >
       {#if hyperStatus.permissionRequired}
         <Button disabled={busy} onclick={() => void request('openPermissions')}
@@ -96,7 +97,7 @@
         >
       {:else if hyperStatus.error || hyperStatus.enabled !== hyperStatus.active}
         <Button disabled={busy} onclick={() => void request('retry')}
-          >Retry</Button
+          >Try Again</Button
         >
       {:else}<span role="status">{hyperStatus.active ? 'Active' : 'Off'}</span
         >{/if}
@@ -127,12 +128,16 @@
   </p>
 {:else}
   <p class="settings-note">
-    Disable Caps Lock remapping in other apps first. macOS requires
-    Accessibility permission and reserves F18 while enabled. Windows remapping
-    does not reach elevated apps or the secure desktop. Remapping stops when
-    Tooki quits.
+    {#if /Mac/.test(navigator.platform)}
+      Tooki reserves F18 while Hyper Key is on. Disable Caps Lock remapping in
+      other apps first. Dev and production share ownership of the keyboard
+      mapping.
+    {:else}
+      Windows remapping does not reach elevated apps or the secure desktop.
+    {/if}
+    Remapping stops when Tooki quits.
   </p>
 {/if}
-{#if error || hyperStatus.error}<p class="settings-message" role="alert">
-    {error || hyperStatus.error}
+{#if error}<p class="settings-message" role="alert">
+    {error}
   </p>{/if}

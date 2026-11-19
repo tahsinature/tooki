@@ -1,10 +1,9 @@
 <script lang="ts">
   import { openRowActions } from '../../lib/contextMenu';
-  import { onMount, tick, untrack } from 'svelte';
+  import { onMount, tick } from 'svelte';
   import { invoke } from '@tauri-apps/api/core';
   import { Copy, ClipboardPaste, Text, Smile } from '@lucide/svelte';
-  import { sections, gridRows, move, position, type Library } from './model';
-  import { preferences } from '../../lib/preferences.svelte';
+  import { sections, gridRows, move, type Library } from './model';
   import PanelLayout from '../../components/PanelLayout.svelte';
   import SearchHeader from '../../components/SearchHeader.svelte';
   import SectionHeader from '../../components/SectionHeader.svelte';
@@ -21,8 +20,8 @@
     recent: [],
     canPaste: false,
   });
-  let query = $state(position.query),
-    filter = $state(position.filter);
+  let query = $state(''),
+    filter = $state('all');
   let selected = $state(0),
     loading = $state(true),
     busy = $state(false),
@@ -53,23 +52,14 @@
     let disposed = false;
     document.getElementById('search')?.focus();
     void invoke<Library>('emoji_request', { operation: 'list' })
-      .then(async (result) => {
+      .then((result) => {
         if (disposed) return;
         library = result;
-        await tick();
-        if (preferences.rememberPosition)
-          selected = Math.max(
-            0,
-            cells.findIndex((cell) => cell.id === position.selection),
-          );
       })
       .catch((error) => (status = String(error)))
       .finally(() => (loading = false));
     return () => {
       disposed = true;
-      position.query = query;
-      position.filter = filter;
-      position.selection = untrack(() => cells[selected]?.id ?? '');
     };
   });
   async function run(operation = 'copy') {

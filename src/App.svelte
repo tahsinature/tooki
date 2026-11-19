@@ -1,4 +1,9 @@
 <script lang="ts">
+  import {
+    enterLauncher,
+    toolEntry,
+    type LauncherEntry,
+  } from './lib/launcherEntry';
   import SystemMonitorScreen from './features/system-monitor/SystemMonitorScreen.svelte';
   let systemMonitor = $state(false);
   import EmojiScreen from './features/emoji/EmojiScreen.svelte';
@@ -135,38 +140,42 @@
         else stopMenu = stop;
       })
       .catch(console.error);
+    let preparingRevision = 0;
     void listen<number>('launcher-prepare', async ({ payload: revision }) => {
+      preparingRevision = revision;
+      const current = () => !disposed && preparingRevision === revision;
       try {
-        back();
-        const target = await invoke<string | null>('launcher_request_target', {
-          revision,
-        });
-        if (target) {
-          clipboard = false;
-          await tick();
-          system =
-            target.startsWith('command:system.') ||
-            target === 'command:keepAwake.open';
-          systemTarget = target;
-          clipboard = target.startsWith('command:clipboard.');
-          snippets = target === 'command:snippets.open';
-          emoji = target === 'command:emoji.open';
-          systemMonitor = target === 'command:systemMonitor.open';
-          filter = target.endsWith('.pinned')
-            ? 'pinned'
-            : target.endsWith('.links')
-              ? 'link'
-              : 'all';
-          expanded = true;
-        }
+        const entry = await invoke<LauncherEntry | null>(
+          'launcher_request_entry',
+          { revision },
+        );
+        if (!entry || !current()) return;
+        const applied = await enterLauncher(
+          entry,
+          back,
+          tick,
+          openToolView,
+          current,
+        );
+        if (!applied) return;
         await tick();
+        if (!current()) return;
         await resizeWindow(
-          !target && preferences.compactLauncher ? 'compact' : 'expanded',
+          compact ? 'compact' : 'expanded',
           activeTheme().tokens.headerHeight,
         );
+        if (!current()) return;
+        if (entry.mode === 'resume') {
+          window.dispatchEvent(new Event('tooki-launcher-resume'));
+          // Keep argument/editor focus where possible, without scrolling a list.
+          const focused = document.activeElement;
+          if (!(focused instanceof HTMLElement) || focused === document.body)
+            document.getElementById('search')?.focus({ preventScroll: true });
+        }
         await invoke('present_prepared_launcher', { revision });
-        void refreshApplications();
+        if (entry.mode === 'fresh') void refreshApplications();
       } catch (error) {
+        if (!current()) return;
         status = String(error);
         await invoke('cancel_launcher_preparation', { revision });
       }
@@ -257,6 +266,17 @@
     actions = false;
     void focusSearch();
   }
+  function openToolView(target: string) {
+    const destination = toolEntry(target);
+    systemTarget = target;
+    system = destination.view === 'system';
+    clipboard = destination.view === 'clipboard';
+    snippets = destination.view === 'snippets';
+    emoji = destination.view === 'emoji';
+    systemMonitor = destination.view === 'systemMonitor';
+    filter = destination.filter;
+    expanded = true;
+  }
   async function primary() {
     if (compact) {
       expanded = true;
@@ -329,12 +349,16 @@
         return;
       }
       if (item.id === 'system' || item.id === 'keepAwake') {
-        systemTarget =
-          item.id === 'keepAwake'
-            ? 'command:keepAwake.open'
-            : 'command:system.open';
-        system = true;
-        query = '';
+        try {
+          await invoke('execute_tool_command', {
+            id:
+              item.id === 'keepAwake'
+                ? 'command:keepAwake.open'
+                : 'command:system.open',
+          });
+        } catch (error) {
+          status = String(error);
+        }
         return;
       }
       if (item.id === 'shelf') {
@@ -349,10 +373,11 @@
         openSettings();
         return;
       }
-      clipboard = true;
-      query = '';
-      filter = 'all';
-      void focusSearch();
+      try {
+        await invoke('execute_tool_command', { id: 'command:clipboard.open' });
+      } catch (error) {
+        status = String(error);
+      }
       return;
     }
   }

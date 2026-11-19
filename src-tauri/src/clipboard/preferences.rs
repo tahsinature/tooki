@@ -61,3 +61,9 @@ pub fn reload(app: &tauri::AppHandle) -> Result<(), String> {
     }
     Ok(())
 }
+
+pub fn validate_configuration(config: &config::Config) -> Result<(), String> {
+    config
+        .read::<Settings>("settings.json", "clipboard", Settings::default())?
+        .validate()
+}

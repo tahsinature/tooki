@@ -1,6 +1,6 @@
 import { isTauri } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
-// Register before loading so external changes cannot fall between setup and read.
+// Readers use the loaded snapshot. Refresh after in-app saves or explicit reload.
 export function observePortableConfig(
   load: () => Promise<void>,
   error: (message: string) => void,
@@ -15,7 +15,7 @@ export function observePortableConfig(
       const listeners = await Promise.all([
         listen('portable-config-changed', refresh),
         listen<string>('portable-config-error', ({ payload }) => {
-          if (payload) error(payload);
+          error(payload);
         }),
       ]);
       if (disposed) {

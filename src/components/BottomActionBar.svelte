@@ -6,6 +6,7 @@
   import { placementState } from '../features/launcher/placement.svelte';
   import { ClipboardList, Settings, Grip } from '@lucide/svelte';
   import Keycap from './Keycap.svelte';
+  import DevelopmentBadge from './DevelopmentBadge.svelte';
   import { shortcutLabels } from '../lib/shortcut';
   let development = $state(false);
   onMount(() => {
@@ -82,7 +83,7 @@
       <span class="brand-icon"
         ><img src={appIcon} alt="" width="20" height="20" /></span
       ><strong>Tooki</strong>
-      {#if development}<span class="dev-badge">DEV</span>{/if}
+      {#if development}<DevelopmentBadge />{/if}
     </button>
   {/if}
   <span class="status" role="status">{status || placementState.error}</span>
@@ -113,15 +114,3 @@
     {/if}
   </div>
 </footer>
-
-<style>
-  .dev-badge {
-    padding: 2px 5px;
-    border: 1px solid currentColor;
-    border-radius: 4px;
-    font-size: 9px;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    line-height: 1.2;
-  }
-</style>

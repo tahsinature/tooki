@@ -58,6 +58,14 @@ The dialog identifies the actual app path. macOS grants must be managed on each 
 
 Use `make dev` (or `bun run desktop`) for live reload. This loads `src-tauri/tauri.dev.conf.json`: app name `Tooki Dev`, identifier `us.tahsin.tooki.dev`, and URL scheme `tooki-dev`. Debug bundles use the same identity. Production retains `Tooki`, `us.tahsin.tooki`, and its existing URL schemes. Direct debug launches without this configuration are rejected to avoid borrowing the production identity.
 
-On macOS, dev startup requests a normal quit from the production app and waits up to eight seconds before creating any windows or starting its own services. If production refuses or remains running, dev aborts without a forced kill. A local process lock also prevents current dev/production builds from starting concurrently. Production startup refuses to run while dev is active. Older production releases do not have this reverse guard, so avoid manually reopening an older production app during development.
+On macOS, starting one version while the other is running shows **Switch to This Version** and **Cancel**. Switching requests a normal quit and waits up to eight seconds before creating any windows or starting services. If the other version refuses or remains running, startup stops without a forced kill. A local process lock also prevents current dev/production builds from starting concurrently. Older production releases do not have this reverse guard, so avoid manually reopening an older production app during development.
 
 Each identity has separate local history, notes, window state and permissions. Neither local data directory is migrated or deleted. Both intentionally use the same `~/.config/tooki/` portable settings, snippets and themes. Grant Accessibility to `Tooki Dev` once for its stable development signing identity. Production’s permission remains separate.
+
+## Launcher entry behavior
+
+The configured launcher shortcut (normally ⌘Space) resumes the currently mounted tool, including its query, filter, selection, inputs and scroll position. Hiding the launcher does not discard that navigation state.
+
+A dedicated tool shortcut or a command chosen in Root Search opens a fresh tool view. Specialized commands such as Pinned Clipboard or Clipboard Links still choose their requested filter. Repeating a dedicated shortcut while its tool is focused hides it; the next dedicated entry starts fresh. Command-Escape explicitly returns to fresh Root Search.
+
+All embedded tools use the shared launcher entry policy. The old `rememberPosition` configuration key is retained for file compatibility but no longer controls Clipboard or Emoji independently. Notes and Shelferry retain ownership of their separate windows and data.

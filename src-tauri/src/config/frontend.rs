@@ -1,16 +1,7 @@
 use super::*;
 use tauri::Emitter;
-fn theme_id(theme: &Value) -> Result<&str, String> {
-    let id = theme["id"].as_str().ok_or("Missing theme identifier")?;
-    files::safe_id(id)?;
-    if theme["version"] != 1
-        || !theme["tokens"].is_object()
-        || !theme["name"].is_string()
-        || serde_json::to_vec(theme).map_err(|e| e.to_string())?.len() > 32_000
-    {
-        return Err("Invalid theme file.".into());
-    }
-    Ok(id)
+pub(super) fn theme_id(theme: &Value) -> Result<&str, String> {
+    super::theme_validation::validate(theme)
 }
 #[tauri::command]
 pub fn portable_preferences(app: tauri::AppHandle, legacy: Option<Value>) -> Result<Value, String> {
@@ -51,7 +42,7 @@ pub fn portable_themes(app: tauri::AppHandle, legacy: Option<Value>) -> Result<V
     let config = get(&app);
     let _guard = WRITES.lock().map_err(|e| e.to_string())?;
     let directory = config.root.join("themes");
-    if !directory.exists() {
+    if !config.themes_initialized.load(Ordering::Relaxed) && !directory.exists() {
         let stage = config.root.join(".themes-migration");
         files::directory(&stage)?;
         if config.import_legacy {
@@ -65,12 +56,16 @@ pub fn portable_themes(app: tauri::AppHandle, legacy: Option<Value>) -> Result<V
             }
         }
         std::fs::rename(stage, &directory).map_err(|e| e.to_string())?;
+        config.refresh_group("themes");
     }
+    config.themes_initialized.store(true, Ordering::Relaxed);
     drop(_guard);
     config.migrate("settings.json", "appearance", json!({"selected":legacy.as_ref().and_then(|v| v["selected"].as_str()).unwrap_or("graphite")}), json!({"selected":"graphite"}))?;
     let mut custom = Vec::new();
-    for path in files::entries(&directory)? {
-        let theme = files::json(&path)?.ok_or("Theme disappeared during reload")?;
+    for path in config.entries(&directory)? {
+        let theme = config
+            .json(&path)?
+            .ok_or("Theme disappeared during reload")?;
         let id = theme_id(&theme)?;
         if path.file_stem().and_then(|s| s.to_str()) != Some(id) {
             return Err(format!(
@@ -107,8 +102,9 @@ pub fn write_portable_theme(
 ) -> Result<(), String> {
     files::safe_id(&id)?;
     let _guard = WRITES.lock().map_err(|e| e.to_string())?;
-    let path = get(&app).root.join("themes").join(format!("{id}.json"));
-    let bytes = files::read(&path)?;
+    let config = get(&app);
+    let path = config.root.join("themes").join(format!("{id}.json"));
+    let bytes = config.bytes(&path)?;
     let current = bytes
         .as_ref()
         .map(|v| serde_json::from_slice::<Value>(v))
@@ -122,10 +118,10 @@ pub fn write_portable_theme(
             if theme_id(&theme)? != id {
                 return Err("Theme identifier cannot change during editing.".into());
             }
-            files::write(&path, &theme, bytes.as_deref())?;
+            config.write_file(&path, &theme, bytes.as_deref())?;
         }
         None => {
-            std::fs::remove_file(&path).map_err(|e| e.to_string())?;
+            config.remove_file(&path, bytes.as_deref())?;
         }
     }
     let _ = app.emit("portable-config-changed", ());

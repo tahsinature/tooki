@@ -3,7 +3,7 @@
   import { listen } from '@tauri-apps/api/event';
   import { isTauri } from '@tauri-apps/api/core';
   import { startDrag } from '@crabnebula/tauri-plugin-drag';
-  import { request, row, position, type Clip } from './api';
+  import { request, row, type Clip } from './api';
   import { preferences } from '../../lib/preferences.svelte';
   import { nextIndex } from '../../lib/navigation';
   import { closeQuickLook, watchQuickLook } from '../../lib/quickLook';
@@ -25,11 +25,9 @@
     onback: () => void;
     onsettings: () => void;
   } = $props();
-  let query = $state(position.query);
-  let filter = $state(
-    untrack(() => (initialFilter === 'all' ? position.filter : initialFilter)),
-  );
-  let selected = $state(preferences.rememberPosition ? position.index : 0);
+  let query = $state('');
+  let filter = $state(untrack(() => initialFilter));
+  let selected = $state(0);
   let offset = $state(0);
   let total = $state(0);
   let clips = $state<Clip[]>([]);
@@ -54,9 +52,8 @@
   });
   async function load(index = selected, preserve = false) {
     const token = ++generation;
-    const id = preserve
-      ? (item?.id ?? (preferences.rememberPosition ? position.id : undefined))
-      : undefined;
+    const id = preserve ? item?.id : undefined;
+    const scrollTop = list?.scrollTop ?? 0;
     loading = true;
     try {
       const start = Math.floor(Math.max(0, index) / 100) * 100;
@@ -79,7 +76,10 @@
         found >= 0
           ? offset + found
           : Math.min(Math.max(0, index), Math.max(0, total - 1));
-      await reveal();
+      if (preserve) {
+        await tick();
+        if (list) list.scrollTop = scrollTop;
+      } else await reveal();
     } catch (e) {
       if (token === generation) status = String(e);
     } finally {
@@ -101,15 +101,11 @@
         mode: id === previewItemId ? previewMode : undefined,
       }).catch((e) => (status = String(e)));
   });
-  let initial = true;
   $effect(() => {
     query;
     filter;
     generation++;
-    const restore = initial && preferences.rememberPosition;
-    const index = initial ? untrack(() => selected) : 0;
-    initial = false;
-    const timer = setTimeout(() => void load(index, restore), 120);
+    const timer = setTimeout(() => void load(0), 120);
     return () => clearTimeout(timer);
   });
   onMount(() => {
@@ -143,10 +139,6 @@
       disposed = true;
       generation++;
       stops.forEach((stop) => stop());
-      position.index = selected;
-      position.id = item?.id ?? '';
-      position.query = query;
-      position.filter = filter;
     };
   });
   async function reveal() {

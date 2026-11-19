@@ -77,9 +77,6 @@ h1 { margin: 0; font-size: 19px; font-weight: 600; letter-spacing: -.6px; }
 .theme-source { min-height: 200px; resize: vertical; font: 11px/1.6 ui-monospace, monospace; }
 .dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
 .error-message { color: var(--danger); font-size: 12px; }
-.about-identity { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 28px 0 36px; }
-.about-identity .settings-app-icon { width: 66px; height: 66px; }
-.about-identity p { color: var(--muted); font-size: 12px; margin: 0; }
 @media (max-width: 700px) {
   .settings-sidebar { width: 175px; }
   .settings-content-body { padding: 18px 16px 24px; }

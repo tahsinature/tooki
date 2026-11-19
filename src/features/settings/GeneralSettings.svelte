@@ -1,4 +1,5 @@
 <script lang="ts">
+  import ConfigurationSettings from './ConfigurationSettings.svelte';
   import { onMount } from 'svelte';
   import { invoke, isTauri } from '@tauri-apps/api/core';
   import SettingsSection from '../../components/settings/SettingsSection.svelte';
@@ -71,3 +72,5 @@
   >
 </SettingsSection>
 {#if error}<p class="settings-message" role="alert">{error}</p>{/if}
+
+<ConfigurationSettings />

@@ -28,21 +28,30 @@ int tooki_instance_guard(bool development, char **error) {
     @autoreleasepool {
         NSString *otherID = development ? @"us.tahsin.tooki" : @"us.tahsin.tooki.dev";
         NSArray<NSRunningApplication *> *others = [NSRunningApplication runningApplicationsWithBundleIdentifier:otherID];
-        if (development) {
+        if (others.count > 0) {
+            NSString *otherName = development ? @"Tooki" : @"Tooki Dev";
+            NSString *thisName = development ? @"Tooki Dev" : @"Tooki";
+            NSAlert *alert = [[NSAlert alloc] init];
+            alert.messageText = [NSString stringWithFormat:@"Switch to %@?", thisName];
+            alert.informativeText = [NSString stringWithFormat:@"%@ is already running. Switching quits it normally and starts %@ with your shared configuration. Active Keep Awake sessions will end. Only one version can own your shortcuts and Hyper Key.", otherName, thisName];
+            [alert addButtonWithTitle:@"Switch to This Version"];
+            [alert addButtonWithTitle:@"Cancel"];
+            if ([alert runModal] != NSAlertFirstButtonReturn) {
+                *error = strdup("Version switch cancelled. The running app was left open.");
+                return -1;
+            }
             for (NSRunningApplication *other in others) {
                 if (![other terminate]) {
-                    return fail(@"Tooki could not quit normally. Quit the production app, then start Tooki Dev again. No forced quit was used.", error);
+                    return fail([NSString stringWithFormat:@"%@ could not quit normally. Quit it before opening %@. No forced quit was used.", otherName, thisName], error);
                 }
             }
             NSDate *deadline = [NSDate dateWithTimeIntervalSinceNow:8];
             while ([NSRunningApplication runningApplicationsWithBundleIdentifier:otherID].count > 0) {
                 if (deadline.timeIntervalSinceNow <= 0) {
-                    return fail(@"Tooki is still running. Finish any open dialog and quit it before starting Tooki Dev. No forced quit was used.", error);
+                    return fail([NSString stringWithFormat:@"%@ is still running. Finish any open dialog and quit it before opening %@. No forced quit was used.", otherName, thisName], error);
                 }
                 [NSRunLoop.currentRunLoop runUntilDate:[NSDate dateWithTimeIntervalSinceNow:0.05]];
             }
-        } else if (others.count > 0) {
-            return fail(@"Quit Tooki Dev before opening Tooki. Only one version can use your shortcuts and shared configuration at a time.", error);
         }
 
         // This lock is local, never synced with portable preferences. Both builds

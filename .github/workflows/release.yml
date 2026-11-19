@@ -72,15 +72,28 @@ jobs:
           echo "identity=Tooki Release Signing" >> "$GITHUB_OUTPUT"
 
 
-      - name: Build universal Tauri DMG
+      - name: Verify updater signing is configured
+        if: steps.version.outputs.version != ''
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          if [[ -z "$TAURI_SIGNING_PRIVATE_KEY" ]]; then
+            echo '::error::TAURI_SIGNING_PRIVATE_KEY is required to publish verified updates.'
+            exit 1
+          fi
+      - name: Build universal Tauri DMG and signed updater
         if: steps.version.outputs.version != ''
         env:
           APPLE_SIGNING_IDENTITY: ${{ steps.signing.outputs.identity }}
           VERSION: ${{ steps.version.outputs.version }}
           BUILD_NUMBER: ${{ github.run_number }}
           TAURI_TARGET: universal-apple-darwin
+          TOOKI_UPDATER_ARTIFACTS: '1'
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: |
           make dmg
+          cargo run --locked --manifest-path src-tauri/Cargo.toml --example verify_update -- "$VERSION" build
           codesign --verify --deep --strict build/Tooki.app
           lipo build/Tooki.app/Contents/MacOS/tooki -verify_arch arm64
           lipo build/Tooki.app/Contents/MacOS/tooki -verify_arch x86_64
@@ -108,14 +121,14 @@ jobs:
             echo 'Includes clipboard history, snippets, emoji, notes, Keep Awake, Hyper Key, Shortcut Detective and the Shelferry integration.'
             echo
             echo 'Install or replace the Swift app with `brew update && brew reinstall --cask tahsinature/tap/tooki`.'
-            echo 'Future updates use Homebrew. This version does not include the Swift menu bar organizer or Sparkle updater.'
+            echo 'Update from Settings → About → Update & Restart, or continue using Homebrew. Older builds need one final Homebrew upgrade to get the signed updater.'
             echo 'Existing Swift settings, snippets, clipboard history and shelves remain untouched; they are not automatically imported.'
             echo 'Shelf operations require the standalone Shelferry app: `brew install --cask tahsinature/tap/shelferry`.'
             echo
             echo '## Changes'
             git log "$range" --no-merges --format='- %s (%h)'
           } > "$RUNNER_TEMP/tooki-release-notes.md"
-          gh release create "v$VERSION" build/Tooki.dmg build/legacy-feed/appcast.xml --target "$GITHUB_SHA" --title "v$VERSION" --notes-file "$RUNNER_TEMP/tooki-release-notes.md"
+          gh release create "v$VERSION" build/Tooki.dmg build/Tooki.app.tar.gz build/Tooki.app.tar.gz.sig build/latest.json build/legacy-feed/appcast.xml --target "$GITHUB_SHA" --title "v$VERSION" --notes-file "$RUNNER_TEMP/tooki-release-notes.md"
       - name: Update Homebrew cask
         if: steps.version.outputs.version != ''
         env:

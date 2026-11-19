@@ -124,7 +124,7 @@ pub fn set_keep_awake_icon(app: tauri::AppHandle, visible: bool) -> Result<(), S
 }
 
 pub fn reload_preferences(app: &tauri::AppHandle) -> Result<(), String> {
-    *app.state::<KeepAwake>().1.lock().unwrap() = preferences::load(app)?;
+    *app.state::<KeepAwake>().1.lock().unwrap() = crate::config::read(app, "keepAwake")?;
     tray::sync(app);
     Ok(())
 }
@@ -156,4 +156,10 @@ pub fn stop(app: &tauri::AppHandle) {
     if let Ok(mut value) = state.0.lock() {
         value.shutdown();
     };
+}
+
+pub fn validate_configuration(config: &crate::config::Config) -> Result<(), String> {
+    config
+        .read::<preferences::Preferences>("settings.json", "keepAwake", Default::default())
+        .map(|_| ())
 }

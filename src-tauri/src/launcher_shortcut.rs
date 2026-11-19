@@ -147,7 +147,7 @@ fn toggle(app: &AppHandle) -> tauri::Result<()> {
         crate::launcher_presentation::dismiss(app)?;
     } else {
         let _ = crate::clipboard::native::call("rememberTarget", serde_json::json!({}));
-        crate::launcher_presentation::request(app)?;
+        crate::launcher_presentation::resume(app)?;
     }
     Ok(())
 }

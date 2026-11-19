@@ -137,3 +137,18 @@ pub fn set_general_setting(
     }
     general_settings(app)
 }
+
+pub fn validate_configuration(config: &crate::config::Config) -> Result<(), String> {
+    config
+        .read::<Preferences>("settings.json", "general", Preferences::default())
+        .map(|_| ())
+}
+pub fn reload(app: &tauri::AppHandle) -> Result<(), String> {
+    let value: Preferences = crate::config::read(app, "general")?;
+    set_tray(app, value.show_tray)?;
+    *app.state::<GeneralSettings>()
+        .0
+        .lock()
+        .map_err(|e| e.to_string())? = value;
+    Ok(())
+}

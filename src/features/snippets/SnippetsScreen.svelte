@@ -157,7 +157,19 @@
       );
     }
   }
+  async function resume() {
+    if (busy) return;
+    try {
+      // Refresh the single-use preview ticket and paste target, keeping the
+      // selected snippet and argument values intact.
+      pending = await request<Pending | null>('begin');
+      refresh++;
+    } catch (reason) {
+      status = String(reason);
+    }
+  }
   onMount(() => {
+    window.addEventListener('tooki-launcher-resume', resume);
     let disposed = false;
     let stop: (() => void) | undefined;
     void (async () => {
@@ -187,6 +199,7 @@
       else stop = fn;
     });
     return () => {
+      window.removeEventListener('tooki-launcher-resume', resume);
       disposed = true;
       stop?.();
     };

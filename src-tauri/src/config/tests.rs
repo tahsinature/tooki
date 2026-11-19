@@ -12,11 +12,7 @@ fn temp() -> PathBuf {
 #[test]
 fn migration_keeps_existing_settings_and_preserves_unrelated_sections() {
     let root = temp();
-    let config = Config {
-        root: root.clone(),
-        legacy: root.join("legacy"),
-        import_legacy: true,
-    };
+    let config = Config::new(root.clone(), root.join("legacy"), true);
     config
         .set("settings.json", "appearance", &json!({"selected":"mine"}))
         .unwrap();
@@ -43,11 +39,7 @@ fn invalid_and_concurrently_changed_files_are_not_overwritten() {
     files::directory(&root).unwrap();
     let path = root.join("settings.json");
     std::fs::write(&path, b"broken").unwrap();
-    let config = Config {
-        root: root.clone(),
-        legacy: root.clone(),
-        import_legacy: false,
-    };
+    let config = Config::new(root.clone(), root.clone(), false);
     assert!(config.set("settings.json", "x", &true).is_err());
     assert!(files::write(&path, &json!({}), Some(b"old")).is_err());
     assert_eq!(std::fs::read(&path).unwrap(), b"broken");

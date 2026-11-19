@@ -17,7 +17,19 @@ fn directory(app: &tauri::AppHandle) -> Result<PathBuf, String> {
 }
 // Native macOS event taps and their teardown must run on the AppKit main thread.
 fn apply(app: &tauri::AppHandle, enabled: bool) -> Result<(), String> {
-    adapter::set(enabled, &directory(app)?.join("mapping-recovery.json"))
+    #[cfg(target_os = "macos")]
+    let recovery = {
+        let directory = app
+            .path()
+            .home_dir()
+            .map_err(|e| e.to_string())?
+            .join("Library/Application Support/us.tahsin.tooki.shared/hyper");
+        crate::config::files::directory(&directory)?;
+        directory.join("mapping-recovery.json")
+    };
+    #[cfg(not(target_os = "macos"))]
+    let recovery = directory(app)?.join("mapping-recovery.json");
+    adapter::set(enabled, &recovery)
 }
 pub fn initialize(app: &tauri::AppHandle) {
     let mut state = Status {
@@ -154,6 +166,9 @@ pub fn reload_preferences(app: &tauri::AppHandle) -> Result<(), String> {
         current.permission_required = crate::permissions::required();
         current.apply(|enabled| apply(app, enabled), adapter::active);
         let _ = app.emit("hyper-changed", ());
+    }
+    if !current.error.is_empty() {
+        return Err(current.error.clone());
     }
     Ok(())
 }

@@ -1,4 +1,25 @@
 fn main() {
+    println!("cargo:rerun-if-env-changed=TOOKI_BUILD_TIMESTAMP");
+    println!("cargo:rerun-if-env-changed=BUILD_NUMBER");
+    println!("cargo:rerun-if-changed=src");
+    println!("cargo:rerun-if-changed=../src");
+    let built_at = std::env::var("TOOKI_BUILD_TIMESTAMP")
+        .map(|value| {
+            value
+                .parse::<u64>()
+                .expect("TOOKI_BUILD_TIMESTAMP must be Unix seconds")
+        })
+        .unwrap_or_else(|_| {
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_secs()
+        });
+    println!("cargo:rustc-env=TOOKI_BUILD_TIMESTAMP={built_at}");
+    println!(
+        "cargo:rustc-env=TOOKI_BUILD_NUMBER={}",
+        std::env::var("BUILD_NUMBER").unwrap_or_default()
+    );
     if std::env::var("CARGO_CFG_TARGET_OS").as_deref() == Ok("macos") {
         cc::Build::new()
             .file("native/instance_guard.m")

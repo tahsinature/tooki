@@ -63,4 +63,3 @@ export function row(clip: Clip): Item {
     time: new Date(clip.copiedAt).toLocaleString(),
   };
 }
-export const position = { index: 0, id: '', query: '', filter: 'all' };

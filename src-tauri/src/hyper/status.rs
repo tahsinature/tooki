@@ -26,10 +26,11 @@ impl Status {
         self.active = active;
         if self.enabled != active && self.error.is_empty() {
             self.error = if self.enabled {
-                "Hyper Key is enabled in your preferences, but remapping is not running. Check permissions and retry."
+                "Keyboard monitoring is not running. Check Accessibility access, then try again."
             } else {
                 "Hyper Key is still running. Retry to finish disabling it."
-            }.into();
+            }
+            .into();
         }
     }
 }
