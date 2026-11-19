@@ -102,6 +102,7 @@
   {:else}<p class="actions-empty">No matching actions</p>{/each}
 </div>
 <TextInput
+  data-search-input
   bind:element={input}
   class="actions-search"
   placeholder="Search for actions…"

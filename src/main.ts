@@ -10,7 +10,13 @@ import { initializeThemes } from './lib/themes/store.svelte';
 import { initializePreferences } from './lib/preferences.svelte';
 import { disableBrowserContextMenu } from './lib/contextMenu';
 import { initializeRootSearchShortcut } from './lib/rootSearchShortcut';
+import { initializeSearchShortcut } from './lib/searchShortcut';
 const cleanupContextMenu = disableBrowserContextMenu();
+// Notes owns Find in the editor, including when its note browser is open.
+const cleanupSearchShortcut =
+  new URLSearchParams(location.search).get('window') === 'notes'
+    ? () => {}
+    : initializeSearchShortcut();
 const cleanupRootSearchShortcut = initializeRootSearchShortcut(() => {
   if (isTauri()) void invoke('return_to_root_search').catch(console.error);
   else window.dispatchEvent(new Event('tooki-root-search'));
@@ -24,6 +30,7 @@ if (import.meta.hot)
     cleanupThemes();
     cleanupPreferences();
     cleanupContextMenu();
+    cleanupSearchShortcut();
     cleanupRootSearchShortcut();
   });
 const component =

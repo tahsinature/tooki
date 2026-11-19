@@ -21,6 +21,7 @@
 <div class="search-field input-frame">
   <Search size={15} aria-hidden="true" />
   <TextInput
+    data-search-input
     bind:value
     bind:element
     aria-label={label}

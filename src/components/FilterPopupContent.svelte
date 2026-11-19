@@ -197,6 +197,7 @@
   onkeydown={keyboard}
 >
   <TextInput
+    data-search-input
     class="filter-search"
     bind:element={input}
     bind:value={query}

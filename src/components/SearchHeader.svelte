@@ -28,6 +28,7 @@
       onclick={onback}><ArrowLeft size={20} /></button
     >{:else}<Command size={19} class="muted" />{/if}
   <TextInput
+    data-search-input
     id="search"
     aria-label={placeholder ??
       (clipboard ? 'Search clipboard' : 'Search commands')}
