@@ -11,9 +11,15 @@ use tauri::{AppHandle, Emitter, Manager, WebviewWindow};
 use tauri_plugin_deep_link::DeepLinkExt;
 use tauri_plugin_dialog::DialogExt;
 
+#[derive(serde::Serialize)]
+pub struct OpenRequest {
+    id: String,
+    created: bool,
+}
+
 pub struct Notes(
     pub Mutex<Storage>,
-    pub Mutex<Option<String>>,
+    pub Mutex<Option<OpenRequest>>,
     pub Mutex<bool>,
 );
 pub fn initialize(app: &AppHandle) -> Result<(), String> {
@@ -83,7 +89,7 @@ pub async fn open_notes(app: AppHandle, id: Option<String>, create: bool) -> Res
         let state = app.state::<Notes>();
         let db = state.0.lock().map_err(|e| e.to_string())?;
         if create {
-            Some(db.create("", empty_document())?.id)
+            Some(db.create(&default_note_title(), empty_document())?.id)
         } else if let Some(id) = id {
             let note = db.get(&id)?;
             if note.deleted {
@@ -95,7 +101,7 @@ pub async fn open_notes(app: AppHandle, id: Option<String>, create: bool) -> Res
         }
     };
     if let Some(id) = requested {
-        *app.state::<Notes>().1.lock().map_err(|e| e.to_string())? = Some(id);
+        *app.state::<Notes>().1.lock().map_err(|e| e.to_string())? = Some(OpenRequest { id, created: create });
     }
     window::show(&app)?;
     if let Some(notes) = app.get_webview_window("notes") {
@@ -189,7 +195,7 @@ pub async fn notes_request(
             }
             "lastNote" => json!(db.state("lastNote")),
             "create" => json!(db.create(
-                args["title"].as_str().unwrap_or_default(),
+                args["title"].as_str().unwrap_or(&default_note_title()),
                 args.get("document").cloned().unwrap_or_else(empty_document)
             )?),
             "save" => json!(db.save(
@@ -213,9 +219,16 @@ pub async fn notes_request(
         ) {
             let _ = handle.emit("notes-changed", ());
         }
+        if action == "trash" {
+            crate::platform::toast::show_for_window(&handle, "notes", "Note moved to Trash", false);
+        }
         Ok(result)
     })
     .await
     .map_err(|e| e.to_string())?
 }
 pub use window::{handle_event, remember};
+
+fn default_note_title() -> String {
+    chrono::Local::now().format("%Y-%m-%d_%H:%M:%S__note").to_string()
+}

@@ -7,31 +7,35 @@
   import { onMount, tick, untrack } from 'svelte';
   import { flip } from 'svelte/animate';
   import { fade } from 'svelte/transition';
-  import { Check } from '@lucide/svelte';
   import './filter-popup.css';
   let {
     id,
     anchor,
+    placement = 'anchor',
     value,
     label,
     placeholder = 'Type to filter…',
     emptyMessage = 'No matching options',
     loadOptions,
     onchoose,
+    onhighlight,
     onclose,
     onsize,
   }: {
     id: string;
     anchor: HTMLElement;
+    placement?: 'anchor' | 'window';
     value: string;
     label: string;
     placeholder?: string;
     emptyMessage?: string;
     loadOptions: (query: string) => FilterOption[] | Promise<FilterOption[]>;
     onchoose: (value: string) => void;
+    onhighlight?: (value: string | null) => void;
     onclose: (restoreFocus: boolean) => void;
     onsize?: (height: number) => void;
   } = $props();
+  let popupTop = $state(0);
   let query = $state('');
   let options = $state<FilterOption[]>([]);
   let highlighted = $state(0);
@@ -42,6 +46,7 @@
   let list: HTMLDivElement;
   let reducedMotion = $state(false);
   onMount(() => {
+    popupTop = anchor.getBoundingClientRect().bottom + 6;
     input.focus();
     const preference = window.matchMedia('(prefers-reduced-motion: reduce)');
     const update = () => (reducedMotion = preference.matches);
@@ -127,6 +132,9 @@
       cancelled = true;
     };
   });
+  $effect(() => {
+    if (!loading) onhighlight?.(options[highlighted]?.value ?? null);
+  });
   async function reveal() {
     await tick();
     list
@@ -189,6 +197,11 @@
 />
 <div
   class="popup filter-popup"
+  style:position={placement === 'window' ? 'fixed' : undefined}
+  style:left={placement === 'window' ? '16px' : undefined}
+  style:right={placement === 'window' ? '16px' : undefined}
+  style:top={placement === 'window' ? `${popupTop}px` : undefined}
+  style:width={placement === 'window' ? 'auto' : undefined}
   bind:this={surface}
   {id}
   role="dialog"
@@ -249,9 +262,6 @@
         onmousedown={(event) => event.preventDefault()}
         onclick={() => onchoose(option.value)}
       >
-        <span class="filter-check"
-          >{#if value === option.value}<Check size={15} />{/if}</span
-        >
         <span class="filter-option-label" title={option.label}
           >{option.label}</span
         >

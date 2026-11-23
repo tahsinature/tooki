@@ -63,6 +63,7 @@
     width: 100%;
     height: 100%;
     max-height: none;
+    max-width: none;
     box-shadow: none;
   }
   .popup-window :global(.filter-options) {

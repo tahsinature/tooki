@@ -52,7 +52,7 @@ export async function browserRequest(
     const document = (args.document ?? emptyDocument()) as JSONContent;
     const created: Note = {
       id: crypto.randomUUID().replaceAll('-', ''),
-      title: String(args.title ?? ''),
+      title: String(args.title ?? defaultNoteTitle()),
       document,
       text: text(document).trimEnd(),
       pinned: false,
@@ -83,4 +83,10 @@ export async function browserRequest(
   note.revision++;
   localStorage.setItem(key, JSON.stringify(notes));
   return note;
+}
+
+function defaultNoteTitle() {
+  const date = new Date();
+  const pad = (value: number) => String(value).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}_${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}__note`;
 }

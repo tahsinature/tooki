@@ -12,12 +12,14 @@
   let props: {
     id: string;
     anchor: HTMLElement;
+    placement?: 'anchor' | 'window';
     value: string;
     label: string;
     placeholder?: string;
     emptyMessage?: string;
     loadOptions: (query: string) => FilterOption[] | Promise<FilterOption[]>;
     onchoose: (value: string) => void;
+    onhighlight?: (value: string | null) => void;
     onclose: (restoreFocus: boolean) => void;
   } = $props();
   const session = crypto.randomUUID();
@@ -27,6 +29,13 @@
     const stops: (() => void)[] = [];
     async function start() {
       for (const subscription of [
+        listen<{ session: string; value: string | null }>(
+          'filter-highlighted',
+          ({ payload }) => {
+            if (payload.session === session && !disposed)
+              props.onhighlight?.(payload.value);
+          },
+        ),
         listen<{ session: string; key: string; meta: boolean; ctrl: boolean }>(
           'filter-shortcut',
           ({ payload }) => {
@@ -81,6 +90,7 @@
       await invoke('open_filter_popup', {
         request: {
           session,
+          placement: props.placement ?? 'anchor',
           id: props.id,
           value: props.value,
           label: props.label,

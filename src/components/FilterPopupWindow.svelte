@@ -92,8 +92,16 @@
     {#if current}{#key current.session}
         <FilterPopupContent
           {...current}
+          placement="anchor"
           {anchor}
           {loadOptions}
+          onhighlight={(value) => {
+            if (current)
+              void invoke('highlight_filter_popup', {
+                session: current.session,
+                value,
+              }).catch(console.error);
+          }}
           onsize={(height) => {
             if (current)
               void invoke('size_filter_popup', {

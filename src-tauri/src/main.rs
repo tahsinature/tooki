@@ -133,6 +133,7 @@ fn main() {
             filter_popup::close_filter_popup,
             filter_popup::filter_popup_request,
             filter_popup::query_filter_popup,
+            filter_popup::highlight_filter_popup,
             filter_popup::forward_filter_shortcut,
             general_settings::general_settings,
             general_settings::set_general_setting,

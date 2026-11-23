@@ -10,12 +10,6 @@
   overflow: hidden;
   padding: 4px;
 }
-.filter-check {
-  width: 14px;
-  display: grid;
-  place-items: center;
-  flex-shrink: 0;
-}
 .filter-popup .filter-search {
   flex: none;
   width: 100%;
@@ -37,7 +31,6 @@
 .filter-popup .filter-options button {
   display: flex;
   align-items: center;
-  gap: 7px;
   width: 100%;
   height: 26px;
   padding: 0 7px;

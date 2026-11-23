@@ -1,5 +1,6 @@
 import {
   Settings,
+  Pencil,
   Plus,
   Copy,
   Pin,
@@ -15,6 +16,7 @@ import type { Note } from './api';
 export type NoteCommand =
   | 'settings'
   | 'keep-top'
+  | 'rename'
   | 'new'
   | 'duplicate'
   | 'pin'
@@ -55,6 +57,7 @@ export function noteActions(
       shortcut: `${mod} N`,
       disabled: false,
     },
+    { id: 'rename', label: 'Rename', icon: Pencil, shortcut: `${mod} R` },
     {
       id: 'duplicate',
       label: 'Duplicate Note',
@@ -81,7 +84,7 @@ export function noteActions(
     { id: 'export-text', label: 'Export Plain Text…', icon: Download },
     { id: 'export-html', label: 'Export HTML…', icon: Download },
     { id: 'export-json', label: 'Export Note JSON…', icon: Download },
-    { id: 'trash', label: 'Move to Trash', icon: Trash2 },
+    { id: 'trash', label: 'Move to Trash', icon: Trash2, shortcut: '⌃ X' },
     {
       id: 'browse-trash',
       label: 'Restore from Trash…',

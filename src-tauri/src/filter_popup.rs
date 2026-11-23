@@ -18,6 +18,15 @@ pub struct Request {
     placeholder: String,
     empty_message: String,
     anchor: Anchor,
+    #[serde(default)]
+    placement: Placement,
+}
+#[derive(Clone, Default, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+enum Placement {
+    #[default]
+    Anchor,
+    Window,
 }
 struct Active {
     owner: String,
@@ -215,22 +224,29 @@ pub fn size_filter_popup(
         .get_webview_window("filter-popup")
         .ok_or("Filter window is unavailable")?;
     let visible = popup.is_visible().map_err(|e| e.to_string())?;
+    let scale = window.scale_factor().map_err(|e| e.to_string())?;
+    let popup_width = match request.placement {
+        Placement::Anchor => 202.0,
+        Placement::Window => (window.inner_size().map_err(|e| e.to_string())?.width as f64 / scale - 32.0).max(40.0),
+    };
     popup
-        .set_size(tauri::LogicalSize::new(202.0, height))
+        .set_size(tauri::LogicalSize::new(popup_width, height))
         .map_err(|e| e.to_string())?;
     let origin = window.inner_position().map_err(|e| e.to_string())?;
-    let scale = window.scale_factor().map_err(|e| e.to_string())?;
 
     let monitor = window
         .current_monitor()
         .map_err(|e| e.to_string())?
         .ok_or("Display is unavailable")?;
     let area = monitor.work_area();
-    let width = 202.0 * scale;
+    let width = popup_width * scale;
     let height = height * scale;
     let top = origin.y as f64 + request.anchor.y * scale;
     let (x, y) = crate::popup_position::below(
-        origin.x as f64 + request.anchor.x * scale - width,
+        match request.placement {
+            Placement::Anchor => origin.x as f64 + request.anchor.x * scale - width,
+            Placement::Window => origin.x as f64 + 16.0 * scale,
+        },
         top,
         top + request.anchor.height * scale,
         width,
@@ -249,4 +265,13 @@ pub fn size_filter_popup(
         crate::windows::present(&popup, crate::windows::Role::OwnedPopup).map_err(|e| e.to_string())?;
     }
     Ok(())
+}
+
+#[tauri::command]
+pub fn highlight_filter_popup(app: tauri::AppHandle, session: String, value: Option<String>) {
+    let state = app.state::<FilterPopup>();
+    let Ok(guard) = state.0.lock() else { return };
+    if let Some(active) = guard.as_ref().filter(|active| active.request.session == session) {
+        let _ = app.emit_to(&active.owner, "filter-highlighted", serde_json::json!({ "session": session, "value": value }));
+    }
 }

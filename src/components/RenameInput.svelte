@@ -7,12 +7,16 @@
     maxlength,
     oncommit,
     oncancel,
+    selection = 'all',
+    onnext,
   }: {
     value: string;
     label: string;
     maxlength?: number;
     oncommit: (value: string) => void;
     oncancel: () => void;
+    selection?: 'all' | 'end';
+    onnext?: () => void;
   } = $props();
   // A rename is a transaction: Escape never saves a partial name.
   let draft = $state('');
@@ -22,7 +26,11 @@
     draft = value;
     input.focus();
     // Select after the bound value has reached the DOM.
-    queueMicrotask(() => input.select());
+    queueMicrotask(() => {
+      if (selection === 'end')
+        input.setSelectionRange(input.value.length, input.value.length);
+      else input.select();
+    });
   });
   function finish(commit: boolean) {
     if (finished) return;
@@ -33,9 +41,16 @@
   function keyboard(event: KeyboardEvent) {
     event.stopPropagation();
     if (event.isComposing) return;
+    if (event.key === 'Tab' && !event.shiftKey && onnext) {
+      event.preventDefault();
+      finish(true);
+      onnext();
+      return;
+    }
     if (event.key === 'Enter' || event.key === 'Escape') {
       event.preventDefault();
       finish(event.key === 'Enter');
+      if (event.key === 'Enter') onnext?.();
     }
   }
 </script>

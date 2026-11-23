@@ -15,12 +15,16 @@
     onchange,
     onready,
     onerror,
+    ontitle,
+    readonly = false,
     findOpen = $bindable(false),
   }: {
     document: JSONContent;
     onchange: (document: JSONContent, text: string) => void;
     onready: (editor: Editor) => void;
     onerror: (message: string) => void;
+    ontitle: () => void;
+    readonly?: boolean;
     findOpen?: boolean;
   } = $props();
   let element: HTMLDivElement;
@@ -55,9 +59,30 @@
         element,
         extensions,
         content: document,
-        autofocus: 'end',
+        autofocus: false,
+        editable: !readonly,
         enableContentCheck: true,
         editorProps: {
+          handleKeyDown: (_view, event) => {
+            if (
+              event.key === 'Tab' &&
+              event.shiftKey &&
+              !event.metaKey &&
+              !event.ctrlKey &&
+              !event.altKey
+            ) {
+              // Preserve Shift+Tab outdenting inside lists.
+              if (
+                instance.isActive('listItem') ||
+                instance.isActive('taskItem')
+              )
+                return false;
+              event.preventDefault();
+              ontitle();
+              return true;
+            }
+            return false;
+          },
           attributes: {
             class: 'note-prose',
             role: 'textbox',
@@ -115,7 +140,7 @@
   }
 </script>
 
-{#if editor && preferences.notesToolbar}<NoteToolbar
+{#if editor && preferences.notesToolbar && !readonly}<NoteToolbar
     {editor}
     {revision}
     onlink={editLink}

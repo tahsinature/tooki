@@ -33,14 +33,18 @@
   let actions = $state(false);
   let browse = $state(false);
   let browseDeleted = $state(false);
+  let preview = $state.raw<Note>();
+  let previewError = $state('');
   let browseAnchor = $state<HTMLDivElement>();
   let browseTrigger: HTMLButtonElement;
   const browseId = $props.id();
   let findOpen = $state(false);
   let renaming = $state(false);
+  let titleSelection = $state<'all' | 'end'>('all');
+  let titleReturnFocus: HTMLElement | undefined;
   let operations: Promise<void> = Promise.resolve();
   $effect(() => {
-    editor?.setEditable(!busy && !invalid, false);
+    editor?.setEditable(!busy && !invalid && !browse, false);
   });
   function report(e: unknown) {
     error = String(e);
@@ -63,6 +67,8 @@
     await autosave?.flush();
   }
   function attach(next: Note) {
+    preview = undefined;
+    previewError = '';
     autosave?.dispose();
     if (note?.id !== next.id) editor = undefined;
     else if (
@@ -73,6 +79,7 @@
     invalid = false;
     note = next;
     renaming = false;
+    titleReturnFocus = undefined;
     status = 'Saved';
     autosave = new Autosave(
       next,
@@ -103,8 +110,8 @@
     attach(await notesRequest<Note>('create'));
     browse = false;
     findOpen = false;
-    await tick();
-    editor?.commands.focus();
+    titleSelection = 'end';
+    renaming = true;
   }
   function changed(document: JSONContent, text: string) {
     if (!note || invalid) return;
@@ -142,9 +149,16 @@
       isTauri() && (await notesRequest<boolean>('takeBrowseRequest'));
     if (showBrowser) browseRequested = true;
     try {
-      const id = await notesRequest<string | null>('takeRequest');
-      if (id) {
-        await select(id);
+      const request = await notesRequest<{
+        id: string;
+        created: boolean;
+      } | null>('takeRequest');
+      if (request) {
+        await select(request.id);
+        if (request.created) {
+          titleSelection = 'end';
+          renaming = true;
+        }
         return;
       }
       if (!initial) return;
@@ -204,12 +218,17 @@
   async function openBrowser(deleted = false) {
     await flush();
     actions = false;
+    preview = undefined;
+    previewError = '';
     browseDeleted = deleted;
     browse = true;
   }
   function closeBrowser(restoreFocus = false) {
     browse = false;
-    if (restoreFocus) browseTrigger.focus();
+    preview = undefined;
+    previewError = '';
+    if (restoreFocus)
+      editor?.commands.focus(undefined, { scrollIntoView: false });
   }
   async function chooseNote(id: string) {
     if (browseDeleted) await notesRequest('restore', { id });
@@ -303,6 +322,12 @@
           void invoke('open_settings', { page: 'notes' }).catch(report);
           return;
         }
+        if (command === 'rename') {
+          titleReturnFocus = undefined;
+          titleSelection = 'end';
+          renaming = true;
+          return;
+        }
         if (command === 'find') {
           findOpen = true;
           return;
@@ -324,6 +349,83 @@
       preferences.notesKeepOnTop,
     ),
   );
+  function captureShortcut(event: KeyboardEvent) {
+    if (
+      event.ctrlKey &&
+      !event.metaKey &&
+      !event.altKey &&
+      !event.shiftKey &&
+      event.key.toLowerCase() === 'x' &&
+      !event.isComposing &&
+      !document.querySelector('dialog[open]') &&
+      !browse
+    ) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      if (event.repeat || busy || !note || invalid) return;
+      if (renaming && document.activeElement instanceof HTMLElement)
+        document.activeElement.blur();
+      action(trash);
+      return;
+    }
+    if (
+      renaming &&
+      (mac ? event.metaKey : event.ctrlKey) &&
+      !event.altKey &&
+      !event.shiftKey &&
+      event.key.toLowerCase() === 'p' &&
+      !event.isComposing &&
+      !document.querySelector('dialog[open]')
+    ) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      if (event.repeat || busy) return;
+      // Commit the title before Browse Notes reads the saved list.
+      if (document.activeElement instanceof HTMLElement)
+        document.activeElement.blur();
+      keyboard(event);
+      return;
+    }
+    void titleShortcut(event);
+  }
+  async function titleShortcut(event: KeyboardEvent) {
+    if (
+      !(mac ? event.metaKey : event.ctrlKey) ||
+      event.altKey ||
+      event.shiftKey ||
+      event.key.toLowerCase() !== 'r' ||
+      event.isComposing ||
+      document.querySelector('dialog[open]') ||
+      browse ||
+      actions
+    )
+      return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    if (event.repeat || busy || !note || !editor || invalid) return;
+    if (renaming) {
+      const previous = titleReturnFocus;
+      // Blurring commits the shared rename input before restoring focus.
+      if (document.activeElement instanceof HTMLElement)
+        document.activeElement.blur();
+      renaming = false;
+      titleReturnFocus = undefined;
+      await tick();
+      if (previous?.isConnected && !editor.view.dom.contains(previous)) {
+        previous.focus({ preventScroll: true });
+      } else {
+        // ProseMirror retains the exact selection while its editor is blurred.
+        editor.commands.focus(undefined, { scrollIntoView: false });
+      }
+    } else {
+      titleReturnFocus =
+        document.activeElement instanceof HTMLElement
+          ? document.activeElement
+          : undefined;
+      titleSelection = 'end';
+      renaming = true;
+    }
+  }
   function keyboard(event: KeyboardEvent) {
     if (event.isComposing || document.querySelector('dialog[open]')) return;
     if ((event.metaKey || event.ctrlKey) && event.key === ',') {
@@ -360,6 +462,7 @@
 </script>
 
 <svelte:window
+  onkeydowncapture={captureShortcut}
   onkeydown={keyboard}
   onblur={() => {
     void flush().catch(report);
@@ -373,19 +476,26 @@
   <header class="note-header" data-tauri-drag-region>
     {#if renaming && note}<RenameInput
         label="Note title"
+        selection={titleSelection}
+        onnext={() => editor?.commands.focus()}
         maxlength={200}
         value={note.title}
         oncommit={(title) => {
           rename(title);
           renaming = false;
+          titleReturnFocus = undefined;
         }}
-        oncancel={() => (renaming = false)}
+        oncancel={() => {
+          renaming = false;
+          titleReturnFocus = undefined;
+        }}
       />
     {:else}<button
         class="note-title"
         disabled={!note || busy}
         title="Rename note"
         onclick={() => {
+          titleSelection = 'all';
           renaming = true;
         }}>{note ? noteTitle(note) : 'Notes'}</button
       >{/if}
@@ -419,6 +529,11 @@
             value={note?.id ?? ''}
             deleted={browseDeleted}
             onchoose={(id) => void run(() => chooseNote(id))}
+            onpreview={(next) => {
+              if (!browse || busy) return;
+              preview = next;
+              previewError = '';
+            }}
             onclose={closeBrowser}
           />{/if}
       </div>
@@ -449,26 +564,68 @@
           onclick={() => void run(flush)}>Retry</button
         >{/if}
     </div>{/if}
-  {#if note}
-    {#key note.id}<NoteEditor
-        document={note.document}
-        onchange={changed}
-        onready={(value) => (editor = value)}
-        onerror={(message) => {
-          invalid = true;
-          error = message;
-        }}
-        bind:findOpen
-      />{/key}
-  {:else}<div class="note-empty">
-      <h1>A little room for your thoughts.</h1>
-      <button
-        class="note-text-button"
-        disabled={busy}
-        onclick={() => void run(create)}><Plus size={16} />Create a note</button
-      >
-    </div>{/if}
+  <div
+    class="note-body"
+    class:preview-hidden={browse && !!preview && preview.id !== note?.id}
+  >
+    {#if note}
+      {#key note.id}<NoteEditor
+          document={note.document}
+          onchange={changed}
+          onready={(value) => {
+            editor = value;
+            void tick().then(() => {
+              if (!renaming && !browse) value.commands.focus('end');
+            });
+          }}
+          ontitle={() => {
+            titleSelection = 'end';
+            renaming = true;
+          }}
+          onerror={(message) => {
+            invalid = true;
+            error = message;
+          }}
+          bind:findOpen
+        />{/key}
+    {:else}<div class="note-empty">
+        <h1>A little room for your thoughts.</h1>
+        <button
+          class="note-text-button"
+          disabled={busy}
+          onclick={() => void run(create)}
+          ><Plus size={16} />Create a note</button
+        >
+      </div>{/if}
+  </div>
+  {#if browse && preview && preview.id !== note?.id}
+    <div class="note-body">
+      {#if previewError}<p class="note-error" role="alert">
+          {previewError}
+        </p>{/if}
+      {#key preview.id}<NoteEditor
+          document={preview.document}
+          readonly
+          onchange={() => {}}
+          onready={() => {}}
+          ontitle={() => {}}
+          onerror={(message) => (previewError = message)}
+        />{/key}
+    </div>
+  {/if}
   {#if actions}<PopupSurface title="Note actions" onclose={closeActions}
       ><ActionsMenu actions={menu} /></PopupSurface
     >{/if}
 </FloatingSurface>
+
+<style>
+  .note-body {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+  }
+  .preview-hidden {
+    display: none;
+  }
+</style>
