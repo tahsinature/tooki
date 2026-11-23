@@ -48,6 +48,9 @@ fn refresh(app: &tauri::AppHandle) {
         return;
     }
     crate::hyper::permission_changed(app);
+    if granted {
+        crate::platform::root_search_shortcut::initialize(app);
+    }
     let handle = app.clone();
     tauri::async_runtime::spawn(async move {
         if let Err(error) = crate::snippets::configure(&handle).await {

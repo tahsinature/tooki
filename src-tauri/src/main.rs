@@ -195,6 +195,7 @@ fn main() {
             applications::refresh(app.handle());
             settings_window::initialize(app.handle())?;
             platform::preview::initialize(app.handle());
+            platform::root_search_shortcut::initialize(app.handle());
             clipboard::start(app.handle())?;
             hyper::initialize(app.handle());
             snippets::initialize(app.handle());
