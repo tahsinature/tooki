@@ -107,7 +107,7 @@ export const commands: Item[] = [
   },
   {
     id: 'settings',
-    title: 'Settings',
+    title: 'Tooki Settings',
     subtitle: 'Appearance, themes, and preferences',
     kind: 'command',
     group: 'Commands',

@@ -91,10 +91,10 @@
 {#if !visible.length}<p class="settings-note">
     No matching assignments. Choose All shortcuts to see available commands.
   </p>{/if}
-{#if filter === 'all' && (!query || 'open settings built-in'.includes(query.toLowerCase()))}
+{#if filter === 'all' && (!query || 'open tooki settings built-in'.includes(query.toLowerCase()))}
   <SettingsSection title="Built-in"
     ><SettingsRow
-      title="Open Settings"
+      title="Tooki Settings"
       description="Fixed shortcut while a Tooki window is focused."
       ><Keycap text={/Mac/.test(navigator.platform) ? '⌘' : 'Ctrl'} /><Keycap
         text=","

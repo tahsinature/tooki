@@ -69,7 +69,7 @@
 <SettingsSection title="Launcher">
   <AssignmentRow item={launcherRow()} />
   <LauncherSessionSettings />
-  <SettingsRow title="Open Settings"
+  <SettingsRow title="Tooki Settings"
     ><Keycap text={mac ? '⌘' : 'Ctrl'} /><Keycap text="," /></SettingsRow
   >
 </SettingsSection>
