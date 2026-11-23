@@ -8,7 +8,6 @@
     Copy,
     Star,
     Keyboard,
-    Tag,
     Settings,
     Trash2,
     ExternalLink,
@@ -16,7 +15,6 @@
   import PopupSurface from '../../components/PopupSurface.svelte';
   import ActionsMenu from '../../components/ActionsMenu.svelte';
   import Dialog from '../../components/Dialog.svelte';
-  import TextInput from '../../components/TextInput.svelte';
   import Button from '../../components/Button.svelte';
   import ShortcutRecorder from '../../components/ShortcutRecorder.svelte';
   import type { Item } from '../../lib/data';
@@ -43,8 +41,7 @@
   const mac = /Mac/.test(navigator.platform);
   const windows = /Win/.test(navigator.platform);
   let preference = $derived(appPreferences.values[id]);
-  let editing = $state<'alias' | 'shortcut' | null>(null);
-  let alias = $state('');
+  let editing = $state<'shortcut' | null>(null);
   let error = $state('');
   let busy = $state(false);
   let canUninstall = $state(false);
@@ -73,67 +70,29 @@
 </script>
 
 {#if editing}
-  <Dialog
-    title={editing === 'alias'
-      ? `Alias for ${item.title}`
-      : `Shortcut for ${item.title}`}
-    onclose={() => (editing = null)}
-  >
-    {#if editing === 'alias'}
-      <form
-        onsubmit={(event) => {
-          event.preventDefault();
-          void perform(
-            () => updateAppPreference(id, { alias }),
-            'Alias saved.',
-          );
-        }}
-      >
-        <label class="field-label" for="app-alias">Search alias</label>
-        <TextInput
-          id="app-alias"
-          class="text-field"
-          aria-describedby="alias-help"
-          autocomplete="off"
-          spellcheck="false"
-          bind:value={alias}
-          maxlength={80}
-          placeholder="e.g. terminal"
-        />
-        <p id="alias-help" class="settings-note">
-          Open this app by typing its alias. Clear the field to remove it.
-        </p>
-        <div class="dialog-actions">
-          <Button onclick={() => (editing = null)}>Cancel</Button><Button
-            type="submit"
-            disabled={busy}>{busy ? 'Saving…' : 'Save alias'}</Button
-          >
-        </div>
-      </form>
-    {:else}
-      <p class="shortcut-description">
-        Open {item.title} from anywhere while Tooki is running.
-      </p>
-      <ShortcutRecorder
-        externalError={preference?.shortcut_error ?? ''}
-        label="Record application shortcut"
-        loadShortcut={async () => preference?.shortcut ?? ''}
-        saveShortcut={async (shortcut) => {
-          await updateAppPreference(id, { shortcut });
-          return shortcut;
-        }}
-      />
-      <div class="dialog-actions">
-        {#if preference?.shortcut}<Button
-            disabled={busy}
-            onclick={() =>
-              void perform(
-                () => updateAppPreference(id, { shortcut: '' }),
-                'Shortcut removed.',
-              )}>Remove shortcut</Button
-          >{/if}<Button onclick={() => (editing = null)}>Done</Button>
-      </div>
-    {/if}
+  <Dialog title={`Shortcut for ${item.title}`} onclose={() => (editing = null)}>
+    <p class="shortcut-description">
+      Open {item.title} from anywhere while Tooki is running.
+    </p>
+    <ShortcutRecorder
+      externalError={preference?.shortcut_error ?? ''}
+      label="Record application shortcut"
+      loadShortcut={async () => preference?.shortcut ?? ''}
+      saveShortcut={async (shortcut) => {
+        await updateAppPreference(id, { shortcut });
+        return shortcut;
+      }}
+    />
+    <div class="dialog-actions">
+      {#if preference?.shortcut}<Button
+          disabled={busy}
+          onclick={() =>
+            void perform(
+              () => updateAppPreference(id, { shortcut: '' }),
+              'Shortcut removed.',
+            )}>Remove shortcut</Button
+        >{/if}<Button onclick={() => (editing = null)}>Done</Button>
+    </div>
     {#if error}<p class="error-message" role="alert">{error}</p>{/if}
   </Dialog>
 {:else}
@@ -189,17 +148,6 @@
           disabled: busy,
         },
         {
-          id: 'alias',
-          label: preference?.alias ? 'Change Alias…' : 'Assign Alias…',
-          icon: Tag,
-          run: () => {
-            error = '';
-            alias = preference?.alias ?? '';
-            editing = 'alias';
-          },
-          disabled: busy,
-        },
-        {
           id: 'settings',
           label: 'Settings…',
           icon: Settings,
@@ -209,7 +157,19 @@
             ),
           disabled: busy,
         },
-        ...(onrefresh ? [{ id: 'refresh-applications', label: refreshing ? 'Refreshing Applications…' : 'Refresh Applications', icon: RefreshCw, run: onrefresh, disabled: refreshing }] : []),
+        ...(onrefresh
+          ? [
+              {
+                id: 'refresh-applications',
+                label: refreshing
+                  ? 'Refreshing Applications…'
+                  : 'Refresh Applications',
+                icon: RefreshCw,
+                run: onrefresh,
+                disabled: refreshing,
+              },
+            ]
+          : []),
         ...(canUninstall
           ? [
               {

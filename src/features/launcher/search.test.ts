@@ -26,8 +26,8 @@ test('exact app matches precede weaker matches and filters isolate commands', ()
   expect(new Set(commands.map((item) => item.id)).size).toBe(commands.length);
 });
 
-test('aliases outrank title matches and favorites lead empty searches', () => {
-  const app: Item = {
+test('legacy aliases do not match and favorites lead empty searches', () => {
+  const app: Item & { alias: string } = {
     ...commands[0],
     id: 'app:browser',
     title: 'Browser',
@@ -35,7 +35,7 @@ test('aliases outrank title matches and favorites lead empty searches', () => {
     alias: 'notes',
     pinned: true,
   };
-  expect(searchItems([...commands, app], 'NOTES', 'all')[0].id).toBe(app.id);
+  expect(searchItems([...commands, app], 'NOTES', 'all').some(item => item.id === app.id)).toBe(false);
   expect(searchItems([...commands, app], '', 'all')[0].id).toBe(app.id);
   expect(
     searchItems([...commands, app], 'notes', 'command').some(
@@ -44,8 +44,8 @@ test('aliases outrank title matches and favorites lead empty searches', () => {
   ).toBe(false);
 });
 
-test('favorites filter includes only favorite apps and respects query and aliases', () => {
-  const favorite: Item = {
+test('favorites filter includes only favorite apps and respects title queries', () => {
+  const favorite: Item & { alias: string } = {
     ...commands[0],
     id: 'app:browser',
     title: 'Browser',
@@ -63,9 +63,16 @@ test('favorites filter includes only favorite apps and respects query and aliase
   expect(searchItems(items, '', 'favorites').map((item) => item.id)).toEqual([
     favorite.id,
   ]);
-  expect(searchItems(items, 'web', 'favorites').map((item) => item.id)).toEqual(
+  expect(searchItems(items, 'browser', 'favorites').map((item) => item.id)).toEqual(
     [favorite.id],
   );
+  expect(searchItems(items, 'web', 'favorites')).toEqual([]);
   expect(searchItems(items, 'unmatched', 'favorites')).toEqual([]);
   expect(searchItems([ordinary], '', 'favorites')).toEqual([]);
+});
+
+test('exact snippet triggers retain priority independently of removed app aliases', () => {
+  const snippet: Item = { ...commands[0], id: 'snippet:date', title: 'Today', snippetTrigger: '$today' };
+  expect(searchItems([...commands, snippet], '$today', 'all')[0]?.id).toBe(snippet.id);
+  expect(searchItems([snippet], '$tod', 'all')).toEqual([]);
 });

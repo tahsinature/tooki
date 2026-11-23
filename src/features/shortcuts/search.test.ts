@@ -11,13 +11,13 @@ test('tool assignments preserve one root command per tool', () => {
     commands
       .filter(
         (item) =>
-          !['system', 'keepAwake', 'shelf', 'systemMonitor'].includes(item.id),
+          !['system', 'keepAwake', 'systemMonitor'].includes(item.id),
       )
       .map((item) => item.id),
   );
   expect(
-    commandItems('', preferences).find((item) => item.id === 'notes')?.alias,
-  ).toBe('writing');
+    Object.hasOwn(commandItems('', preferences).find((item) => item.id === 'notes')!, 'alias'),
+  ).toBe(false);
 });
 
 test('wake lock search finds Keep Awake and Keep Awake aliases respect platform support', () => {
@@ -46,25 +46,23 @@ test('wake lock search finds Keep Awake and Keep Awake aliases respect platform 
     ),
   ).toBe(false);
 });
-test('custom aliases match exactly, including case and whitespace', () => {
-  expect(commandItems(' DRAFT ', preferences).at(-1)?.id).toBe(
-    'command:notes.new',
-  );
-  expect(commandItems('dra', preferences)).toHaveLength(commands.length - 4);
-  expect(commandItems('draft', {})).toHaveLength(commands.length - 4);
+test('legacy aliases no longer expose commands', () => {
+  expect(searchItems(commandItems(' DRAFT ', preferences), ' DRAFT ', 'all')).toEqual([]);
+  expect(commandItems('dra', preferences)).toHaveLength(commands.length - 3);
+  expect(commandItems('draft', {})).toHaveLength(commands.length - 3);
 });
 
-test('unsupported commands stay out of root search and exact alias results', () => {
+test('unsupported commands stay out of root search and title results', () => {
   const prefs = {
     'command:system.sleep': { favorite: false, shortcut: '', alias: 'nap' },
   };
   expect(
-    commandItems('nap', prefs).some(
+    commandItems('sleep', prefs).some(
       (item) => item.id === 'command:system.sleep',
     ),
   ).toBe(false);
   expect(
-    commandItems('nap', prefs, {
+    commandItems('sleep', prefs, {
       'command:system.sleep': { available: true },
     }).at(-1)?.id,
   ).toBe('command:system.sleep');
@@ -77,27 +75,6 @@ test('unsupported commands stay out of root search and exact alias results', () 
     commandItems('', prefs, {
       'command:system.open': { available: false, reason: 'Unsupported' },
     }).some((item) => item.id === 'system'),
-  ).toBe(false);
-});
-
-test('Shelferry availability gates root and alias routes without losing assignments', () => {
-  const preferences = {
-    'command:shelf.toggle': { favorite: false, shortcut: '', alias: 'shelves' },
-  };
-  const support = {
-    'command:shelf.open': { available: true },
-    'command:shelf.toggle': { available: true },
-  };
-  expect(
-    commandItems('', {}, support).filter((item) => item.id === 'shelf'),
-  ).toHaveLength(1);
-  expect(commandItems('shelves', preferences, support).at(-1)?.id).toBe(
-    'command:shelf.toggle',
-  );
-  expect(
-    commandItems('shelves', preferences, {}).some(
-      (item) => item.id === 'shelf' || item.id === 'command:shelf.toggle',
-    ),
   ).toBe(false);
 });
 
@@ -145,7 +122,7 @@ test('matching actions share tool context, while direct tool matches remain', ()
   );
 });
 
-test('Keep Awake titles and aliases resolve to the same executable command', () => {
+test('Keep Awake titles remain searchable while legacy aliases are ignored', () => {
   const id = 'command:system.keepAwake15';
   const support = {
     'command:keepAwake.open': { available: true },
@@ -162,7 +139,7 @@ test('Keep Awake titles and aliases resolve to the same executable command', () 
   };
   expect(
     commandItems('coffee', preferences, support).find((item) => item.id === id),
-  ).toMatchObject({ id });
+  ).toBeUndefined();
 });
 
 test('unavailable action titles never appear in search', () => {

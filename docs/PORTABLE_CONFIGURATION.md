@@ -35,10 +35,9 @@ The app's Application Support and WebKit directories still contain machine-speci
 - Notes content, clipboard history/images, emoji recents and usage data.
 - Window geometry and local navigation state.
 - Launch-at-login registration, Accessibility permissions and active Keep Awake sessions.
-- Shelferry executable overrides and Hyper Key recovery information.
+- Hyper Key recovery information.
 - Whether clipboard history is persisted between launches. This stays local so another computer cannot switch this Mac's history storage policy.
 
-Shelferry continues to own its data and configuration. Tooki syncs only whether its integration is enabled.
 
 ## Dev and production
 

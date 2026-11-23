@@ -7,7 +7,6 @@ mod clipboard;
 mod config;
 mod command_feedback;
 mod emoji;
-mod extensions;
 mod filter_popup;
 mod general_settings;
 mod hyper;
@@ -79,7 +78,6 @@ fn main() {
         .manage(filter_popup::FilterPopup::default())
         .manage(applications::Catalog::default())
         .manage(applications::preferences::Preferences::default())
-        .manage(extensions::shelferry::Shelferry::default())
         .manage(shelf::Positions::default())
         .manage(shelf::Shelves::default())
         .manage(hyper::Hyper::default())
@@ -124,6 +122,7 @@ fn main() {
             launcher_presentation::set_launcher_view,
             launcher_presentation::dismiss_launcher,
             launcher_presentation::return_to_root_search,
+            launcher_placement::reset::reset_launcher_layout,
             platform::launcher::resize_launcher,
             launcher_presentation::launcher_frontend_ready,
             launcher_presentation::present_prepared_launcher,
@@ -153,9 +152,6 @@ fn main() {
             platform::window_chrome::set_utility_on_top,
             platform::window_chrome::resize_utility_window,
             shelf::shelf_request,
-            extensions::shelferry::shelferry_status,
-            extensions::shelferry::configure_shelferry,
-            extensions::shelferry::check_shelferry,
             hyper::hyper_request,
             activity_log::export_activity_log,
             shortcut_detective::detective_request,
@@ -199,7 +195,6 @@ fn main() {
             clipboard::start(app.handle())?;
             hyper::initialize(app.handle());
             snippets::initialize(app.handle());
-            extensions::shelferry::initialize(app.handle());
             notes::initialize(app.handle())?;
             clipboard::start_ocr(app.handle());
             launcher_placement::restore(app.handle());

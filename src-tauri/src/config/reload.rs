@@ -144,10 +144,6 @@ pub async fn reload_configuration(
             ("General", crate::general_settings::reload(&handle)),
             ("Hyper Key", crate::hyper::reload_preferences(&handle)),
             ("Keep Awake", crate::keep_awake::reload_preferences(&handle)),
-            (
-                "Shelferry",
-                crate::extensions::shelferry::reload_preferences(&handle),
-            ),
             ("Clipboard", crate::clipboard::preferences::reload(&handle)),
             (
                 "Launcher shortcut",

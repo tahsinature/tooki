@@ -1,18 +1,17 @@
 <script lang="ts">
-  import SettingsRow from '../../components/settings/SettingsRow.svelte';
+  import './assignment.css';
+  import AssignmentIcon from './AssignmentIcon.svelte';
   import Button from '../../components/Button.svelte';
   import Keycap from '../../components/Keycap.svelte';
   import Dialog from '../../components/Dialog.svelte';
-  import TextInput from '../../components/TextInput.svelte';
   import ShortcutRecorder from '../../components/ShortcutRecorder.svelte';
   import { shortcutLabels } from '../../lib/shortcut';
   import { saveAssignment, type Assignment } from './assignments.svelte';
   let { item }: { item: Assignment } = $props();
-  let editing = $state<'alias' | 'shortcut' | null>(null);
-  let alias = $state('');
+  let editing = $state<'shortcut' | null>(null);
   let error = $state('');
   let busy = $state(false);
-  async function update(values: { alias?: string; shortcut?: string }) {
+  async function update(values: { shortcut?: string }) {
     busy = true;
     error = '';
     try {
@@ -26,20 +25,23 @@
   }
 </script>
 
-<SettingsRow title={item.title} description={item.unavailable || item.error}>
-  {#if item.unavailable}<span class="settings-note" aria-disabled="true"
-      >Unavailable</span
+<div class="assignment-row">
+  <div class="assignment-label">
+    <AssignmentIcon group={item.group} />
+    <div class="assignment-name">
+      <span>{item.title}</span>
+      {#if item.unavailable || item.error}<p>
+          {item.unavailable || item.error}
+        </p>{/if}
+    </div>
+  </div>
+  {#if item.unavailable}<span class="assignment-unavailable">Unavailable</span
     >{:else}
-    {#if !item.launcher}<Button
-        label={'Edit alias for ' + item.title}
-        onclick={() => {
-          alias = item.alias;
-          error = '';
-          editing = 'alias';
-        }}>{item.alias || 'Add alias'}</Button
-      >{/if}
-    <Button
-      label={'Edit shortcut for ' + item.title}
+    <button
+      class="assignment-control assignment-shortcut"
+      class:unassigned={!item.shortcut}
+      aria-label={'Edit shortcut for ' + item.title}
+      title={'Edit shortcut for ' + item.title}
       onclick={() => {
         error = '';
         editing = 'shortcut';
@@ -47,63 +49,32 @@
     >
       {#if item.shortcut}{#each shortcutLabels(item.shortcut) as key}<Keycap
             text={key}
-          />{/each}{:else}Add shortcut{/if}
-    </Button>
+          />{/each}{:else}Record shortcut{/if}
+    </button>
   {/if}
-</SettingsRow>
+</div>
 {#if editing}
-  <Dialog
-    title={(editing === 'alias' ? 'Alias for ' : 'Shortcut for ') + item.title}
-    onclose={() => (editing = null)}
-  >
-    {#if editing === 'alias'}
-      <form
-        onsubmit={(event) => {
-          event.preventDefault();
-          void update({ alias });
-        }}
-      >
-        <label class="field-label" for={'alias-' + item.id}>Search alias</label>
-        <TextInput
-          id={'alias-' + item.id}
-          class="text-field"
-          bind:value={alias}
-          maxlength={80}
-          placeholder="e.g. newnote"
-        />
-        <p class="settings-note">
-          Type this alias in Root Search. Clear it to remove it.
-        </p>
-        {#if error}<p role="alert" class="error-message">{error}</p>{/if}
-        <div class="dialog-actions">
-          <Button onclick={() => (editing = null)}>Cancel</Button><Button
-            type="submit"
-            disabled={busy}>Save alias</Button
-          >
-        </div>
-      </form>
-    {:else}
-      <p class="settings-note">
-        Run this command from anywhere while Tooki is running.
-      </p>
-      <ShortcutRecorder
-        label={'Record shortcut for ' + item.title}
-        externalError={item.error}
-        loadShortcut={async () => item.shortcut}
-        saveShortcut={async (shortcut) => {
-          await saveAssignment(item, { shortcut });
-          return shortcut;
-        }}
-      />
-      {#if error}<p role="alert" class="error-message">{error}</p>{/if}
-      <div class="dialog-actions">
-        {#if item.shortcut && (!item.launcher || item.customized)}<Button
-            disabled={busy}
-            onclick={() => void update({ shortcut: '' })}
-            >{item.launcher ? 'Reset to default' : 'Remove shortcut'}</Button
-          >{/if}
-        <Button onclick={() => (editing = null)}>Done</Button>
-      </div>
-    {/if}
+  <Dialog title={'Shortcut for ' + item.title} onclose={() => (editing = null)}>
+    <p class="settings-note">
+      Run this command from anywhere while Tooki is running.
+    </p>
+    <ShortcutRecorder
+      label={'Record shortcut for ' + item.title}
+      externalError={item.error}
+      loadShortcut={async () => item.shortcut}
+      saveShortcut={async (shortcut) => {
+        await saveAssignment(item, { shortcut });
+        return shortcut;
+      }}
+    />
+    {#if error}<p role="alert" class="error-message">{error}</p>{/if}
+    <div class="dialog-actions">
+      {#if item.shortcut && (!item.launcher || item.customized)}<Button
+          disabled={busy}
+          onclick={() => void update({ shortcut: '' })}
+          >{item.launcher ? 'Reset to default' : 'Remove shortcut'}</Button
+        >{/if}
+      <Button onclick={() => (editing = null)}>Done</Button>
+    </div>
   </Dialog>
 {/if}

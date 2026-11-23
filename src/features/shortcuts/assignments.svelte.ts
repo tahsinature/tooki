@@ -16,7 +16,6 @@ export type Assignment = {
   title: string;
   group: string;
   shortcut: string;
-  alias: string;
   error?: string;
   unavailable?: string;
   customized: boolean;
@@ -24,7 +23,7 @@ export type Assignment = {
 };
 export async function saveAssignment(
   item: Assignment,
-  update: { alias?: string; shortcut?: string },
+  update: { shortcut?: string },
 ) {
   if (item.launcher) {
     launcherAssignment.shortcut = await invoke<string>(
@@ -45,10 +44,9 @@ export function assignment(
     title,
     group,
     shortcut: preference?.shortcut ?? '',
-    alias: preference?.alias ?? '',
     error: preference?.shortcut_error,
     unavailable: unavailableReason(id, commandSupport.values),
-    customized: !!(preference?.shortcut || preference?.alias),
+    customized: !!preference?.shortcut,
   };
 }
 export function launcherRow(): Assignment {
@@ -61,7 +59,6 @@ export function launcherRow(): Assignment {
     title: 'Open launcher',
     group: 'General',
     shortcut: launcherAssignment.shortcut,
-    alias: '',
     error: launcherAssignment.error,
     customized: !equivalentDefault,
     launcher: true,

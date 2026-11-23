@@ -14,7 +14,7 @@ Homebrew 7 or later may require `brew trust tahsinature/tap` once. The cask inst
 
 Production macOS builds support Tauri’s signed updater. Older Tauri builds need one final Homebrew reinstall to gain it. Development builds only check release availability and cannot install production updates. The cask declares `auto_updates`. Each Tauri release retains the unchanged v0.11.0 Sparkle appcast for existing Swift installations; this keeps their feed valid without advertising an incompatible in-app transition. Use Homebrew or the DMG to switch from Swift.
 
-Existing Swift settings, snippets, clipboard history and shelf files are preserved. They are not automatically imported into Tauri. Shelferry is a separate optional installation: `brew install --cask tahsinature/tap/shelferry`.
+Existing Swift settings, snippets, clipboard history and shelf files are preserved. They are not automatically imported into Tauri.
 
 ## Version and workflow
 

@@ -35,25 +35,6 @@
     "title": "Browse Notes"
   },
   {
-    "id": "command:shelf.open",
-    "tool": "shelf",
-    "title": "Shelf Manager",
-    "root": "shelf",
-    "capability": "extension.shelferry"
-  },
-  {
-    "id": "command:shelf.new",
-    "tool": "shelf",
-    "title": "New Shelf",
-    "capability": "extension.shelferry"
-  },
-  {
-    "id": "command:shelf.toggle",
-    "tool": "shelf",
-    "title": "Show / Hide All Shelves",
-    "capability": "extension.shelferry"
-  },
-  {
     "id": "command:clipboard.open",
     "tool": "clipboard",
     "title": "Clipboard History",
@@ -136,11 +117,5 @@
     "title": "Keep Awake",
     "root": "keepAwake",
     "capability": "power.keepAwake"
-  },
-  {
-    "id": "command:shelf.settings",
-    "tool": "shelf",
-    "title": "Open Shelferry Settings",
-    "capability": "extension.shelferry"
   }
 ]

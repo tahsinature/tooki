@@ -15,7 +15,7 @@ export async function loadAppPreferences() {
 }
 export async function updateAppPreference(
   id: string,
-  update: Partial<AppPreference>,
+  update: Partial<Pick<AppPreference, 'favorite' | 'shortcut'>>,
 ) {
   appPreferences.values = await invoke('update_application_preference', {
     id,

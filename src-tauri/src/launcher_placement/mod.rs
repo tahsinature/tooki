@@ -1,3 +1,4 @@
+pub mod reset;
 mod geometry;
 mod persistence;
 pub mod sizing;

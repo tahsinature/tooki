@@ -118,13 +118,6 @@
       {#if item.parentTitle}
         <span class="row-context">{item.parentTitle}</span>
       {/if}
-      {#if item.kind === 'application' && item.alias?.trim()}
-        <span
-          class="row-alias"
-          title={`Alias: ${item.alias}`}
-          aria-label={`Alias: ${item.alias}`}>{item.alias}</span
-        >
-      {/if}
     </span></span
   >
   {#if item.pinned}{#if item.kind === 'application'}<Star

@@ -19,6 +19,6 @@ pub fn stop() {}
 
 pub mod content;
 
-// Retained for legacy shelf code; the Shelferry adapter owns live shelf operations.
+// Retained only for the archived, inactive shelf implementation.
 #[allow(dead_code)]
 pub mod drag;

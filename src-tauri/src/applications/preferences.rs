@@ -5,6 +5,7 @@ use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
 #[derive(Clone, Default, Serialize, Deserialize, PartialEq)]
 pub struct Preference {
     pub favorite: bool,
+    // Preserve legacy synced data; aliases no longer affect search or editing.
     pub alias: String,
     pub shortcut: String,
     #[serde(skip, default)]
@@ -57,15 +58,11 @@ fn register(app: &tauri::AppHandle, id: &str, shortcut: &str) -> Result<(), Stri
                 if let Err(error) = result {
                     use tauri::Emitter;
                     let _ = app.emit("applications-error", &error);
-                    if id.starts_with("command:system.") || id.starts_with("command:shelf.") {
+                    if id.starts_with("command:system.") {
                         use tauri_plugin_dialog::DialogExt;
                         app.dialog()
                             .message(error)
-                            .title(if id.starts_with("command:shelf.") {
-                                "Shelferry"
-                            } else {
-                                "System Actions"
-                            })
+                            .title("System Actions")
                             .show(|_| {});
                     }
                 }
@@ -105,9 +102,6 @@ pub fn reload(app: &tauri::AppHandle) -> Result<(), String> {
     let mut current = state.0.lock().map_err(|e| e.to_string())?;
     // Validate before releasing any existing registrations.
     for value in next.values() {
-        if value.alias.len() > 80 {
-            return Err("Shortcut alias exceeds 80 characters".into());
-        }
         if !value.shortcut.is_empty() {
             value
                 .shortcut
@@ -161,7 +155,6 @@ pub fn update_application_preference(
     app: tauri::AppHandle,
     id: String,
     favorite: Option<bool>,
-    alias: Option<String>,
     shortcut: Option<String>,
 ) -> Result<BTreeMap<String, Preference>, String> {
     if id.starts_with("command:") {
@@ -177,20 +170,6 @@ pub fn update_application_preference(
     let mut next = old.clone();
     if let Some(favorite) = favorite {
         next.favorite = favorite;
-    }
-    if let Some(alias) = alias {
-        let alias = alias.trim().to_string();
-        if alias.len() > 80 {
-            return Err("Keep aliases under 80 characters.".into());
-        }
-        if !alias.is_empty()
-            && values.iter().any(|(key, value)| {
-                key != &id && value.alias.to_lowercase() == alias.to_lowercase()
-            })
-        {
-            return Err("This alias is already assigned to another app or command.".into());
-        }
-        next.alias = alias;
     }
     let retry_registration = shortcut.is_some() && !old.shortcut_error.is_empty();
     if let Some(shortcut) = shortcut {

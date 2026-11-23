@@ -44,7 +44,7 @@ Also verify Root Search, settings, shared menus, Escape, completed-action dismis
 
 ## Data
 
-The production bundle identifier is `us.tahsin.tooki`. Portable settings, shortcuts, themes and snippets live in `~/.config/tooki/`; machine-specific data stays in Tauri's application-data/config directories. See [Portable configuration](PORTABLE_CONFIGURATION.md) for migration and sync behavior. The old preview identifier was `us.tahsin.tooki.preview`. Original Swift files remain untouched; the Swift snippet library is copied once into the new format. Shelferry owns its own shelf windows and storage.
+The production bundle identifier is `us.tahsin.tooki`. Portable settings, shortcuts, themes and snippets live in `~/.config/tooki/`; machine-specific data stays in Tauri's application-data/config directories. See [Portable configuration](PORTABLE_CONFIGURATION.md) for migration and sync behavior. The old preview identifier was `us.tahsin.tooki.preview`. Original Swift files remain untouched; the Swift snippet library is copied once into the new format.
 
 See [MIGRATION.md](MIGRATION.md), [SNIPPETS_DESKTOP.md](SNIPPETS_DESKTOP.md), and [RELEASING.md](RELEASING.md).
 
@@ -68,13 +68,7 @@ The configured launcher shortcut (normally ⌘Space) resumes the currently mount
 
 A dedicated tool shortcut or a command chosen in Root Search opens a fresh tool view. Specialized commands such as Pinned Clipboard or Clipboard Links still choose their requested filter. Repeating a dedicated shortcut while its tool is focused hides it; the next dedicated entry starts fresh. Command-Escape explicitly returns to fresh Root Search.
 
-All embedded tools use the shared launcher entry policy. The old `rememberPosition` configuration key is retained for file compatibility but no longer controls Clipboard or Emoji independently. Notes and Shelferry retain ownership of their separate windows and data.
-
-## Bundled extensions
-
-Settings → Extensions manages external-app integrations separately from Tooki's built-in tools. The first entry is Shelferry. `src/features/extensions/catalog.ts` holds display metadata; extension settings reuse the command and shortcut registry, while `src-tauri/src/extensions/shelferry` remains the single CLI adapter for every entry point. This is a bundled integration catalog, not a loader for third-party code.
-
-Shelferry reports Ready, Not installed, Disabled, Unsupported, or Needs attention. Unsupported platforms cannot enable it. An invalid executable override is reported without silently falling back to another binary. The override is under Advanced and remains machine-local; the enable preference stays in portable settings. Disabling unregisters its Tooki shortcuts without deleting assignments, quitting Shelferry, or modifying shelf data. Existing `shelf` settings links redirect to Extensions.
+All embedded tools use the shared launcher entry policy. The old `rememberPosition` configuration key is retained for file compatibility but no longer controls Clipboard or Emoji independently. Notes retains its separate windows and data.
 
 ## Command feedback
 

@@ -157,7 +157,7 @@ export function exactResults(query: string, records: Record[]): Item[] {
         {
           ...row(exact.record),
           title: `${exact.record.definition.name} · ${exact.trigger}`,
-          alias: exact.trigger,
+          snippetTrigger: exact.trigger,
         },
       ]
     : [];

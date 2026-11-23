@@ -36,9 +36,7 @@ export function searchItems(
         if (item.kind !== 'application' || !item.pinned) return [];
       } else if (filter !== 'all' && item.kind !== filter) return [];
       const score =
-        (query.trim() &&
-        item.alias &&
-        normalize(item.alias) === normalize(query)
+        (item.id.startsWith('snippet:') && item.snippetTrigger === query.trim()
           ? 110
           : matchScore(query, item.title)) ??
         (query.trim() && normalize(item.content).includes(normalize(query))

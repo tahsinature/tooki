@@ -211,20 +211,6 @@ input:focus {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.row-alias {
-  min-width: 0;
-  max-width: 40%;
-  flex-shrink: 0;
-  padding: 2px 5px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-small);
-  color: var(--muted);
-  font-size: 10px;
-  line-height: 1.2;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
 .row-title {
   font-size: var(--font-size, 13px);
   font-weight: 400;

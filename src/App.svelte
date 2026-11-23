@@ -231,7 +231,6 @@
       return {
         ...item,
         pinned: preference?.favorite ?? false,
-        alias: preference?.alias ?? '',
         group: preference?.favorite ? 'Favorites' : 'Applications',
       };
     }),

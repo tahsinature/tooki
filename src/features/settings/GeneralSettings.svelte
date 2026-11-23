@@ -1,4 +1,5 @@
 <script lang="ts">
+  import LauncherLayoutSettings from './LauncherLayoutSettings.svelte';
   import LauncherSessionSettings from './LauncherSessionSettings.svelte';
   import ConfigurationSettings from './ConfigurationSettings.svelte';
   import { onMount } from 'svelte';
@@ -8,7 +9,6 @@
   import Toggle from '../../components/Toggle.svelte';
   import AssignmentRow from '../shortcuts/AssignmentRow.svelte';
   import { launcherRow } from '../shortcuts/assignments.svelte';
-  import Keycap from '../../components/Keycap.svelte';
   type Status = { launch_at_login: boolean; show_tray: boolean };
   let status = $state<Status>({ launch_at_login: false, show_tray: false });
   let ready = $state(false);
@@ -69,9 +69,7 @@
 <SettingsSection title="Launcher">
   <AssignmentRow item={launcherRow()} />
   <LauncherSessionSettings />
-  <SettingsRow title="Tooki Settings"
-    ><Keycap text={mac ? '⌘' : 'Ctrl'} /><Keycap text="," /></SettingsRow
-  >
+  <LauncherLayoutSettings />
 </SettingsSection>
 {#if error}<p class="settings-message" role="alert">{error}</p>{/if}
 

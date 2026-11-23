@@ -1,0 +1,76 @@
+.assignment-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) minmax(112px, 180px);
+  align-items: center;
+  gap: 12px;
+  min-height: 38px;
+  padding: 3px 14px;
+  border-bottom: 1px solid color-mix(in srgb, var(--line) 30%, transparent);
+  font-size: 12px;
+}
+.assignment-row:last-child {
+  border-bottom: 0;
+}
+.assignment-row:hover,
+.assignment-row:focus-within {
+  background: color-mix(in srgb, var(--muted) 6%, transparent);
+}
+.assignment-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.assignment-name p {
+  margin: 3px 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+.assignment-control {
+  min-height: 28px;
+  max-width: 100%;
+  padding: 3px 6px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.assignment-control.unassigned,
+.assignment-unavailable {
+  color: var(--muted);
+  font-size: 11px;
+}
+.assignment-control:hover {
+  background: var(--panel);
+  border-color: var(--line);
+}
+.assignment-control:focus-visible {
+  outline: 2px solid var(--input-focus-border);
+  outline-offset: 2px;
+}
+.assignment-shortcut {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 4px;
+}
+.assignment-unavailable {
+  grid-column: 2;
+  text-align: right;
+}
+@media (max-width: 620px) {
+  .assignment-row {
+    grid-template-columns: minmax(90px, 1fr) minmax(95px, 150px);
+    gap: 4px;
+  }
+}
+
+.assignment-label {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}

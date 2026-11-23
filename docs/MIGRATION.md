@@ -11,7 +11,6 @@ The primary Tooki app is now the Rust/Tauri implementation at the repository roo
 | Snippets | Settings editor, text/date/choice/input templates, automatic expansion on macOS, launcher preview and copy/paste. Further complexity is deferred. |
 | Emoji | Bundled search by name/keywords/shortcode, category grid, 20 recent emoji, keyboard navigation, Copy/Paste/Copy Shortcode, shared Actions and settings assignments |
 | Notes | Separate editor window, search, formatting, persistence, and note links |
-| Shelf | Shelferry CLI integration; Shelferry owns windows and shelf data. Legacy Tooki shelf files are not migrated or removed. |
 | Keep Awake | Native assertions, timed sessions, commands, settings and configurable menu-bar icon |
 | Hyper Key | Existing native/platform integration and settings |
 | Shortcut Detective | Native shortcut observation and activity log |

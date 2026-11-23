@@ -24,11 +24,10 @@ pub struct Availability {
     pub available: bool,
     pub reason: Option<String>,
 }
-pub fn unavailable_reason(app: &tauri::AppHandle, id: &str) -> Option<String> {
-    let command = find(id)?;
-    if command.tool == "shelf" {
-        return crate::extensions::shelferry::status(app).reason;
-    }
+pub fn unavailable_reason(_app: &tauri::AppHandle, id: &str) -> Option<String> {
+    let Some(command) = find(id) else {
+        return id.starts_with("command:").then(|| "This command is no longer available.".into());
+    };
     let capability = command.capability.as_deref()?;
     (!crate::system_actions::platform::supports(capability, std::env::consts::OS))
         .then(|| "Not supported on this platform yet.".into())
@@ -127,12 +126,6 @@ pub async fn execute_tool_command(app: tauri::AppHandle, id: String) -> Result<(
                 .map_err(|e| e.to_string())? = id.ends_with(".browse");
             crate::notes::open_notes(app.clone(), None, id.ends_with(".new")).await?;
             crate::launcher_presentation::dismiss_launcher(app.clone())?;
-        }
-        "command:shelf.open"
-        | "command:shelf.new"
-        | "command:shelf.toggle"
-        | "command:shelf.settings" => {
-            crate::extensions::shelferry::execute(&app, &id).await?;
         }
         "command:snippets.open" => {
             crate::snippets::open(&app).await?;

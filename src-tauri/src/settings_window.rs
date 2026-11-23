@@ -18,8 +18,6 @@ pub fn open_settings(app: AppHandle, page: Option<String>) -> Result<(), String>
                 | "detective"
                 | "clipboard"
                 | "snippets"
-                | "shelf"
-                | "extensions"
                 | "system"
                 | "systemMonitor"
                 | "keepAwake"

@@ -20,7 +20,7 @@ use tauri::{Emitter, Manager};
 use tauri_plugin_clipboard_manager::ClipboardExt;
 #[derive(Default)]
 pub struct Shelves(Mutex<Option<Storage>>);
-pub const LEGACY_NOTICE: &str = "Shelf operations now use Shelferry. Existing Tooki shelves are preserved and have not been migrated. Open Shelferry from Tooki or use the shelferry CLI.";
+pub const LEGACY_NOTICE: &str = "Shelf support is unavailable. Existing Tooki shelves and files are preserved.";
 pub fn initialize_legacy_links(app: &tauri::AppHandle) {
     links::initialize(app);
 }

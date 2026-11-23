@@ -6,7 +6,7 @@ pub fn group(config: &Config, name: &str) -> Result<String, String> {
     match name {
         "settings.json" => {
             config.document(name)?;
-            for key in ["hyperEnabled", "shelferryEnabled", "swiftSnippetsImported"] {
+            for key in ["hyperEnabled", "swiftSnippetsImported"] {
                 config.read::<bool>(name, key, false)?;
             }
             frontend::validate_interface(&config.read(name, "interface", json!({}))?)?;

@@ -37,14 +37,12 @@
     Power,
     Coffee,
     Zap,
-    Puzzle,
   } from '@lucide/svelte';
   import appIcon from '../../../src-tauri/icons/icon.png';
   import ClipboardSettings from '../clipboard/ClipboardSettings.svelte';
   import { onMount, tick } from 'svelte';
   import { nextIndex } from '../../lib/navigation';
   import { listen } from '@tauri-apps/api/event';
-  import ExtensionsSettings from '../extensions/ExtensionsSettings.svelte';
   import HyperSettings from '../hyper/HyperSettings.svelte';
   import DetectiveSettings from '../detective/DetectiveSettings.svelte';
   import AppearanceSettings from './AppearanceSettings.svelte';
@@ -102,8 +100,6 @@
   let historyIndex = $state(0);
   let page = $derived(history[historyIndex]);
   function navigate(id: string) {
-    // Existing command links still address the Shelferry settings as 'shelf'.
-    if (id === 'shelf') id = 'extensions';
     if (id === page) return;
     history = [...history.slice(0, historyIndex + 1), id];
     historyIndex = history.length - 1;
@@ -154,7 +150,7 @@
       icon: AppWindow,
       group: 'App',
       tone: 'applications',
-      keywords: 'apps catalog refresh favorites alias shortcuts',
+      keywords: 'apps catalog refresh favorites shortcuts',
     },
     {
       id: 'shortcuts',
@@ -162,7 +158,7 @@
       icon: Keyboard,
       group: 'App',
       tone: 'shortcuts',
-      keywords: 'customized commands alias hotkey keyboard assignments',
+      keywords: 'customized commands hotkey keyboard assignments',
     },
     {
       id: 'appearance',
@@ -179,15 +175,6 @@
       group: 'App',
       tone: 'hyper',
       keywords: 'caps lock keyboard remap modifiers linux helper',
-    },
-    {
-      id: 'extensions',
-      title: 'Extensions',
-      icon: Puzzle,
-      group: 'App',
-      tone: 'shelf',
-      keywords:
-        'shelferry shelf integration floating files commands connection',
     },
     {
       id: 'detective',
@@ -369,7 +356,6 @@
         {:else if page === 'systemMonitor'}<SystemMonitorSettings />
         {:else if page === 'system'}<SystemSettings />
         {:else if page === 'notes'}<NotesSettings />
-        {:else if page === 'extensions'}<ExtensionsSettings />
         {:else if page === 'emoji'}<ToolCommands tool="emoji" />
         {:else if page === 'snippets'}<SnippetsSettings />
         {:else if page === 'clipboard'}

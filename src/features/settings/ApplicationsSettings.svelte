@@ -17,7 +17,7 @@
   let message = $state('');
   let matches = $derived(
     applicationCatalog.items.filter((item) =>
-      `${item.title} ${appPreferences.values[item.id.slice(4)]?.alias ?? ''}`
+      item.title
         .toLowerCase()
         .includes(search.toLowerCase()),
     ),
@@ -26,7 +26,6 @@
     const value = appPreferences.values[item.id.slice(4)];
     return [
       value?.favorite ? 'Favorite' : '',
-      value?.alias ? `Alias: ${value.alias}` : '',
       value?.shortcut ? `Shortcut: ${value.shortcut}` : '',
       value?.shortcut_error ?? '',
     ]
@@ -48,7 +47,7 @@
     title={applicationCatalog.refreshing
       ? 'Refreshing applications…'
       : `${applicationCatalog.items.length} applications`}
-    description="Manage favorites, search aliases and launch shortcuts. Changes also appear in Root Search."
+    description="Manage favorites and launch shortcuts. Changes also appear in Root Search."
   >
     <Button
       disabled={applicationCatalog.refreshing}
@@ -59,7 +58,7 @@
 <div class="applications-search">
   <SearchField
     label="Search applications"
-    placeholder="Search applications or aliases…"
+    placeholder="Search applications…"
     bind:value={search}
   />
 </div>

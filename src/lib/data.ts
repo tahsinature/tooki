@@ -5,7 +5,7 @@ export type Item = {
   parentTitle?: string;
   metadata?: string;
   icon?: string;
-  alias?: string;
+  snippetTrigger?: string;
   kind:
     | 'application'
     | 'command'
@@ -95,16 +95,6 @@ export const commands: Item[] = [
     time: '',
   },
 
-  {
-    id: 'shelf',
-    title: 'Shelf Manager',
-    subtitle: 'Shelferry · Manage floating shelves',
-    kind: 'command',
-    group: 'Commands',
-    content: '',
-    source: 'Tooki',
-    time: '',
-  },
   {
     id: 'settings',
     title: 'Tooki Settings',
