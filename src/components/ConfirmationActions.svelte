@@ -48,7 +48,7 @@
   {#if error}<p class="error-message" role="alert">{error}</p>{/if}
   <div class="dialog-actions">
     <Button disabled={busy} onclick={cancel}>Cancel</Button>
-    <Button destructive disabled={busy} onclick={() => void confirm()}
+    <Button destructive dialogAutofocus disabled={busy} onclick={() => void confirm()}
       >{busy ? 'Working…' : confirmLabel}</Button
     >
   </div>

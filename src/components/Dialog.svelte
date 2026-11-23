@@ -12,11 +12,12 @@
   let headingHeight = $state(0);
   onMount(() => {
     element.showModal();
-    element
-      .querySelector<HTMLElement>(
-        'input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [data-dialog-autofocus]:not([disabled])',
-      )
-      ?.focus();
+    const initialFocus =
+      element.querySelector<HTMLElement>('[data-dialog-autofocus]:not([disabled])') ??
+      element.querySelector<HTMLElement>(
+        'input:not([disabled]), textarea:not([disabled]), select:not([disabled])',
+      );
+    initialFocus?.focus();
     return () => element.close();
   });
 </script>

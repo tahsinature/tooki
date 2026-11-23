@@ -6,6 +6,7 @@
     type = 'button',
     disabled = false,
     destructive = false,
+    dialogAutofocus = false,
     label,
   }: {
     children: Snippet;
@@ -13,6 +14,7 @@
     onclick?: () => void;
     disabled?: boolean;
     destructive?: boolean;
+    dialogAutofocus?: boolean;
     label?: string;
   } = $props();
 </script>
@@ -23,5 +25,6 @@
   class:destructive
   {onclick}
   {disabled}
+  data-dialog-autofocus={dialogAutofocus || undefined}
   aria-label={label}>{@render children()}</button
 >
