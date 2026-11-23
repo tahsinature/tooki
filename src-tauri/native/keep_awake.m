@@ -30,7 +30,7 @@ int tooki_keep_awake_release(IOPMAssertionID identifier) {
 bool tooki_set_keep_awake_icon(void *pointer) {
     NSStatusItem *item = (__bridge NSStatusItem *)pointer;
     NSStatusBarButton *button = item.button;
-    NSImage *image = [NSImage imageWithSystemSymbolName:@"mug"
+    NSImage *image = [NSImage imageWithSystemSymbolName:@"cup.and.saucer.fill"
                              accessibilityDescription:@"Keep Awake"];
     if (!button || !image) return false;
     image = [image imageWithSymbolConfiguration:

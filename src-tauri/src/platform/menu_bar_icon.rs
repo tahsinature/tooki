@@ -21,7 +21,7 @@ pub fn install(tray: &tauri::tray::TrayIcon) -> Result<(), String> {
     .map_err(str::to_owned)
 }
 
-/// Use AppKit's scalable outline mug while retaining Tauri's menu and lifetime.
+/// Use AppKit's scalable filled cup and saucer, retaining Tauri's menu and lifetime.
 #[cfg(target_os = "macos")]
 pub fn install_keep_awake(tray: &tauri::tray::TrayIcon) -> Result<(), String> {
     tray.with_inner_tray_icon(|inner| {
