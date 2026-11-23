@@ -1,5 +1,5 @@
 use serde::Serialize;
-use std::sync::Mutex;
+use std::{sync::Mutex, time::SystemTime};
 use tauri::{Emitter, Manager};
 
 #[derive(Default)]
@@ -23,6 +23,7 @@ struct Requests {
     target: Option<String>,
     mode: EntryMode,
     active_view: String,
+    session: crate::launcher_session::Session,
 }
 impl Requests {
     fn begin(&mut self, mode: EntryMode, target: Option<String>) -> u64 {
@@ -76,6 +77,12 @@ pub fn dismiss(app: &tauri::AppHandle) -> tauri::Result<()> {
     if let Some(window) = app.get_webview_window("main") {
         crate::launcher_placement::remember(app);
         crate::platform::launcher::dismiss(&window)?;
+        app.state::<Presentation>()
+            .0
+            .lock()
+            .unwrap()
+            .session
+            .dismissed(SystemTime::now());
     }
     Ok(())
 }
@@ -110,7 +117,20 @@ pub fn request(app: &tauri::AppHandle) -> tauri::Result<()> {
 }
 /// The launcher shortcut resumes the existing frontend and its navigation state.
 pub fn resume(app: &tauri::AppHandle) -> tauri::Result<()> {
-    prepare(app, EntryMode::Resume, None)
+    let minutes = crate::general_settings::launcher_session_minutes(app);
+    let mode = if app
+        .state::<Presentation>()
+        .0
+        .lock()
+        .unwrap()
+        .session
+        .can_resume(minutes, SystemTime::now())
+    {
+        EntryMode::Resume
+    } else {
+        EntryMode::Fresh
+    };
+    prepare(app, mode, None)
 }
 pub fn request_tool(app: &tauri::AppHandle, id: &str) -> tauri::Result<()> {
     prepare(app, EntryMode::Fresh, Some(id.into()))
@@ -161,15 +181,23 @@ pub fn present_prepared_launcher(
     }
     let handle = app.clone();
     app.run_on_main_thread(move || {
-        if handle
+        let completed = handle
             .state::<Presentation>()
             .0
             .lock()
             .unwrap()
-            .complete(revision)
-        {
+            .complete(revision);
+        if completed {
             if let Err(error) = crate::platform::launcher::present(&window) {
                 eprintln!("Could not present launcher: {error}");
+            } else {
+                handle
+                    .state::<Presentation>()
+                    .0
+                    .lock()
+                    .unwrap()
+                    .session
+                    .presented();
             }
         }
     })

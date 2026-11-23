@@ -45,3 +45,5 @@ Shelferry continues to own its data and configuration. Tooki syncs only whether 
 Both builds use the same portable folder. Starting the other version asks you to **Switch to This Version** or cancel. Switching requests a normal quit, waits for it to finish, and ends any active Keep Awake session. Accessibility grants remain separate for the two app identities.
 
 On macOS, Hyper Key ownership and crash recovery live in `~/Library/Application Support/us.tahsin.tooki.shared/hyper/`, outside the synced configuration. Existing per-build recovery records are recovered only while their ownership locks are free. Another remapper's Caps Lock assignment is never cleared to enable Tooki.
+
+Launcher session retention is stored in `settings.json` under `general.launcher_session_minutes`: a whole number of minutes (1–10080), `0` for Never, or `null` for Always. Missing values default to 5 minutes. Only the preference syncs; navigation and the last-hidden timestamp remain in memory on each computer.

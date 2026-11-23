@@ -146,7 +146,7 @@
       group: 'App',
       tone: 'general',
       keywords:
-        'launcher navigation shortcut hotkey startup login menu bar tray',
+        'launcher navigation shortcut hotkey startup login menu bar tray remember session timeout minutes',
     },
     {
       id: 'applications',

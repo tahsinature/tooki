@@ -15,6 +15,7 @@ mod keep_awake;
 mod launcher_placement;
 mod launcher_presentation;
 mod launcher_shortcut;
+mod launcher_session;
 mod notes;
 mod permissions;
 mod platform;
@@ -134,6 +135,7 @@ fn main() {
             filter_popup::forward_filter_shortcut,
             general_settings::general_settings,
             general_settings::set_general_setting,
+            general_settings::set_launcher_session_timeout,
             app_menu::toggle_app_menu,
             app_menu::close_app_menu,
             app_menu::resize_app_menu,

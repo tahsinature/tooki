@@ -1,4 +1,5 @@
 <script lang="ts">
+  import LauncherSessionSettings from './LauncherSessionSettings.svelte';
   import ConfigurationSettings from './ConfigurationSettings.svelte';
   import { onMount } from 'svelte';
   import { invoke, isTauri } from '@tauri-apps/api/core';
@@ -67,6 +68,7 @@
 </SettingsSection>
 <SettingsSection title="Launcher">
   <AssignmentRow item={launcherRow()} />
+  <LauncherSessionSettings />
   <SettingsRow title="Open Settings"
     ><Keycap text={mac ? '⌘' : 'Ctrl'} /><Keycap text="," /></SettingsRow
   >

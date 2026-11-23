@@ -64,7 +64,7 @@ Each identity has separate local history, notes, window state and permissions. N
 
 ## Launcher entry behavior
 
-The configured launcher shortcut (normally ⌘Space) resumes the currently mounted tool, including its query, filter, selection, inputs and scroll position. Hiding the launcher does not discard that navigation state.
+The configured launcher shortcut (normally ⌘Space) resumes the currently mounted tool, including its query, filter, selection, inputs and scroll position, within the session timeout. General → Launcher → Remember last session for defaults to 5 minutes, with Never, 1/5/15/30 minutes, Always, and custom durations (1–10080 minutes). The timer starts when the launcher hides, includes system sleep, and resets after the next visible session. After expiry, reopening goes to fresh Root Search. Saved content is not deleted.
 
 A dedicated tool shortcut or a command chosen in Root Search opens a fresh tool view. Specialized commands such as Pinned Clipboard or Clipboard Links still choose their requested filter. Repeating a dedicated shortcut while its tool is focused hides it; the next dedicated entry starts fresh. Command-Escape explicitly returns to fresh Root Search.
 
