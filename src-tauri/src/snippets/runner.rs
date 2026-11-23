@@ -29,7 +29,7 @@ pub(super) async fn run(app: &tauri::AppHandle, args: &Value) -> Result<(), Stri
         let committed = automatic::commit(app, &result.context, &result.text, true).await;
         if let Err(error) = committed {
             if let Some(window) = app.get_webview_window("main") {
-                let _ = crate::platform::launcher::present(&window);
+                let _ = crate::windows::present(&window, crate::windows::Role::Launcher);
             }
             return Err(error);
         }

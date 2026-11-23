@@ -31,6 +31,8 @@ fn main() {
             .file("native/utility_window.m")
             .file("native/preview.m")
             .file("native/launcher.m")
+            .file("native/windows.m")
+            .file("native/panel_dismiss.m")
             .file("native/toast.m")
             .file("native/root_search_shortcut.m")
             .file("native/applications.m")
@@ -71,6 +73,8 @@ fn main() {
         println!("cargo:rerun-if-changed=native/utility_window.m");
         println!("cargo:rerun-if-changed=native/preview.m");
         println!("cargo:rerun-if-changed=native/launcher.m");
+        println!("cargo:rerun-if-changed=native/windows.m");
+        println!("cargo:rerun-if-changed=native/panel_dismiss.m");
         println!("cargo:rerun-if-changed=native/toast.m");
         println!("cargo:rerun-if-changed=native/root_search_shortcut.m");
         println!("cargo:rerun-if-changed=native/applications.m");

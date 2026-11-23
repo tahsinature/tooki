@@ -52,3 +52,7 @@ test-snippets-native: ## Verify snippet replacement events without typing into a
 
 test-toast-native: ## Verify native toast layout and nonactivation
 	@sh scripts/test-toast-native.sh
+
+.PHONY: test-windows-native
+test-windows-native: ## Verify independent native window dismissal
+	@sh scripts/test-windows-native.sh

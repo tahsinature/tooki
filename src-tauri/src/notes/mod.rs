@@ -118,7 +118,7 @@ pub async fn notes_request(
     }
     if action == "hide" {
         window::remember(&app);
-        window.hide().map_err(|e| e.to_string())?;
+        crate::windows::dismiss(&window, crate::windows::Role::Workspace).map_err(|e| e.to_string())?;
         return Ok(Value::Null);
     }
     if action == "takeBrowseRequest" {

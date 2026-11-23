@@ -8,6 +8,8 @@ static BOOL swallowedEscape;
 
 static CGEventRef handleRootShortcut(CGEventTapProxy proxy, CGEventType type,
                                     CGEventRef event, void *context) {
+    (void)proxy;
+    (void)context;
     if (type == kCGEventTapDisabledByTimeout || type == kCGEventTapDisabledByUserInput) {
         swallowedEscape = NO;
         if (rootTap) CGEventTapEnable(rootTap, true);
@@ -20,7 +22,7 @@ static CGEventRef handleRootShortcut(CGEventTapProxy proxy, CGEventType type,
         return consumed ? NULL : event;
     }
     if (!(CGEventGetFlags(event) & kCGEventFlagMaskCommand) ||
-        NSWorkspace.sharedWorkspace.frontmostApplication.processIdentifier != NSProcessInfo.processInfo.processIdentifier)
+        !(NSApp.keyWindow.isVisible && NSApp.keyWindow.isKeyWindow))
         return event;
     swallowedEscape = YES;
     if (!CGEventGetIntegerValueField(event, kCGKeyboardEventAutorepeat)) returnToRoot();
@@ -28,7 +30,8 @@ static CGEventRef handleRootShortcut(CGEventTapProxy proxy, CGEventType type,
 }
 
 // Command-Escape can be consumed before AppKit dispatches a local keyDown.
-// Intercept only while Tooki is frontmost; leave other applications untouched.
+// A nonactivating launcher can be key while another application stays active.
+// Intercept only when a visible Tooki window actually owns keyboard focus.
 void tooki_root_search_shortcut_initialize(void (*openRoot)(void)) {
     returnToRoot = openRoot;
     if (rootTap) return;

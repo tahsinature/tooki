@@ -114,3 +114,10 @@ NSDictionary *tooki_preview(NSString *operation, NSDictionary *args) {
     panel.level = previewLevel(NSApp.windows, panel, controller.previousLevel);
     return @{@"active":@YES};
 }
+
+bool tooki_preview_belongs_to_window(void *window, const char *owner) {
+    if (![QLPreviewPanel sharedPreviewPanelExists] || !controller) return false;
+    QLPreviewPanel *panel = [QLPreviewPanel sharedPreviewPanel];
+    return window == (__bridge void *)panel && panel.visible && panel.dataSource == controller
+        && [controller.owner isEqualToString:[NSString stringWithUTF8String:owner]];
+}

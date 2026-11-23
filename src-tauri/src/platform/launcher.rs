@@ -1,41 +1,5 @@
 use tauri::WebviewWindow;
 
-pub fn present(window: &WebviewWindow) -> tauri::Result<()> {
-    #[cfg(target_os = "macos")]
-    {
-        let pointer = window.ns_window()? as usize;
-        window.run_on_main_thread(move || unsafe {
-            unsafe extern "C" {
-                fn tooki_launcher_present(window: *mut std::ffi::c_void);
-            }
-            tooki_launcher_present(pointer as *mut _);
-        })?;
-    }
-    #[cfg(not(target_os = "macos"))]
-    {
-        window.unminimize()?;
-        window.show()?;
-        window.set_focus()?;
-    }
-    Ok(())
-}
-
-pub fn dismiss(window: &WebviewWindow) -> tauri::Result<()> {
-    #[cfg(target_os = "macos")]
-    {
-        let pointer = window.ns_window()? as usize;
-        window.run_on_main_thread(move || unsafe {
-            unsafe extern "C" {
-                fn tooki_launcher_dismiss(window: *mut std::ffi::c_void);
-            }
-            tooki_launcher_dismiss(pointer as *mut _);
-        })?;
-    }
-    #[cfg(not(target_os = "macos"))]
-    window.hide()?;
-    Ok(())
-}
-
 /// Complete the resize before a hidden launcher is allowed to become visible.
 #[tauri::command]
 pub async fn resize_launcher(

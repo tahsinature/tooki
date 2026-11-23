@@ -31,6 +31,7 @@ mod tool_commands;
 mod update_install;
 mod updates;
 mod window_toggle;
+mod windows;
 
 use tauri::Manager;
 
@@ -183,8 +184,9 @@ fn main() {
             launcher_placement::handle_event(window, event);
         })
         .setup(|app| {
+            windows::set_dock_visible(app.handle(), false)?;
             #[cfg(target_os = "macos")]
-            app.set_activation_policy(tauri::ActivationPolicy::Accessory);
+            platform::panels::initialize(app.handle())?;
             config::initialize(app.handle())?;
             general_settings::initialize(app.handle());
             keep_awake::initialize(app.handle());

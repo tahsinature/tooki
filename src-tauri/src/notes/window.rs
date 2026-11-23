@@ -11,9 +11,7 @@ struct Geometry {
 }
 pub fn show(app: &tauri::AppHandle) -> Result<(), String> {
     if let Some(window) = app.get_webview_window("notes") {
-        window.unminimize().map_err(|e| e.to_string())?;
-        window.show().map_err(|e| e.to_string())?;
-        return window.set_focus().map_err(|e| e.to_string());
+        return crate::windows::present(&window, crate::windows::Role::Workspace).map_err(|e| e.to_string());
     }
     let builder = tauri::WebviewWindowBuilder::new(
         app,
@@ -79,8 +77,7 @@ pub fn show(app: &tauri::AppHandle) -> Result<(), String> {
     } else {
         window.center().map_err(|e| e.to_string())?;
     }
-    window.show().map_err(|e| e.to_string())?;
-    window.set_focus().map_err(|e| e.to_string())
+    crate::windows::present(&window, crate::windows::Role::Workspace).map_err(|e| e.to_string())
 }
 pub fn remember(app: &tauri::AppHandle) {
     let Some(w) = app.get_webview_window("notes") else {

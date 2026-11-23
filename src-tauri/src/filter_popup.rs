@@ -119,15 +119,11 @@ pub fn dismiss(app: &tauri::AppHandle, value: Option<String>, restore: bool) {
         return;
     };
     if let Some(popup) = app.get_webview_window("filter-popup") {
-        let _ = popup.hide();
+        let _ = crate::windows::dismiss(&popup, crate::windows::Role::OwnedPopup);
         let _ = popup.emit("filter-opened", Option::<Request>::None);
     }
     if restore {
-        if let Some(owner) = app.get_webview_window(&active.owner) {
-            if owner.is_visible().unwrap_or(false) {
-                let _ = owner.set_focus();
-            }
-        }
+        crate::windows::focus_owner(app, &active.owner);
     }
     let mut payload = serde_json::json!({"session": active.request.session, "restore": restore});
     if let Some(value) = value {
@@ -250,8 +246,7 @@ pub fn size_filter_popup(
         .map_err(|e| e.to_string())?;
 
     if !visible {
-        popup.show().map_err(|e| e.to_string())?;
-        popup.set_focus().map_err(|e| e.to_string())?;
+        crate::windows::present(&popup, crate::windows::Role::OwnedPopup).map_err(|e| e.to_string())?;
     }
     Ok(())
 }

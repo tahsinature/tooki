@@ -72,11 +72,9 @@ pub async fn return_to_root_search(app: tauri::AppHandle) -> Result<(), String> 
 }
 pub fn dismiss(app: &tauri::AppHandle) -> tauri::Result<()> {
     cancel(app);
-    crate::window_toggle::dismiss_popups(app, "main");
-    crate::platform::preview::close_window(app, "main");
     if let Some(window) = app.get_webview_window("main") {
         crate::launcher_placement::remember(app);
-        crate::platform::launcher::dismiss(&window)?;
+        crate::windows::dismiss(&window, crate::windows::Role::Launcher)?;
         app.state::<Presentation>()
             .0
             .lock()
@@ -188,7 +186,7 @@ pub fn present_prepared_launcher(
             .unwrap()
             .complete(revision);
         if completed {
-            if let Err(error) = crate::platform::launcher::present(&window) {
+            if let Err(error) = crate::windows::present(&window, crate::windows::Role::Launcher) {
                 eprintln!("Could not present launcher: {error}");
             } else {
                 handle

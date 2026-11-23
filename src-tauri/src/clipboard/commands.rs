@@ -250,7 +250,13 @@ fn request(app: &AppHandle, operation: &str, args: Value) -> Result<Value, Strin
                 }
                 payload["app"] = json!(path);
             }
-            native::on_main(app, operation, payload)
+            let result = native::on_main(app, operation, payload)?;
+            if operation == "open" {
+                // Opening externally ends the launcher interaction. The native
+                // panel otherwise remains above the application we just opened.
+                crate::launcher_presentation::dismiss_launcher(app.clone())?;
+            }
+            Ok(result)
         }
         _ => Err("Unknown clipboard operation".into()),
     }

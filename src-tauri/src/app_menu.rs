@@ -57,15 +57,14 @@ pub fn toggle_app_menu(
     popup
         .set_position(PhysicalPosition::new(x as i32, y as i32))
         .map_err(|e| e.to_string())?;
-    popup.show().map_err(|e| e.to_string())?;
-    popup.set_focus().map_err(|e| e.to_string())?;
+    crate::windows::present(&popup, crate::windows::Role::OwnedPopup).map_err(|e| e.to_string())?;
     let _ = popup.emit("app-menu-opened", ());
     let _ = app.emit_to("main", "app-menu-visible", true);
     Ok(())
 }
 pub fn dismiss(app: &tauri::AppHandle) {
     if let Some(popup) = app.get_webview_window("app-menu") {
-        let _ = popup.hide();
+        let _ = crate::windows::dismiss(&popup, crate::windows::Role::OwnedPopup);
     }
     let _ = app.emit_to("main", "app-menu-visible", false);
 }
@@ -73,11 +72,7 @@ pub fn dismiss(app: &tauri::AppHandle) {
 pub fn close_app_menu(app: tauri::AppHandle, restore_focus: bool) {
     dismiss(&app);
     if restore_focus {
-        if let Some(main) = app.get_webview_window("main") {
-            if main.is_visible().unwrap_or(false) {
-                let _ = main.set_focus();
-            }
-        }
+        crate::windows::focus_owner(&app, "main");
     }
 }
 pub fn handle_event(window: &tauri::Window, event: &WindowEvent) {

@@ -73,3 +73,26 @@ All embedded tools use the shared launcher entry policy. The old `rememberPositi
 ## Command feedback
 
 Successful Empty Trash, disk ejection, Sleep and Keep Awake actions dismiss the launcher and show a native AppKit toast without activating Tooki or requesting notification permission. Success feedback lasts 3 seconds; errors last 6 seconds and keep the current tool or confirmation available. New feedback replaces the previous toast. `command_feedback` owns completion behavior and `platform::toast` owns the macOS adapter.
+
+### Native window roles
+
+`src-tauri/src/windows.rs` owns the lifecycle of Tooki windows. Launcher and owned
+popup windows use the pinned `tauri-nspanel` adapter in `platform/panels.rs` on
+macOS. They can take keyboard focus without activating Tooki. Notes and Settings
+remain ordinary windows. Do not activate the application when presenting a panel,
+or restore a remembered external application when dismissing one.
+
+The panel plugin performs native class conversion and synchronizes AppKit's
+activation-prevention setting. Review this compatibility boundary when upgrading
+Tauri or the plugin. Preserve Tauri's delegate, window identity, and webview;
+configure panels before their first presentation. Root-search shortcuts must
+check the key window, because the active application can remain external.
+
+Verify external app → launcher → dismiss, Notes → launcher → dismiss, Settings
+alongside both, typing, ⌘Esc, menu/filter dismissal, resizing, and Quick Look after
+changes to this adapter. A native window-isolation check is available through
+`make test-windows-native`; it does not replace interactive focus verification.
+
+Future tiling commands for other apps belong in a separate window-management
+service. They should operate on target windows and display geometry, without
+using Tooki's presentation, popup ownership, or Dock policies.

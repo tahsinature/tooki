@@ -90,3 +90,8 @@ pub mod menu_bar_icon;
 pub mod toast;
 
 pub mod root_search_shortcut;
+
+pub mod windows;
+
+#[cfg(target_os = "macos")]
+pub mod panels;
