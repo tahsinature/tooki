@@ -1,13 +1,15 @@
 <script lang="ts">
   import ActionsMenu from './ActionsMenu.svelte';
   import PopupSurface from './PopupSurface.svelte';
-  import { Copy, Pin } from '@lucide/svelte';
+  import { Copy, Pin, RefreshCw } from '@lucide/svelte';
   let {
     clipboard,
     primaryLabel = 'Open command',
     pinned,
     oncopy,
     onpin,
+    onrefresh,
+    refreshing = false,
     onclose,
   }: {
     clipboard: boolean;
@@ -15,6 +17,8 @@
     pinned: boolean;
     oncopy: () => void;
     onpin: () => void;
+    onrefresh?: () => void;
+    refreshing?: boolean;
     onclose: () => void;
   } = $props();
 </script>
@@ -45,6 +49,7 @@
             run: oncopy,
             shortcut: '↵',
           },
+          ...(onrefresh ? [{ id: 'refresh-applications', label: refreshing ? 'Refreshing Applications…' : 'Refresh Applications', icon: RefreshCw, run: onrefresh, disabled: refreshing }] : []),
         ]}
   />
 </PopupSurface>

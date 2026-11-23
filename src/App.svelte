@@ -65,6 +65,24 @@
   let clipboard = $state(false);
   let system = $state(false);
   let systemTarget = $state('command:system.open');
+  let refreshRequested = $state<number | null>(null);
+  $effect(() => {
+    if (refreshRequested !== null && applicationCatalog.completedRefreshes > refreshRequested) {
+      status = applicationCatalog.error || 'Applications refreshed';
+      refreshRequested = null;
+    }
+  });
+  async function refreshCatalog() {
+    actions = false;
+    status = 'Refreshing applications…';
+    refreshRequested = applicationCatalog.completedRefreshes;
+    await refreshApplications();
+    if (applicationCatalog.error) {
+      status = applicationCatalog.error;
+      refreshRequested = null;
+    }
+    void focusSearch();
+  }
   let trashRequest = $state<number | null>(null);
   import EmptyTrashConfirmation from './features/system/EmptyTrashConfirmation.svelte';
   $effect(() => {
@@ -595,6 +613,8 @@
       {#if actions && item?.kind === 'application'}
         {#key item.id}<ApplicationActions
             {item}
+            onrefresh={refreshCatalog}
+            refreshing={applicationCatalog.refreshing}
             onopen={() => void primary()}
             onclose={() => {
               actions = false;
@@ -604,6 +624,8 @@
           />{/key}
       {:else if actions && item}
         <ActionsPopup
+          onrefresh={refreshCatalog}
+          refreshing={applicationCatalog.refreshing}
           primaryLabel={item.kind === 'application'
             ? 'Open Application'
             : 'Open command'}

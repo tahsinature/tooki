@@ -6,6 +6,7 @@ export const applicationCatalog = $state({
   items: [] as Item[],
   error: '',
   refreshing: false,
+  completedRefreshes: 0,
 });
 function update(apps: Application[]) {
   applicationCatalog.items = apps.map((app) => ({
@@ -36,7 +37,10 @@ export function observeApplications() {
     for (const subscription of [
       listen<boolean>(
         'applications-refreshing',
-        (event) => (applicationCatalog.refreshing = event.payload),
+        (event) => {
+          applicationCatalog.refreshing = event.payload;
+          if (!event.payload) applicationCatalog.completedRefreshes++;
+        },
       ),
       listen<Application[]>('applications-changed', (event) =>
         update(event.payload),

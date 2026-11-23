@@ -3,6 +3,7 @@
   import { invoke } from '@tauri-apps/api/core';
   import { writeText } from '@tauri-apps/plugin-clipboard-manager';
   import {
+    RefreshCw,
     Folder,
     Copy,
     Star,
@@ -26,11 +27,15 @@
   let {
     item,
     onopen,
+    onrefresh,
+    refreshing = false,
     onclose,
     onstatus,
   }: {
     item: Item;
     onopen: () => void;
+    onrefresh?: () => void;
+    refreshing?: boolean;
     onclose: () => void;
     onstatus: (message: string) => void;
   } = $props();
@@ -204,6 +209,7 @@
             ),
           disabled: busy,
         },
+        ...(onrefresh ? [{ id: 'refresh-applications', label: refreshing ? 'Refreshing Applications…' : 'Refresh Applications', icon: RefreshCw, run: onrefresh, disabled: refreshing }] : []),
         ...(canUninstall
           ? [
               {
