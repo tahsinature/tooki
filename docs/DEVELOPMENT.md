@@ -38,7 +38,7 @@ TAURI_TARGET=universal-apple-darwin make dmg
 
 ## Verification
 
-`make test` runs Svelte diagnostics, TypeScript tests, Rust feature tests, and the support-crate tests. Native checks are available through `make test-clipboard-native`, `make test-detective-native`, `make test-hyper-native`, and `make test-preview-native`. They use isolated native inputs or pasteboards.
+`make test` runs Svelte diagnostics, TypeScript tests, Rust feature tests, and the support-crate tests. Native checks are available through `make test-clipboard-native`, `make test-detective-native`, `make test-hyper-native`, `make test-preview-native`, and `make test-toast-native`. They use isolated native inputs, pasteboards, or undisplayed windows.
 
 Also verify Root Search, settings, shared menus, Escape, completed-action dismissal, and the affected feature in the actual macOS app. Paste and automatic expansion need Accessibility; some automation tools bypass global keyboard events, so do not treat simulated input as proof of a real global shortcut.
 
@@ -75,3 +75,7 @@ All embedded tools use the shared launcher entry policy. The old `rememberPositi
 Settings → Extensions manages external-app integrations separately from Tooki's built-in tools. The first entry is Shelferry. `src/features/extensions/catalog.ts` holds display metadata; extension settings reuse the command and shortcut registry, while `src-tauri/src/extensions/shelferry` remains the single CLI adapter for every entry point. This is a bundled integration catalog, not a loader for third-party code.
 
 Shelferry reports Ready, Not installed, Disabled, Unsupported, or Needs attention. Unsupported platforms cannot enable it. An invalid executable override is reported without silently falling back to another binary. The override is under Advanced and remains machine-local; the enable preference stays in portable settings. Disabling unregisters its Tooki shortcuts without deleting assignments, quitting Shelferry, or modifying shelf data. Existing `shelf` settings links redirect to Extensions.
+
+## Command feedback
+
+Successful Empty Trash, disk ejection, Sleep and Keep Awake actions dismiss the launcher and show a native AppKit toast without activating Tooki or requesting notification permission. Success feedback lasts 3 seconds; errors last 6 seconds and keep the current tool or confirmation available. New feedback replaces the previous toast. `command_feedback` owns completion behavior and `platform::toast` owns the macOS adapter.

@@ -46,7 +46,7 @@ test('wake lock search finds Keep Awake and Keep Awake aliases respect platform 
     ),
   ).toBe(false);
 });
-test('secondary commands appear only for exact aliases, including case and whitespace', () => {
+test('custom aliases match exactly, including case and whitespace', () => {
   expect(commandItems(' DRAFT ', preferences).at(-1)?.id).toBe(
     'command:notes.new',
   );
@@ -114,5 +114,65 @@ test('System Monitor has one searchable root command and respects platform suppo
       {},
       { 'command:systemMonitor.open': { available: false } },
     ).some((item) => item.id === 'systemMonitor'),
+  ).toBe(false);
+});
+
+test('trash search resolves directly to the Empty Trash command', () => {
+  const support = {
+    'command:system.open': { available: true },
+    'command:system.emptyTrash': { available: true },
+  };
+  const results = searchItems(
+    commandItems('trash', {}, support),
+    'trash',
+    'all',
+  );
+  expect(results.map((item) => item.id)).toEqual(['command:system.emptyTrash']);
+  expect(results[0]).toMatchObject({
+    title: 'Empty Trash',
+    parentTitle: 'System Actions',
+  });
+});
+
+test('matching actions share tool context, while direct tool matches remain', () => {
+  const results = searchItems(commandItems('note', {}), 'note', 'all');
+  expect(results.map((item) => item.id)).toContain('notes');
+  expect(results.find((item) => item.id === 'command:notes.new')).toMatchObject(
+    {
+      title: 'New Note',
+      parentTitle: 'Notes',
+    },
+  );
+});
+
+test('Keep Awake titles and aliases resolve to the same executable command', () => {
+  const id = 'command:system.keepAwake15';
+  const support = {
+    'command:keepAwake.open': { available: true },
+    [id]: { available: true },
+  };
+  expect(
+    commandItems('15 minutes', {}, support).find((item) => item.id === id),
+  ).toMatchObject({
+    parentTitle: 'Keep Awake',
+    id,
+  });
+  const preferences = {
+    [id]: { favorite: false, shortcut: '', alias: 'coffee' },
+  };
+  expect(
+    commandItems('coffee', preferences, support).find((item) => item.id === id),
+  ).toMatchObject({ id });
+});
+
+test('unavailable action titles never appear in search', () => {
+  const support = {
+    'command:system.open': { available: true },
+    'command:system.emptyTrash': { available: false },
+  };
+  expect(
+    commandItems('trash', {}, support).some(
+      (item) => item.id === 'command:system.emptyTrash',
+    ),
   ).toBe(false);
 });

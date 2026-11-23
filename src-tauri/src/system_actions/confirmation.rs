@@ -44,4 +44,19 @@ mod tests {
         let third = confirmation.begin(now);
         assert!(!confirmation.consume(third, now + Duration::from_secs(300)));
     }
+
+    #[test]
+    fn retry_requires_a_fresh_request_and_survives_old_dialog_cleanup() {
+        let now = Instant::now();
+        let mut confirmation = Confirmation::default();
+        let attempt = confirmation.begin(now);
+        assert!(confirmation.consume(attempt, now));
+        // Finder fails after authorization was consumed. Reopening the
+        // confirmation creates a new token before the old dialog unmounts.
+        let retry = confirmation.begin(now);
+        assert!(!confirmation.consume(attempt, now));
+        assert_eq!(confirmation.current(now), Some(retry));
+        assert!(confirmation.consume(retry, now));
+        assert!(!confirmation.consume(retry, now));
+    }
 }

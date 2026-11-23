@@ -65,6 +65,8 @@
   let clipboard = $state(false);
   let system = $state(false);
   let systemTarget = $state('command:system.open');
+  let trashRequest = $state<number | null>(null);
+  import EmptyTrashConfirmation from './features/system/EmptyTrashConfirmation.svelte';
   $effect(() => {
     const view = systemMonitor
       ? 'systemMonitor'
@@ -150,14 +152,21 @@
           { revision },
         );
         if (!entry || !current()) return;
-        const applied = await enterLauncher(
-          entry,
-          back,
-          tick,
-          openToolView,
-          current,
-        );
-        if (!applied) return;
+        if (entry.target === 'command:system.emptyTrash') {
+          const request = await invoke<number | null>('pending_empty_trash');
+          if (!current()) return;
+          trashRequest = request;
+          expanded = true;
+        } else {
+          const applied = await enterLauncher(
+            entry,
+            back,
+            tick,
+            openToolView,
+            current,
+          );
+          if (!applied) return;
+        }
         await tick();
         if (!current()) return;
         await resizeWindow(
@@ -250,6 +259,7 @@
     document.getElementById('search')?.focus();
   }
   function back() {
+    trashRequest = null;
     selected = 0;
     appMenu = false;
     status = '';
@@ -609,4 +619,11 @@
       {/if}
     {/snippet}
   </PanelLayout>
+{/if}
+
+{#if trashRequest !== null}
+  {#key trashRequest}<EmptyTrashConfirmation
+      request={trashRequest}
+      onclose={() => (trashRequest = null)}
+    />{/key}
 {/if}

@@ -2,7 +2,7 @@ mod confirmation;
 pub mod platform;
 use serde::{Deserialize, Serialize};
 use std::{sync::Mutex, time::Instant};
-use tauri::{Emitter, Manager};
+use tauri::Manager;
 
 #[derive(Default)]
 pub struct SystemActions(Mutex<()>, Mutex<confirmation::Confirmation>);
@@ -49,8 +49,9 @@ pub async fn execute(app: tauri::AppHandle, id: String) -> Result<(), String> {
         }
         return Ok(());
     }
-    tauri::async_runtime::spawn_blocking(move || {
-        let state = app.state::<SystemActions>();
+    let worker = app.clone();
+    let result = tauri::async_runtime::spawn_blocking(move || {
+        let state = worker.state::<SystemActions>();
         let _guard = state
             .0
             .try_lock()
@@ -58,7 +59,9 @@ pub async fn execute(app: tauri::AppHandle, id: String) -> Result<(), String> {
         platform::sleep()
     })
     .await
-    .map_err(|e| e.to_string())?
+    .map_err(|e| e.to_string())
+    .and_then(|result| result);
+    crate::command_feedback::finish(&app, result, "Sleep requested")
 }
 
 #[tauri::command]
@@ -100,18 +103,19 @@ pub async fn confirm_empty_trash(
     if !accepted {
         return Err("This confirmation expired. Choose Empty Trash again.".into());
     }
-    tauri::async_runtime::spawn_blocking(move || {
-        let state = app.state::<SystemActions>();
+    let worker = app.clone();
+    let result = tauri::async_runtime::spawn_blocking(move || {
+        let state = worker.state::<SystemActions>();
         let _guard = state
             .0
             .try_lock()
             .map_err(|_| "Another system action is already running.")?;
-        platform::empty_trash()?;
-        let _ = app.emit("system-action-completed", "Trash emptied");
-        Ok(())
+        platform::empty_trash()
     })
     .await
-    .map_err(|e| e.to_string())?
+    .map_err(|e| e.to_string())
+    .and_then(|result| result);
+    crate::command_feedback::finish(&app, result, "Trash emptied")
 }
 
 #[tauri::command]
@@ -124,8 +128,9 @@ pub async fn system_volumes() -> Result<Vec<Volume>, String> {
 #[tauri::command]
 pub async fn eject_system_volume(app: tauri::AppHandle, id: String) -> Result<(), String> {
     require("storage.eject")?;
-    tauri::async_runtime::spawn_blocking(move || {
-        let state = app.state::<SystemActions>();
+    let worker = app.clone();
+    let result = tauri::async_runtime::spawn_blocking(move || {
+        let state = worker.state::<SystemActions>();
         let _guard = state
             .0
             .try_lock()
@@ -133,7 +138,9 @@ pub async fn eject_system_volume(app: tauri::AppHandle, id: String) -> Result<()
         platform::eject(&id)
     })
     .await
-    .map_err(|e| e.to_string())?
+    .map_err(|e| e.to_string())
+    .and_then(|result| result);
+    crate::command_feedback::finish(&app, result, "Disk ejected")
 }
 #[tauri::command]
 pub fn open_automation_settings() -> Result<(), String> {

@@ -5,6 +5,7 @@ mod applications;
 mod build_info;
 mod clipboard;
 mod config;
+mod command_feedback;
 mod emoji;
 mod extensions;
 mod filter_popup;

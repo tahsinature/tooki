@@ -18,14 +18,26 @@ fn run(program: &str, args: &[&str]) -> Result<(), String> {
         return Ok(());
     }
     let error = String::from_utf8_lossy(&output.stderr).trim().to_string();
-    if error.contains("-1743") {
-        return Err("Finder access was denied. Enable Tooki in System Settings → Privacy & Security → Automation, then try again.".into());
+    if let Some(message) = finder_error_message(&error) {
+        return Err(message.into());
     }
     Err(if error.is_empty() {
         format!("System action failed ({})", output.status)
     } else {
         error
     })
+}
+
+#[cfg(any(target_os = "macos", test))]
+fn finder_error_message(error: &str) -> Option<&'static str> {
+    // Apple event error codes are stable across localized Finder messages.
+    if error.trim_end().ends_with("(-128)") {
+        return Some("Empty Trash was canceled in Finder. Try again, or empty Trash directly in Finder.");
+    }
+    if error.trim_end().ends_with("(-1743)") {
+        return Some("Finder access was denied. Enable Tooki in System Settings → Privacy & Security → Automation, then try again.");
+    }
+    None
 }
 
 pub fn sleep() -> Result<(), String> {
@@ -102,6 +114,15 @@ fn select_volume(volumes: Vec<Volume>, id: &str) -> Result<Volume, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn finder_errors_distinguish_cancellation_from_denied_access() {
+        assert!(finder_error_message("29:40: execution error: Finder got an error: The operation can’t be completed. (-128)\n")
+            .unwrap().contains("canceled in Finder"));
+        assert!(finder_error_message("Not authorized to send Apple events to Finder. (-1743)")
+            .unwrap().contains("Automation"));
+        assert_eq!(finder_error_message("File -128 could not be removed. (-43)"), None);
+        assert_eq!(finder_error_message("Other error"), None);
+    }
     #[test]
     fn capabilities_fail_closed_for_unknown_platforms_and_actions() {
         for capability in [

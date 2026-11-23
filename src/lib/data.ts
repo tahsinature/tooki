@@ -2,6 +2,7 @@ export type Item = {
   id: string;
   title: string;
   subtitle: string;
+  parentTitle?: string;
   metadata?: string;
   icon?: string;
   alias?: string;

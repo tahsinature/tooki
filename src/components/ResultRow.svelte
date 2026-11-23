@@ -115,6 +115,9 @@
   <span class="row-copy"
     ><span class="row-title-line">
       <span class="row-title">{item.title}</span>
+      {#if item.parentTitle}
+        <span class="row-context">{item.parentTitle}</span>
+      {/if}
       {#if item.kind === 'application' && item.alias?.trim()}
         <span
           class="row-alias"

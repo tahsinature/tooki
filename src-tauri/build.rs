@@ -31,6 +31,7 @@ fn main() {
             .file("native/utility_window.m")
             .file("native/preview.m")
             .file("native/launcher.m")
+            .file("native/toast.m")
             .file("native/applications.m")
             .file("native/system_actions.m")
             .file("native/keep_awake.m")
@@ -69,6 +70,7 @@ fn main() {
         println!("cargo:rerun-if-changed=native/utility_window.m");
         println!("cargo:rerun-if-changed=native/preview.m");
         println!("cargo:rerun-if-changed=native/launcher.m");
+        println!("cargo:rerun-if-changed=native/toast.m");
         println!("cargo:rerun-if-changed=native/applications.m");
         println!("cargo:rerun-if-changed=native/system_actions.m");
         println!("cargo:rerun-if-changed=native/keep_awake.m");

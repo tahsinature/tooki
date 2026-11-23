@@ -1,8 +1,9 @@
 import { commandAvailable, type AvailabilityMap } from './availability';
 import registry from './commands.json';
+import { matchScore } from '../launcher/search';
 import { commands, type Item } from '../../lib/data';
 import type { AppPreference } from '../launcher/app-preferences.svelte';
-// Keep one root entry per tool. Secondary actions appear only for an exact alias.
+// Empty search keeps one entry per tool. Searches expose matching actions.
 export function commandItems(
   query: string,
   preferences: Record<string, AppPreference>,
@@ -19,25 +20,36 @@ export function commandItems(
     });
   const alias = query.trim().toLowerCase();
   if (!alias) return root;
-  return [
-    ...root,
-    ...registry
-      .filter(
-        (command) =>
-          !command.root &&
-          commandAvailable(command.id, support) &&
-          preferences[command.id]?.alias.toLowerCase() === alias,
-      )
-      .map((command): Item => ({
+  const actions = registry
+    .filter(
+      (command) =>
+        !command.root &&
+        commandAvailable(command.id, support) &&
+        (preferences[command.id]?.alias.toLowerCase() === alias ||
+          matchScore(query, command.title) !== null),
+    )
+    .map((command): Item => {
+      const parent = commands.find((item) => item.id === command.tool);
+      return {
         id: command.id,
         title: command.title,
-        subtitle: command.tool,
+        parentTitle: parent?.title,
+        subtitle: parent ? `${parent.title} / ${command.title}` : command.title,
         kind: 'command',
         group: 'Commands',
         content: '',
         source: '',
         time: '',
-        alias: preferences[command.id].alias,
-      })),
+        alias: preferences[command.id]?.alias,
+      };
+    });
+  return [
+    ...root.filter(
+      (item) =>
+        matchScore(query, item.title) !== null ||
+        item.alias?.toLowerCase() === alias ||
+        !actions.some((action) => action.parentTitle === item.title),
+    ),
+    ...actions,
   ];
 }

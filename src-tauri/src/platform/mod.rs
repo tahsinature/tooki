@@ -86,3 +86,5 @@ pub fn file_action(
 }
 
 pub mod menu_bar_icon;
+
+pub mod toast;

@@ -1,8 +1,6 @@
 <script lang="ts">
-  import { onMount, onDestroy, tick } from 'svelte';
-  import ConfirmationActions from '../../components/ConfirmationActions.svelte';
+  import { onMount, tick } from 'svelte';
   import { invoke } from '@tauri-apps/api/core';
-  import { listen } from '@tauri-apps/api/event';
   import registry from '../shortcuts/commands.json';
   import { commandSupport } from '../shortcuts/availability.svelte';
   import { commandAvailable } from '../shortcuts/availability';
@@ -35,27 +33,6 @@
     tool === 'keepAwake' ? 'Keep Awake' : 'System Actions',
   );
   type Volume = { id: string; name: string; path: string };
-  let trashRequest = $state<number | null>(null);
-  let confirmationError = $state('');
-  async function resolveTrash(confirmed: boolean) {
-    if (trashRequest === null) return;
-    const request = trashRequest;
-    try {
-      await invoke('confirm_empty_trash', { request, confirmed });
-      trashRequest = null;
-      if (confirmed) status = 'Trash emptied';
-    } catch (error) {
-      trashRequest = null;
-      confirmationError = String(error);
-    }
-  }
-  onDestroy(() => {
-    if (trashRequest !== null)
-      void invoke('confirm_empty_trash', {
-        request: trashRequest,
-        confirmed: false,
-      }).catch(console.error);
-  });
   let disks = $state(false);
   let volumes = $state<Volume[]>([]);
   let query = $state('');
@@ -112,6 +89,10 @@
     ),
   );
   let item = $derived(rows[selected]);
+  $effect(() => {
+    query;
+    selected = 0;
+  });
   let initialSelectionApplied = $state(false);
   $effect(() => {
     if (initialSelectionApplied) return;
@@ -120,10 +101,6 @@
       selected = index;
       initialSelectionApplied = true;
     }
-  });
-  $effect(() => {
-    query;
-    selected = 0;
   });
   $effect(() => {
     if (selected >= rows.length) selected = Math.max(0, rows.length - 1);
@@ -175,7 +152,6 @@
       if (disks) {
         await invoke('eject_system_volume', { id: target.id });
         await refresh();
-        status = `Ejected ${target.title}`;
       } else {
         await invoke('execute_tool_command', { id: target.id });
         if (target.id.startsWith('command:system.keepAwake'))
@@ -219,35 +195,8 @@
     }
   }
   onMount(() => {
-    let disposed = false;
-    if (initialTarget === 'command:system.emptyTrash')
-      void invoke<number | null>('pending_empty_trash')
-        .then((request) => {
-          if (disposed) {
-            if (request !== null)
-              void invoke('confirm_empty_trash', {
-                request,
-                confirmed: false,
-              }).catch(console.error);
-          } else trashRequest = request;
-        })
-        .catch((error) => (status = String(error)));
     if (initialTarget === 'command:system.eject') void showDisks();
     void tick().then(() => document.getElementById('search')?.focus());
-    let stop: (() => void) | undefined;
-    void listen<string>(
-      'system-action-completed',
-      ({ payload }) => (status = payload),
-    )
-      .then((unlisten) => {
-        if (disposed) unlisten();
-        else stop = unlisten;
-      })
-      .catch(console.error);
-    return () => {
-      disposed = true;
-      stop?.();
-    };
   });
 </script>
 
@@ -299,8 +248,7 @@
       clipboard={true}
       count={rows.length}
       selectedIndex={selected}
-      status={confirmationError ||
-        status ||
+      status={status ||
         (disks
           ? 'Ejecting a disk can also disconnect its other volumes.'
           : (item?.subtitle ?? ''))}
@@ -366,11 +314,3 @@
         />
       </PopupSurface>{/if}{/snippet}
 </PanelLayout>
-
-{#if trashRequest !== null}<ConfirmationActions
-    title="Empty Trash?"
-    description="Permanently delete all items in the Trash? This cannot be undone."
-    confirmLabel="Empty Trash"
-    onclose={() => void resolveTrash(false)}
-    onconfirm={() => resolveTrash(true)}
-  />{/if}

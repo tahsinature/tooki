@@ -200,6 +200,17 @@ input:focus {
 .row-title-line .row-title {
   min-width: 0;
 }
+.row-context {
+  min-width: 0;
+  max-width: 40%;
+  margin-left: 5px;
+  color: var(--muted);
+  font-size: calc(var(--font-size, 13px) - 2px);
+  font-weight: 400;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .row-alias {
   min-width: 0;
   max-width: 40%;

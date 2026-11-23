@@ -85,6 +85,23 @@ pub fn set_keep_awake_mode(app: tauri::AppHandle, mode: Mode) -> Result<(), Stri
 }
 
 pub fn execute(app: &tauri::AppHandle, id: &str) -> Result<(), String> {
+    let result = apply_command(app, id);
+    let message = if result.is_ok() {
+        match keep_awake_status(app.clone()) {
+            Ok(status) if !status.active => "Keep Awake turned off".into(),
+            Ok(status) => match status.duration_minutes {
+                Some(minutes) => format!("Keep Awake on for {minutes} minutes"),
+                None => "Keep Awake on until turned off".into(),
+            },
+            Err(_) => "Keep Awake updated".into(),
+        }
+    } else {
+        String::new()
+    };
+    crate::command_feedback::finish(app, result, &message)
+}
+
+fn apply_command(app: &tauri::AppHandle, id: &str) -> Result<(), String> {
     crate::system_actions::require("power.keepAwake")?;
     let state = app.state::<KeepAwake>();
     let mut value = state.0.lock().map_err(|e| e.to_string())?;
