@@ -14,7 +14,7 @@
   let filter = $state('customized');
   const groups: Record<string, string> = {
     notes: 'Notes',
-    shelf: 'Shelf',
+    shelf: 'Shelferry',
     clipboard: 'Clipboard',
     system: 'System Actions',
     systemMonitor: 'System Monitor',
@@ -79,7 +79,7 @@
     : 'Tool commands, the launcher, and saved application assignments.'} Edit here
   or in the tool’s settings.
 </p>
-{#each ['General', 'Notes', 'Shelf', 'Clipboard', 'System Actions', 'System Monitor', 'Applications'] as group}
+{#each ['General', 'Notes', 'Shelferry', 'Clipboard', 'System Actions', 'System Monitor', 'Applications'] as group}
   {#if visible.some((item) => item.group === group)}
     <SettingsSection title={group}>
       {#each visible.filter((item) => item.group === group) as item (item.id)}<AssignmentRow

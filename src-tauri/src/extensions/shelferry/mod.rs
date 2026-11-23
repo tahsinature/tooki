@@ -24,6 +24,8 @@ pub struct Status {
     pub preferences: Preferences,
     pub executable: Option<PathBuf>,
     pub available: bool,
+    pub supported: bool,
+    pub state: ConnectionState,
     pub reason: Option<String>,
     pub install_command: &'static str,
 }
@@ -53,19 +55,65 @@ fn candidates() -> Vec<PathBuf> {
     }
     paths
 }
+#[derive(Clone, Serialize, Debug, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub enum ConnectionState {
+    Ready,
+    NotInstalled,
+    Disabled,
+    Unsupported,
+    NeedsAttention,
+}
+
+fn connection_state(
+    supported: bool,
+    enabled: bool,
+    configuration_error: bool,
+    discovered: bool,
+    has_override: bool,
+) -> ConnectionState {
+    if !supported {
+        ConnectionState::Unsupported
+    } else if configuration_error {
+        ConnectionState::NeedsAttention
+    } else if !enabled {
+        ConnectionState::Disabled
+    } else if discovered {
+        ConnectionState::Ready
+    } else if has_override {
+        ConnectionState::NeedsAttention
+    } else {
+        ConnectionState::NotInstalled
+    }
+}
+
 pub fn status(app: &tauri::AppHandle) -> Status {
     let state = app.state::<Shelferry>();
     let preferences = state.preferences.lock().unwrap().clone();
-    let result = if let Some(reason) = state.platform_reason.lock().unwrap().clone() {
+    let platform_reason = state.platform_reason.lock().unwrap().clone();
+    let configuration_error = state.configuration_error.lock().unwrap().clone();
+    let supported = platform_reason.is_none();
+    let result = if let Some(reason) = platform_reason {
         Err(reason)
-    } else if let Some(error) = state.configuration_error.lock().unwrap().clone() {
-        Err(error)
+    } else if let Some(error) = &configuration_error {
+        Err(error.clone())
     } else if !preferences.enabled {
-        Err("Shelferry extension is disabled. Enable it in Settings → Shelferry.".into())
+        Err(
+            "Shelferry extension is disabled. Enable it in Settings → Extensions → Shelferry."
+                .into(),
+        )
     } else {
         cli::discover(&preferences.executable, candidates())
     };
     Status {
+        state: connection_state(
+            supported,
+            preferences.enabled,
+            configuration_error.is_some(),
+            result.is_ok(),
+            !preferences.executable.is_empty(),
+        ),
+        supported,
         preferences,
         available: result.is_ok(),
         executable: result.as_ref().ok().cloned(),
@@ -189,4 +237,37 @@ pub fn reload_preferences(app: &tauri::AppHandle) -> Result<(), String> {
         refresh(app);
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn connection_status_distinguishes_disabled_missing_and_broken_installations() {
+        assert_eq!(
+            connection_state(true, true, false, true, false),
+            ConnectionState::Ready
+        );
+        assert_eq!(
+            connection_state(true, false, false, false, false),
+            ConnectionState::Disabled
+        );
+        assert_eq!(
+            connection_state(false, false, false, false, false),
+            ConnectionState::Unsupported
+        );
+        assert_eq!(
+            connection_state(true, true, false, false, false),
+            ConnectionState::NotInstalled
+        );
+        assert_eq!(
+            connection_state(true, true, false, false, true),
+            ConnectionState::NeedsAttention
+        );
+        assert_eq!(
+            connection_state(true, true, true, false, false),
+            ConnectionState::NeedsAttention
+        );
+    }
 }

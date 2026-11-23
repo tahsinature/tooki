@@ -259,9 +259,10 @@ adapter serializes operations, invokes the binary directly with argument arrays
 and `--json`, validates protocol version 1 and process failures, and never retries
 an uncertain mutation. Shelferry owns toggle state and launches itself as needed.
 
-Settings → Shelferry provides enable/disable, connection checking, an executable
-override, and command assignments. These integration preferences are stored in
-Tooki's `shelferry-extension.json`; Shelferry's own config and storage are never
+Settings → Extensions → Shelferry provides enable/disable, connection checking,
+an executable override under Advanced, and command assignments. The enable
+preference is portable; the executable override remains machine-local in Tooki's
+`shelferry-extension.json`. Shelferry's own config and storage are never
 read or written by Tooki. Discovery supports Homebrew, system/user Applications,
 and PATH. An invalid explicit override does not fall back. Unsupported platforms
 and macOS versions before 14 disable the commands while preserving assignments.
