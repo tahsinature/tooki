@@ -1,0 +1,65 @@
+# Keep Make as the implementation; mise provides task discovery and completion.
+
+[tasks.help]
+description = "Show available commands"
+run = "make help"
+
+[tasks.dev]
+description = "Launch the primary Tauri app with live reload"
+run = "make dev"
+
+[tasks.clean]
+description = "Stop development processes without deleting build caches"
+run = "make clean"
+
+[tasks.app]
+description = "Build and sign build/Tooki.app (CONFIGURATION=debug for development)"
+run = "make app"
+
+[tasks.dmg]
+description = "Build build/Tooki.dmg (TAURI_TARGET=universal-apple-darwin for both Macs)"
+run = "make dmg"
+
+[tasks.test]
+description = "Check the frontend and test the Rust and TypeScript features"
+run = "make test"
+
+[tasks.install]
+description = "Install the local build into Applications"
+run = "make install"
+
+[tasks.size]
+description = "Show existing build sizes without rebuilding"
+run = "make size"
+
+[tasks.clean-builds]
+description = "Remove build caches and bundles (stop dev/builds first; next build is slower)"
+run = "make clean-builds"
+
+[tasks.test-clipboard-native]
+description = "Verify clipboard capture with an isolated pasteboard"
+run = "make test-clipboard-native"
+
+[tasks.test-detective-native]
+description = "Verify macOS shortcut callback handling"
+run = "make test-detective-native"
+
+[tasks.test-hyper-native]
+description = "Verify macOS Hyper Key mapping parsing"
+run = "make test-hyper-native"
+
+[tasks.test-preview-native]
+description = "Verify native Quick Look ownership and navigation"
+run = "make test-preview-native"
+
+[tasks.test-instance-guard-native]
+description = "Verify local dev/production session exclusion"
+run = "make test-instance-guard-native"
+
+[tasks.test-snippets-native]
+description = "Verify snippet replacement events without typing into apps"
+run = "make test-snippets-native"
+
+[tasks.test-toast-native]
+description = "Verify native toast layout and nonactivation"
+run = "make test-toast-native"

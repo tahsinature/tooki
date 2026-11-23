@@ -29,7 +29,7 @@ install: app ## Install the local build into Applications
 size: ## Show existing build sizes without rebuilding
 	@bun scripts/size.ts
 
-clean-builds: ## Remove build output after stopping development and builds
+clean-builds: ## Remove build caches and bundles (stop dev/builds first; next build is slower)
 	rm -rf src-tauri/target src-tauri/crates/*/target dist build
 
 test-clipboard-native: ## Verify clipboard capture with an isolated pasteboard
