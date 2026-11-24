@@ -23,9 +23,21 @@ int main(void) {
   [@"Tooki receipt 12345" drawAtPoint:NSMakePoint(24,40) withAttributes:@{NSFontAttributeName:[NSFont systemFontOfSize:36],NSForegroundColorAttributeName:NSColor.blackColor}];
   [image unlockFocus];
   NSBitmapImageRep *rep=[NSBitmapImageRep imageRepWithData:image.TIFFRepresentation];
-  NSData *png=[rep representationUsingType:NSBitmapImageFileTypePNG properties:@{}];
+  // A nondefault encoding catches accidental decoding and re-encoding during capture.
+  NSData *png=[rep representationUsingType:NSBitmapImageFileTypePNG properties:@{NSImageInterlaced:@YES}];
+  NSData *reencoded=[[NSBitmapImageRep imageRepWithData:png] representationUsingType:NSBitmapImageFileTypePNG properties:@{}];
+  CHECK(![png isEqualToData:reencoded]);
   [pb clearContents];[pb setData:png forType:NSPasteboardTypePNG];
   NSDictionary *captured=capture(args);CHECK([captured[@"width"] intValue]>0);
+  CHECK([[NSData dataWithContentsOfFile:captured[@"image"]] isEqualToData:png]);
+  CHECK([captured[@"bytes"] unsignedLongLongValue]==png.length);
+  perform(@"copy",@{@"item":@{@"image":captured[@"image"]},@"mode":@"original"});
+  CHECK([[pb dataForType:NSPasteboardTypePNG] isEqualToData:png]);
+  [pb clearContents];[pb setData:image.TIFFRepresentation forType:NSPasteboardTypeTIFF];
+  NSDictionary *converted=capture(args);
+  NSData *convertedPNG=[NSData dataWithContentsOfFile:converted[@"image"]];
+  CHECK([convertedPNG isEqualToData:[rep representationUsingType:NSBitmapImageFileTypePNG properties:@{}]]);
+  CHECK([converted[@"bytes"] unsignedLongLongValue]==convertedPNG.length);
   NSString *recognized=perform(@"ocr",@{@"path":captured[@"image"]});
   CHECK([recognized isKindOfClass:NSString.class]);CHECK([recognized containsString:@"12345"]);
   NSArray *apps=perform(@"apps",@{@"path":captured[@"image"]});CHECK(apps.count>0);

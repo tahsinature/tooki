@@ -79,11 +79,13 @@ static id capture(NSDictionary *args) {
             if (html.length && html.length<=4*1024*1024) result[@"html"]=[html base64EncodedStringWithOptions:0];
             if (rtf.length && rtf.length<=4*1024*1024) result[@"rtf"]=[rtf base64EncodedStringWithOptions:0];
         } else if ([args[@"images"] boolValue]) {
-            NSData *data=[pb dataForType:NSPasteboardTypePNG] ?: [pb dataForType:NSPasteboardTypeTIFF];
+            NSData *png=[pb dataForType:NSPasteboardTypePNG];
+            NSData *data=png ?: [pb dataForType:NSPasteboardTypeTIFF];
             if (!data.length || data.length>32*1024*1024) return NSNull.null;
             NSBitmapImageRep *rep=[NSBitmapImageRep imageRepWithData:data];
             if (!rep || rep.pixelsWide*rep.pixelsHigh>100000000) return NSNull.null;
-            NSData *png=[rep representationUsingType:NSBitmapImageFileTypePNG properties:@{}];
+            // Preserve the source PNG's compression and metadata; only convert TIFF.
+            if (!png) png=[rep representationUsingType:NSBitmapImageFileTypePNG properties:@{}];
             if (!png || png.length>32*1024*1024) return NSNull.null;
             NSString *path=[str(args[@"directory"]) stringByAppendingPathComponent:[NSUUID.UUID.UUIDString stringByAppendingString:@".png"]];
             NSError *error; if (![png writeToFile:path options:NSDataWritingAtomic error:&error]) return failure(error.localizedDescription);
