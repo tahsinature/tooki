@@ -1,14 +1,16 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(default, rename_all = "camelCase")]
 pub struct Preferences {
     pub show_menu_bar_icon: bool,
+    pub mode: super::model::Mode,
 }
 impl Default for Preferences {
     fn default() -> Self {
         Self {
             show_menu_bar_icon: true,
+            mode: super::model::Mode::System,
         }
     }
 }

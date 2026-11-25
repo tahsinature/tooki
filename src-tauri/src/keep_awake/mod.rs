@@ -1,5 +1,6 @@
 mod model;
 mod native;
+mod persistence;
 mod preferences;
 #[cfg(test)]
 mod tests;
@@ -80,8 +81,24 @@ pub fn set_keep_awake_mode(app: tauri::AppHandle, mode: Mode) -> Result<(), Stri
     crate::system_actions::require("power.keepAwake")?;
     let state = app.state::<KeepAwake>();
     let mut value = state.0.lock().map_err(|e| e.to_string())?;
+    if value.shutdown {
+        return Err("Tooki is shutting down.".into());
+    }
     refresh(&mut value);
-    value.set_mode(mode, SystemTime::now(), Assertion::acquire)
+    let mut preferences = state.1.lock().map_err(|e| e.to_string())?;
+    let mut next = Controller {
+        mode,
+        ..Controller::default()
+    };
+    next.restore(value.saved_session(), SystemTime::now(), Assertion::acquire)?;
+    let next_preferences = preferences::Preferences {
+        mode,
+        ..preferences.clone()
+    };
+    preferences::save(&app, &next_preferences)?;
+    *preferences = next_preferences;
+    *value = next;
+    Ok(())
 }
 
 pub fn execute(app: &tauri::AppHandle, id: &str) -> Result<(), String> {
@@ -105,6 +122,9 @@ fn apply_command(app: &tauri::AppHandle, id: &str) -> Result<(), String> {
     crate::system_actions::require("power.keepAwake")?;
     let state = app.state::<KeepAwake>();
     let mut value = state.0.lock().map_err(|e| e.to_string())?;
+    if value.shutdown {
+        return Err("Tooki is shutting down.".into());
+    }
     refresh(&mut value);
     let minutes = match id {
         "command:system.keepAwake15" => Some(15),
@@ -112,17 +132,26 @@ fn apply_command(app: &tauri::AppHandle, id: &str) -> Result<(), String> {
         "command:system.keepAwake120" => Some(120),
         "command:system.keepAwakeOn" => None,
         "command:system.keepAwakeOff" => {
+            persistence::save(app, &None)?;
             value.stop();
             return Ok(());
         }
         "command:system.keepAwakeToggle" if value.session.is_some() => {
+            persistence::save(app, &None)?;
             value.stop();
             return Ok(());
         }
         "command:system.keepAwakeToggle" => None,
         _ => return Err("Unknown Keep Awake command.".into()),
     };
-    value.start(minutes, SystemTime::now(), Assertion::acquire)
+    let mut next = Controller {
+        mode: value.mode,
+        ..Controller::default()
+    };
+    next.start(minutes, SystemTime::now(), Assertion::acquire)?;
+    persistence::save(app, &next.saved_session())?;
+    *value = next;
+    Ok(())
 }
 
 #[tauri::command]
@@ -132,6 +161,7 @@ pub fn set_keep_awake_icon(app: tauri::AppHandle, visible: bool) -> Result<(), S
     let mut current = state.1.lock().map_err(|e| e.to_string())?;
     let next = preferences::Preferences {
         show_menu_bar_icon: visible,
+        ..current.clone()
     };
     preferences::save(&app, &next)?;
     *current = next;
@@ -141,14 +171,29 @@ pub fn set_keep_awake_icon(app: tauri::AppHandle, visible: bool) -> Result<(), S
 }
 
 pub fn reload_preferences(app: &tauri::AppHandle) -> Result<(), String> {
-    *app.state::<KeepAwake>().1.lock().unwrap() = crate::config::read(app, "keepAwake")?;
+    let next: preferences::Preferences = crate::config::read(app, "keepAwake")?;
+    let state = app.state::<KeepAwake>();
+    let mut value = state.0.lock().map_err(|e| e.to_string())?;
+    value.set_mode(next.mode, SystemTime::now(), Assertion::acquire)?;
+    *state.1.lock().map_err(|e| e.to_string())? = next;
+    drop(value);
     tray::sync(app);
     Ok(())
 }
 
 pub fn initialize(app: &tauri::AppHandle) {
     match preferences::load(app) {
-        Ok(preferences) => *app.state::<KeepAwake>().1.lock().unwrap() = preferences,
+        Ok(preferences) => {
+            let state = app.state::<KeepAwake>();
+            let mut value = state.0.lock().unwrap();
+            value.mode = preferences.mode;
+            *state.1.lock().unwrap() = preferences;
+            if let Err(error) = persistence::load(app)
+                .and_then(|saved| value.restore(saved, SystemTime::now(), Assertion::acquire))
+            {
+                eprintln!("Keep Awake restore: {error}");
+            }
+        }
         Err(error) => eprintln!("Keep Awake settings: {error}"),
     }
     let app = app.clone();

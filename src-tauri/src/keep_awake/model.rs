@@ -15,6 +15,13 @@ pub struct Session<A> {
     pub duration_minutes: Option<u32>,
 }
 
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct SavedSession {
+    pub deadline: Option<SystemTime>,
+    pub duration_minutes: Option<u32>,
+}
+
 pub struct Controller<A> {
     pub mode: Mode,
     pub session: Option<Session<A>>,
@@ -32,6 +39,47 @@ impl<A> Default for Controller<A> {
 }
 
 impl<A> Controller<A> {
+    pub fn saved_session(&self) -> Option<SavedSession> {
+        self.session.as_ref().map(|session| SavedSession {
+            deadline: session.deadline,
+            duration_minutes: session.duration_minutes,
+        })
+    }
+
+    pub fn restore(
+        &mut self,
+        saved: Option<SavedSession>,
+        now: SystemTime,
+        acquire: impl FnOnce(Mode, Option<Duration>) -> Result<A, String>,
+    ) -> Result<(), String> {
+        let Some(saved) = saved else {
+            self.stop();
+            return Ok(());
+        };
+        let remaining = match (saved.duration_minutes, saved.deadline) {
+            (None, None) => None,
+            (Some(15 | 60 | 120), Some(deadline)) => {
+                let Ok(remaining) = deadline.duration_since(now) else {
+                    self.stop();
+                    return Ok(());
+                };
+                if remaining.is_zero() {
+                    self.stop();
+                    return Ok(());
+                }
+                Some(remaining)
+            }
+            _ => return Err("Invalid saved Keep Awake session.".into()),
+        };
+        let assertion = acquire(self.mode, remaining)?;
+        self.session = Some(Session {
+            assertion,
+            deadline: saved.deadline,
+            duration_minutes: saved.duration_minutes,
+        });
+        Ok(())
+    }
+
     pub fn start(
         &mut self,
         minutes: Option<u32>,
