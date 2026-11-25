@@ -220,7 +220,7 @@
       placeholder="Search system monitor…"
       filterOptions={[]}
     />{/snippet}
-  <ListDetailPanel>
+  <ListDetailPanel empty={rows.length === 0 ? panelEmpty : undefined}>
     <GroupedPanelList
       items={rows}
       group={(row) => row.group}
@@ -235,10 +235,7 @@
           onactions={() => (actions = true)}
           onopen={() => (view = row.id.slice(8) as View)}
         />{/snippet}
-      {#snippet empty()}<EmptyState
-          title="No matching views"
-          description="Try CPU, memory, disk, battery, or network."
-        />{/snippet}
+      {#snippet empty()}{@render panelEmpty()}{/snippet}
     </GroupedPanelList>
     {#snippet detail()}
       <!-- The scrollable details region must be reachable by keyboard. -->
@@ -312,3 +309,8 @@
         /></PopupSurface
       >{/if}{/snippet}
 </PanelLayout>
+
+{#snippet panelEmpty()}<EmptyState
+    title="No matching views"
+    description="Try CPU, memory, disk, battery, or network."
+  />{/snippet}

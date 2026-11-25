@@ -221,7 +221,7 @@
         { value: 'template', label: 'Templates' },
       ]}
     />{/snippet}
-  <ListDetailPanel>
+  <ListDetailPanel empty={visible.length === 0 ? panelEmpty : undefined}>
     <GroupedPanelList
       items={visible.map(snippetRow)}
       group={(item) => item.group}
@@ -239,13 +239,7 @@
             else choose(visible[index]);
           }}
         />{/snippet}
-      {#snippet empty()}<EmptyState
-          title={query ? 'No matching snippets' : 'Create your first snippet'}
-          description="Manage text, choices, and templates in Settings."
-        />
-        <div class="snippet-starters">
-          <Button onclick={onsettings}>Open Snippets Settings</Button>
-        </div>{/snippet}
+      {#snippet empty()}{@render panelEmpty()}{/snippet}
     </GroupedPanelList>
     {#snippet detail()}
       <div class="snippet-detail">
@@ -333,3 +327,18 @@
         /></PopupSurface
       >{/if}{/snippet}
 </PanelLayout>
+
+{#snippet panelEmpty()}
+  <EmptyState
+    title={query.trim() || filter !== 'all'
+      ? 'No matching snippets'
+      : 'Create your first snippet'}
+    description={query.trim() || filter !== 'all'
+      ? 'Try another search or choose a different filter.'
+      : 'Keep reusable text, choices, and templates ready to expand.'}
+  >
+    {#snippet actions()}<Button onclick={onsettings}
+        >Open Snippets Settings</Button
+      >{/snippet}
+  </EmptyState>
+{/snippet}

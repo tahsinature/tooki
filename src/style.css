@@ -400,22 +400,11 @@ kbd {
   color: var(--ink);
   margin-left: auto;
 }
-.empty {
+.result-list:has(> .empty),
+.detail-preview:has(> .empty) {
   display: flex;
-  flex-direction: column;
-  justify-content: center;
   align-items: center;
-  min-height: 240px;
-  color: var(--muted);
-  gap: 10px;
-}
-.empty h2 {
-  font-size: 16px;
-  color: var(--muted);
-  margin: 0;
-}
-.empty p {
-  font-size: 12px;
+  justify-content: center;
 }
 .popup {
   position: absolute;

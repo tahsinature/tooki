@@ -214,7 +214,7 @@
         { value: 'all', label: disks ? 'All disks' : 'All actions' },
       ]}
     />{/snippet}
-  <ListDetailPanel>
+  <ListDetailPanel empty={rows.length === 0 ? panelEmpty : undefined}>
     <GroupedPanelList
       items={rows}
       group={(row) => row.group}
@@ -232,16 +232,7 @@
             void run();
           }}
         />{/snippet}
-      {#snippet empty()}<EmptyState
-          title={busy
-            ? 'Loading…'
-            : disks
-              ? 'No ejectable disks'
-              : 'No matching actions'}
-          description={disks
-            ? 'Connect an ejectable disk, then choose Refresh.'
-            : 'Try another search or check platform support in Settings.'}
-        />{/snippet}
+      {#snippet empty()}{@render panelEmpty()}{/snippet}
     </GroupedPanelList>
   </ListDetailPanel>
   {#snippet footer()}<BottomActionBar
@@ -314,3 +305,14 @@
         />
       </PopupSurface>{/if}{/snippet}
 </PanelLayout>
+
+{#snippet panelEmpty()}<EmptyState
+    title={busy
+      ? 'Loading…'
+      : disks
+        ? 'No ejectable disks'
+        : 'No matching actions'}
+    description={disks
+      ? 'Connect an ejectable disk, then choose Refresh.'
+      : 'Try another search or check platform support in Settings.'}
+  />{/snippet}

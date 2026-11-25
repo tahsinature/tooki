@@ -336,7 +336,10 @@
         : [{ value: 'all', label: 'All shelves' }]}
       onback={fixedShelf ? undefined : back}
     />{/snippet}
-  <ListDetailPanel detail={fixedShelf ? undefined : preview}>
+  <ListDetailPanel
+    empty={rows.length === 0 ? panelEmpty : undefined}
+    detail={fixedShelf ? undefined : preview}
+  >
     <GroupedPanelList
       items={rows}
       label="Shelf items"
@@ -356,12 +359,7 @@
             open();
           }}
         />{/snippet}
-      {#snippet empty()}<EmptyState
-          title={shelf ? 'This shelf is empty' : 'No shelves yet'}
-          description={shelf
-            ? 'Drop files here or use Actions to add files or clipboard text.'
-            : 'Open Actions to create a shelf.'}
-        />{/snippet}
+      {#snippet empty()}{@render panelEmpty()}{/snippet}
     </GroupedPanelList>
   </ListDetailPanel>
   {#snippet footer()}<BottomActionBar
@@ -477,6 +475,21 @@
           ]}
         />{/if}{/snippet}
   </DetailLayout>{/snippet}
+
+{#snippet panelEmpty()}
+  <EmptyState
+    title={query.trim() || filter !== 'all'
+      ? 'No matching items'
+      : shelf
+        ? 'This shelf is empty'
+        : 'No shelves yet'}
+    description={query.trim() || filter !== 'all'
+      ? 'Try another search or choose a different filter.'
+      : shelf
+        ? 'Drop files here or use Actions to add an item.'
+        : 'Open Actions to create a shelf.'}
+  />
+{/snippet}
 
 <style>
   .shelf-image {

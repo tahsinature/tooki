@@ -67,7 +67,10 @@
   let systemTarget = $state('command:system.open');
   let refreshRequested = $state<number | null>(null);
   $effect(() => {
-    if (refreshRequested !== null && applicationCatalog.completedRefreshes > refreshRequested) {
+    if (
+      refreshRequested !== null &&
+      applicationCatalog.completedRefreshes > refreshRequested
+    ) {
       status = applicationCatalog.error || 'Applications refreshed';
       refreshRequested = null;
     }
@@ -550,7 +553,9 @@
             ]}
       />
     {/snippet}
-    {#if !compact}<ListDetailPanel>
+    {#if !compact}<ListDetailPanel
+        empty={visible.length === 0 ? panelEmpty : undefined}
+      >
         <GroupedPanelList
           items={visible}
           group={(row) => (query.trim() ? '' : row.group)}
@@ -570,7 +575,7 @@
               }}
             />
           {/snippet}
-          {#snippet empty()}<EmptyState />{/snippet}
+          {#snippet empty()}{@render panelEmpty()}{/snippet}
         </GroupedPanelList>
       </ListDetailPanel>{/if}
     {#snippet footer()}
@@ -648,3 +653,5 @@
       onclose={() => (trashRequest = null)}
     />{/key}
 {/if}
+
+{#snippet panelEmpty()}<EmptyState />{/snippet}
