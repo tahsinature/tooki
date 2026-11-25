@@ -35,6 +35,10 @@ clean-builds: ## Remove build caches and bundles (stop dev/builds first; next bu
 test-clipboard-native: ## Verify clipboard capture with an isolated pasteboard
 	@sh scripts/test-clipboard-native.sh
 
+.PHONY: test-drop-content-native
+test-drop-content-native: ## Verify drop content using an isolated pasteboard
+	@sh scripts/test-drop-content-native.sh
+
 test-detective-native: ## Verify macOS shortcut callback handling
 	@sh scripts/test-detective-native.sh
 

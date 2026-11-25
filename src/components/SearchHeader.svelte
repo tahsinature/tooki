@@ -51,6 +51,8 @@
               { value: 'image', label: 'Images' },
               { value: 'file', label: 'Files' },
               { value: 'color', label: 'Colors' },
+              { value: 'dropped', label: 'Dropped' },
+              { value: 'unavailable', label: 'Unavailable' },
               { value: 'pinned', label: 'Pinned' },
             ]
           : [{ value: 'all', label: 'All' }])}

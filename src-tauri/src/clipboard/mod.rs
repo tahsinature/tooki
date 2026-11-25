@@ -1,5 +1,9 @@
+mod availability;
 mod commands;
+mod bulk_delete;
 mod database;
+pub mod drops;
+mod drop_storage;
 mod model;
 pub(crate) mod native;
 mod ocr;
@@ -15,6 +19,8 @@ pub struct Clipboard {
     database: Mutex<Database>,
     settings: Mutex<Settings>,
     recognition: Mutex<()>,
+    deletions: Mutex<bulk_delete::DeletionPlans>,
+    importing: std::sync::atomic::AtomicBool,
 }
 pub fn start(app: &tauri::AppHandle) -> Result<(), String> {
     let root = app
@@ -46,6 +52,7 @@ pub fn start(app: &tauri::AppHandle) -> Result<(), String> {
             let _ = std::fs::remove_file(root.join(name));
         }
         let _ = std::fs::remove_dir_all(root.join("images"));
+        let _ = std::fs::remove_dir_all(root.join("files"));
     }
     let _ = std::fs::remove_dir_all(root.join("staging"));
     let _ = std::fs::remove_dir_all(root.join("exports"));
@@ -56,6 +63,8 @@ pub fn start(app: &tauri::AppHandle) -> Result<(), String> {
         database: Mutex::new(database),
         settings: Mutex::new(settings),
         recognition: Mutex::new(()),
+        deletions: Mutex::new(bulk_delete::DeletionPlans::default()),
+        importing: std::sync::atomic::AtomicBool::new(false),
     });
     let app = app.clone();
     std::thread::spawn(move || loop {
@@ -111,6 +120,8 @@ pub fn start_ocr(app: &tauri::AppHandle) {
 
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod drop_tests;
 
 pub fn cleanup(app: &tauri::AppHandle) {
     if let Some(state) = app.try_state::<Clipboard>() {
@@ -119,6 +130,7 @@ pub fn cleanup(app: &tauri::AppHandle) {
             let _ = std::fs::remove_dir_all(db.root.join("staging"));
             if !settings.persist_history {
                 let _ = std::fs::remove_dir_all(db.root.join("images"));
+                let _ = std::fs::remove_dir_all(db.root.join("files"));
             }
         }
     }

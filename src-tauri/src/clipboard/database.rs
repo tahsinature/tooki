@@ -19,6 +19,7 @@ impl Database {
         .map_err(|e| e.to_string())?;
         connection.execute_batch("PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000;
             CREATE TABLE IF NOT EXISTS clips(id TEXT PRIMARY KEY, fingerprint TEXT UNIQUE NOT NULL, kind TEXT NOT NULL, title TEXT NOT NULL, content TEXT NOT NULL, source TEXT NOT NULL, copied_at INTEGER NOT NULL, pinned INTEGER NOT NULL DEFAULT 0, payload TEXT NOT NULL);
+            CREATE TEMP TABLE IF NOT EXISTS unavailable_clips(id TEXT PRIMARY KEY);
             CREATE INDEX IF NOT EXISTS clips_order ON clips(pinned DESC,copied_at DESC);
             CREATE INDEX IF NOT EXISTS clips_kind ON clips(kind,copied_at DESC);
             CREATE VIRTUAL TABLE IF NOT EXISTS search USING fts5(title,content,source,tokenize='trigram');
@@ -26,6 +27,16 @@ impl Database {
             CREATE TRIGGER IF NOT EXISTS clips_ad AFTER DELETE ON clips BEGIN DELETE FROM search WHERE rowid=old.rowid; END;
             CREATE TRIGGER IF NOT EXISTS clips_au AFTER UPDATE ON clips BEGIN DELETE FROM search WHERE rowid=old.rowid; INSERT INTO search(rowid,title,content,source) VALUES(new.rowid,new.title,new.content,new.source); END;
             PRAGMA user_version=1;").map_err(|e| e.to_string())?;
+        // Older drops did not store provenance. Managed file paths identify
+        // file drops; old text/image drops cannot be distinguished from copies.
+        let managed_prefix = format!("{}/", root.join("files").to_string_lossy());
+        connection.execute(
+            "UPDATE clips SET payload=json_set(payload,'$.dropped',json(CASE WHEN EXISTS (
+                SELECT 1 FROM json_each(clips.payload,'$.files')
+                WHERE substr(value,1,length(?1))=?1
+            ) THEN 'true' ELSE 'false' END)) WHERE json_type(payload,'$.dropped') IS NULL",
+            [&managed_prefix],
+        ).map_err(|e| e.to_string())?;
         Ok(Self {
             connection,
             root: root.into(),
@@ -122,6 +133,9 @@ impl Database {
                 .collect()
         };
         let clip = Clip {
+            // Deduplication must not remove a previously dropped item from
+            // this collection when the same content is copied again.
+            dropped: capture.dropped || previous.as_ref().is_some_and(|c| c.dropped),
             id: previous
                 .as_ref()
                 .map(|c| c.id.clone())
@@ -160,7 +174,7 @@ impl Database {
         self.trim(settings)?;
         Ok(clip.id)
     }
-    fn search_condition(query: &str) -> (String, String) {
+    pub(super) fn search_condition(query: &str) -> (String, String) {
         let query = query.trim();
         let search_clause = if query.is_empty() {
             "1"
@@ -181,13 +195,14 @@ impl Database {
             )
         };
         let condition =
-            format!("{search_clause} AND (?2='all' OR (?2='pinned' AND pinned=1) OR kind=?2)");
+            format!("{search_clause} AND (?2='all' OR (?2='pinned' AND pinned=1) OR (?2='dropped' AND json_extract(payload,'$.dropped')=1) OR (?2='unavailable' AND id IN (SELECT id FROM unavailable_clips)) OR kind=?2)");
         // ?1 remains bound even for empty queries.
         let condition = format!("(?1 IS NOT NULL) AND {condition}");
         (condition, needle)
     }
     pub fn locate(&self, query: &str, kind: &str, id: &str) -> Result<Option<usize>> {
         use rusqlite::OptionalExtension;
+        self.refresh_unavailable(kind)?;
         let (condition, needle) = Self::search_condition(query);
         self.connection.query_row(&format!("SELECT position FROM (SELECT id,row_number() OVER (ORDER BY pinned DESC,copied_at DESC,id)-1 AS position FROM clips WHERE {condition}) WHERE id=?3"),params![needle,kind,id],|r|r.get::<_,i64>(0)).optional().map(|v|v.map(|n|n as usize)).map_err(|e|e.to_string())
     }
@@ -198,6 +213,7 @@ impl Database {
         offset: usize,
         limit: usize,
     ) -> Result<(Vec<Clip>, usize)> {
+        self.refresh_unavailable(kind)?;
         let (condition, needle) = Self::search_condition(query);
         let total = self
             .connection
@@ -284,7 +300,7 @@ impl Database {
                 }
             }
         }
-        Ok(())
+        super::drop_storage::clean_files(self)
     }
     pub fn set_persistence(&mut self, persist: bool) -> Result<()> {
         let mut next = Self::open(&self.root, persist)?;

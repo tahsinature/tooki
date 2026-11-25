@@ -20,6 +20,8 @@
   import BottomActionBar from './components/BottomActionBar.svelte';
   import ActionsPopup from './components/ActionsPopup.svelte';
   import EmptyState from './components/EmptyState.svelte';
+  import { clipboardEmptyState } from './features/clipboard/emptyState';
+  import DropOverlay from './components/DropOverlay.svelte';
   import Keycap from './components/Keycap.svelte';
   import SettingsSection from './components/settings/SettingsSection.svelte';
   import SettingsRow from './components/settings/SettingsRow.svelte';
@@ -38,15 +40,28 @@
   let actions = $state(false);
   let pinned = $state(true);
   let status = $state('');
+  let drop = $state<'hidden' | 'hover' | 'saving'>('hidden');
+  let emptyPreview = $state(false);
   let items = $derived(
-    samples
+    (emptyPreview ? [] : samples)
       .slice(0, 6)
-      .map((item) => (item.id === 'welcome' ? { ...item, pinned } : item))
+      .map((item, index) => ({
+        ...item,
+        ...(item.id === 'welcome' ? { pinned } : {}),
+        dropped: index === 1,
+        unavailable: index === 2,
+      }))
       .filter(
         (item) =>
           item.title.toLowerCase().includes(query.toLowerCase()) &&
           (filter === 'all' ||
-            (filter === 'pinned' ? item.pinned : item.kind === filter)),
+            (filter === 'pinned'
+              ? item.pinned
+              : filter === 'dropped'
+                ? item.dropped
+                : filter === 'unavailable'
+                  ? item.unavailable
+                  : item.kind === filter)),
       )
       .sort((a, b) => Number(!!b.pinned) - Number(!!a.pinned)),
   );
@@ -65,6 +80,20 @@
         >{/each}<a href="/">Back to prototype</a>
     </div>
   </header>
+  <div class="gallery-theme-picker">
+    <Button onclick={() => (emptyPreview = !emptyPreview)}
+      >{emptyPreview ? 'Show sample items' : 'Empty state'}</Button
+    >
+    <Button onclick={() => (drop = drop === 'hover' ? 'hidden' : 'hover')}
+      >Drop overlay</Button
+    >
+    <Button onclick={() => (drop = drop === 'saving' ? 'hidden' : 'saving')}
+      >Saving overlay</Button
+    >
+    {#if drop !== 'hidden'}<Button onclick={() => (drop = 'hidden')}
+        >Hide overlay</Button
+      >{/if}
+  </div>
   <section aria-label="Composed list-detail panel" class="gallery-panel">
     <PanelLayout>
       {#snippet header()}<SearchHeader
@@ -76,7 +105,7 @@
             filter = 'all';
           }}
         />{/snippet}
-      <ListDetailPanel>
+      <ListDetailPanel empty={items.length === 0 ? panelEmpty : undefined}>
         <GroupedPanelList
           {items}
           label="Sample clips"
@@ -90,7 +119,7 @@
               onactions={() => (actions = true)}
               onopen={() => (status = 'Preview action triggered')}
             />{/snippet}
-          {#snippet empty()}<EmptyState />{/snippet}
+          {#snippet empty()}{@render panelEmpty()}{/snippet}
         </GroupedPanelList>
         {#snippet detail()}{#if item}<DetailPanel {item} />{:else}<aside
               class="detail"
@@ -107,7 +136,9 @@
           onprimary={() => (status = 'Preview action triggered')}
           onactions={() => (actions = !actions)}
         />{/snippet}
-      {#snippet overlay()}{#if actions && item}<ActionsPopup
+      {#snippet overlay()}{#if drop !== 'hidden'}<DropOverlay
+            saving={drop === 'saving'}
+          />{/if}{#if actions && item}<ActionsPopup
             clipboard={true}
             pinned={!!item.pinned}
             onclose={() => (actions = false)}
@@ -202,6 +233,10 @@
     <EmptyState />
   </section>
 </div>
+
+{#snippet panelEmpty()}<EmptyState
+    {...clipboardEmptyState(query, filter)}
+  />{/snippet}
 
 <style>
   .component-gallery {

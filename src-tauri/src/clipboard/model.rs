@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
 pub struct Capture {
+    pub dropped: bool,
     pub text: String,
     pub files: Vec<String>,
     pub image: String,
@@ -17,6 +18,8 @@ pub struct Capture {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Clip {
+    #[serde(default)]
+    pub dropped: bool,
     pub id: String,
     pub kind: String,
     pub title: String,

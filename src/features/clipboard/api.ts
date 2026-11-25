@@ -1,6 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import type { Item } from '../../lib/data';
 export type Clip = {
+  dropped: boolean;
   id: string;
   kind: 'text' | 'link' | 'image' | 'file' | 'color';
   title: string;

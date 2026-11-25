@@ -13,8 +13,11 @@
   import GroupedPanelList from '../../components/GroupedPanelList.svelte';
   import ResultRow from '../../components/ResultRow.svelte';
   import EmptyState from '../../components/EmptyState.svelte';
+  import { clipboardEmptyState } from './emptyState';
+  import DropOverlay from '../../components/DropOverlay.svelte';
   import BottomActionBar from '../../components/BottomActionBar.svelte';
   import ClipboardActions from './ClipboardActions.svelte';
+  import ClipboardDeleteFiltered from './ClipboardDeleteFiltered.svelte';
   import ClipboardDetail from './ClipboardDetail.svelte';
   let {
     initialFilter = 'all',
@@ -33,7 +36,11 @@
   let clips = $state<Clip[]>([]);
   let loading = $state(true);
   let status = $state('');
+  let dropState = $state('');
   let actions = $state(false);
+  let deletion = $state<{ token: number; count: number; query: string } | null>(
+    null,
+  );
   let apps = $state<
     { path: string; name: string; isDefault: boolean }[] | null
   >(null);
@@ -42,6 +49,7 @@
   let textItemId = $state('');
   let textRevision = $state(0);
   let generation = 0;
+  let searchTimer: ReturnType<typeof setTimeout>;
   let item = $derived(clips[selected - offset]);
   let rows = $derived(clips.map(row));
   $effect(() => {
@@ -50,9 +58,9 @@
       textRevision = 0;
     }
   });
-  async function load(index = selected, preserve = false) {
+  async function load(index = selected, preserve = false, anchor?: string) {
     const token = ++generation;
-    const id = preserve ? item?.id : undefined;
+    const id = anchor ?? (preserve ? item?.id : undefined);
     const scrollTop = list?.scrollTop ?? 0;
     loading = true;
     try {
@@ -106,6 +114,7 @@
     filter;
     generation++;
     const timer = setTimeout(() => void load(0), 120);
+    searchTimer = timer;
     return () => clearTimeout(timer);
   });
   onMount(() => {
@@ -118,6 +127,31 @@
     let disposed = false;
     const stops: (() => void)[] = [];
     for (const [name, handler] of [
+      [
+        'clipboard-drop-state',
+        (event: { payload: unknown }) => {
+          dropState = String(event.payload);
+          if (dropState) {
+            actions = false;
+            apps = null;
+            status = '';
+          }
+        },
+      ],
+      [
+        'clipboard-dropped',
+        (event: { payload: unknown }) => {
+          query = '';
+          filter = 'all';
+          revision++;
+          status = 'Added to history';
+          // Let the search effect settle before selecting the newly added item.
+          void tick().then(() => {
+            clearTimeout(searchTimer);
+            return load(0, false, String(event.payload));
+          });
+        },
+      ],
       [
         'clipboard-changed',
         () => {
@@ -165,7 +199,18 @@
     apps = null;
     status = '';
     try {
-      if (operation === 'showText' || operation === 'retryOcr') {
+      if (operation === 'deleteFiltered') {
+        const scope = { query, kind: filter };
+        const plan = await request<{ token: number; count: number }>(
+          'prepareDeleteFiltered',
+          scope,
+        );
+        if (plan.count === 0) status = 'No unpinned results to delete';
+        else {
+          await closeQuickLook('clipboard');
+          deletion = { ...plan, query: scope.query };
+        }
+      } else if (operation === 'showText' || operation === 'retryOcr') {
         textItemId = id;
         textRevision = operation === 'retryOcr' ? textRevision + 1 : 0;
         await closeQuickLook('clipboard');
@@ -240,6 +285,7 @@
     window.addEventListener('pointercancel', cleanup, { once: true });
   }
   function keyboard(e: KeyboardEvent) {
+    if (dropState === 'saving') return;
     if (
       e.defaultPrevented ||
       e.isComposing ||
@@ -309,7 +355,12 @@
   }
 </script>
 
-<svelte:window onkeydown={keyboard} />
+<svelte:window
+  onkeydown={keyboard}
+  onblur={() => {
+    if (dropState === 'hover') dropState = '';
+  }}
+/>
 <PanelLayout>
   {#snippet header()}<SearchHeader
       bind:query
@@ -317,7 +368,10 @@
       clipboard={true}
       {onback}
     />{/snippet}
-  <ListDetailPanel detail={preview}>
+  <ListDetailPanel
+    empty={rows.length === 0 ? panelEmpty : undefined}
+    detail={preview}
+  >
     <div class="clipboard-list-column">
       <GroupedPanelList
         items={rows}
@@ -337,14 +391,7 @@
               void act('copy');
             }}
           />{/snippet}
-        {#snippet empty()}<EmptyState
-            title={loading
-              ? 'Loading clipboard…'
-              : query
-                ? 'No matching clips'
-                : 'Your clipboard is empty'}
-            description="Copy text, images, or files to collect them here."
-          />{/snippet}
+        {#snippet empty()}{@render panelEmpty()}{/snippet}
       </GroupedPanelList>
       {#if total > 100}<nav
           class="clipboard-paging"
@@ -372,6 +419,7 @@
       {onsettings}
     />{/snippet}
   {#snippet overlay()}
+    {#if dropState}<DropOverlay saving={dropState === 'saving'} />{/if}
     {#if actions && item}<ClipboardActions
         {item}
         {apps}
@@ -384,6 +432,19 @@
       />{/if}
   {/snippet}
 </PanelLayout>
+{#if deletion}<ClipboardDeleteFiltered
+    plan={deletion}
+    onclose={() => {
+      deletion = null;
+      document.getElementById('search')?.focus();
+    }}
+    ondeleted={(count) => {
+      deletion = null;
+      status = `Deleted ${count} ${count === 1 ? 'result' : 'results'}`;
+      void load(0);
+      document.getElementById('search')?.focus();
+    }}
+  />{/if}
 {#snippet preview()}<ClipboardDetail
     id={item?.id}
     {revision}
@@ -391,3 +452,7 @@
     {textRevision}
     onshowimage={() => void act('showImage')}
   />{/snippet}
+
+{#snippet panelEmpty()}
+  <EmptyState {...clipboardEmptyState(query, filter, loading)} />
+{/snippet}

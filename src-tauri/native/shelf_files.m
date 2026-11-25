@@ -38,29 +38,43 @@ char *tooki_shelf_thumbnail(const char *path) {
         } @catch(NSException *exception) { return NULL; }
     }
 }
-// Explicit paste, not clipboard monitoring. Preserve image-before-link priority from Swift.
+// Shared by explicit Shelf paste and native content drops. File URLs take
+// precedence, followed by unchanged PNG bytes, TIFF, links, and text.
+static NSDictionary *readDropContent(NSPasteboard *board) {
+    NSMutableDictionary *result = [NSMutableDictionary dictionary];
+    NSRunningApplication *source = NSWorkspace.sharedWorkspace.frontmostApplication;
+    result[@"source"] = source.localizedName ?: @"Drag and drop";
+    result[@"sourceId"] = source.bundleIdentifier ?: @"";
+    NSArray *files = [board readObjectsForClasses:@[NSURL.class] options:@{NSPasteboardURLReadingFileURLsOnlyKey:@YES}];
+    if (files.count) {
+        result[@"files"] = [files valueForKey:@"path"];
+        return result;
+    }
+    NSData *png = [board dataForType:NSPasteboardTypePNG];
+    if (!png) {
+        NSData *tiff = [board dataForType:NSPasteboardTypeTIFF];
+        if (tiff) png = [[NSBitmapImageRep imageRepWithData:tiff] representationUsingType:NSBitmapImageFileTypePNG properties:@{}];
+    }
+    if (png.length) {
+        NSBitmapImageRep *bitmap = [NSBitmapImageRep imageRepWithData:png];
+        if (bitmap) {
+            result[@"png"] = [png base64EncodedStringWithOptions:0];
+            result[@"width"] = @(bitmap.pixelsWide);
+            result[@"height"] = @(bitmap.pixelsHigh);
+        }
+    } else {
+        NSString *link = [board stringForType:NSPasteboardTypeURL];
+        NSString *text = [board stringForType:NSPasteboardTypeString];
+        if (link.length && ([link hasPrefix:@"https://"] || [link hasPrefix:@"http://"])) result[@"url"] = link;
+        else if (text.length) result[@"text"] = text;
+    }
+    return result;
+}
 char *tooki_shelf_pasteboard(bool drag) {
     @autoreleasepool {
         @try {
             NSPasteboard *board = drag ? [NSPasteboard pasteboardWithName:NSPasteboardNameDrag] : NSPasteboard.generalPasteboard;
-            NSArray *files = [board readObjectsForClasses:@[NSURL.class] options:@{NSPasteboardURLReadingFileURLsOnlyKey:@YES}];
-            NSMutableDictionary *result = [NSMutableDictionary dictionary];
-            if (files.count) result[@"files"] = [files valueForKey:@"path"];
-            else {
-                NSData *png = [board dataForType:NSPasteboardTypePNG];
-                if (!png) {
-                    NSData *tiff = [board dataForType:NSPasteboardTypeTIFF];
-                    if (tiff) png = [[NSBitmapImageRep imageRepWithData:tiff] representationUsingType:NSBitmapImageFileTypePNG properties:@{}];
-                }
-                if (png.length) result[@"png"] = [png base64EncodedStringWithOptions:0];
-                else {
-                    NSString *link = [board stringForType:NSPasteboardTypeURL];
-                    NSString *text = [board stringForType:NSPasteboardTypeString];
-                    if (link.length && ([link hasPrefix:@"https://"] || [link hasPrefix:@"http://"])) result[@"url"] = link;
-                    else if (text.length) result[@"text"] = text;
-                }
-            }
-            NSData *json = [NSJSONSerialization dataWithJSONObject:result options:0 error:nil];
+            NSData *json = [NSJSONSerialization dataWithJSONObject:readDropContent(board) options:0 error:nil];
             return strdup([[NSString alloc] initWithData:json encoding:NSUTF8StringEncoding].UTF8String);
         } @catch(NSException *exception) { return strdup("{}"); }
     }

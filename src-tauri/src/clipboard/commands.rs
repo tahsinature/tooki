@@ -146,6 +146,23 @@ fn request(app: &AppHandle, operation: &str, args: Value) -> Result<Value, Strin
             let _ = app.emit("clipboard-changed", ());
             Ok(Value::Null)
         }
+        "prepareDeleteFiltered" => {
+            let mut plans = state.deletions.lock().map_err(|e| e.to_string())?;
+            let db = state.database.lock().map_err(|e| e.to_string())?;
+            Ok(json!(plans.prepare(
+                &db,
+                args["query"].as_str().unwrap_or(""),
+                args["kind"].as_str().unwrap_or("all"),
+            )?))
+        }
+        "deleteFiltered" => {
+            let mut plans = state.deletions.lock().map_err(|e| e.to_string())?;
+            let db = state.database.lock().map_err(|e| e.to_string())?;
+            let token = args["token"].as_u64().ok_or("Missing deletion confirmation")?;
+            let deleted = plans.delete(&db, token)?;
+            let _ = app.emit("clipboard-changed", ());
+            Ok(json!(deleted))
+        }
         "clear" => {
             state
                 .database

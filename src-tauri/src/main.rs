@@ -8,6 +8,7 @@ mod config;
 mod command_feedback;
 mod emoji;
 mod filter_popup;
+mod file_copy;
 mod general_settings;
 mod hyper;
 mod instance_guard;
@@ -181,6 +182,7 @@ fn main() {
             filter_popup::handle_event(window, event);
             settings_window::handle_event(window, event);
             notes::handle_event(window, event);
+            clipboard::drops::handle_event(window, event);
 
             launcher_placement::handle_event(window, event);
         })

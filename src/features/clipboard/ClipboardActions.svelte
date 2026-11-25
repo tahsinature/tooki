@@ -135,6 +135,12 @@
           shortcut: '⌃ X',
           run: () => void act('delete'),
         },
+        {
+          id: 'delete-filtered',
+          label: 'Delete Filtered Results…',
+          icon: Trash2,
+          run: () => void act('deleteFiltered'),
+        },
       ]}
     />{/if}
 </PopupSurface>
