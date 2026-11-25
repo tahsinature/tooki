@@ -29,6 +29,7 @@ export type ClipboardSettings = {
   ocrEnabled: boolean;
   ignoredApps: string[];
 };
+export type FileImagePreview = { data: string; width: number; height: number };
 export function request<T = void>(
   operation: string,
   args: object = {},

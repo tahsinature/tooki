@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { request, type Clip } from './api';
+  import { request, type Clip, type FileImagePreview } from './api';
   import DetailLayout from '../../components/DetailLayout.svelte';
   import InformationList from '../../components/InformationList.svelte';
   import EmptyState from '../../components/EmptyState.svelte';
@@ -19,6 +19,8 @@
   } = $props();
   let clip = $state<Clip>();
   let image = $state('');
+  let imageLoading = $state(false);
+  let fileImage = $state<FileImagePreview | null>(null);
   let error = $state('');
   let loadedId: string | undefined;
   $effect(() => {
@@ -28,6 +30,8 @@
     if (loadedId !== selected) {
       clip = undefined;
       image = '';
+      fileImage = null;
+      imageLoading = false;
       loadedId = selected;
     }
     error = '';
@@ -37,12 +41,27 @@
           if (cancelled) return;
           clip = value;
           if (value.image) {
+            imageLoading = true;
             const data = await request<string>('image', { id: selected });
             if (!cancelled) image = data;
+          } else if (value.kind === 'file' && value.files.length === 1) {
+            imageLoading = true;
+            const preview = await request<FileImagePreview | null>(
+              'fileImage',
+              { id: selected },
+            );
+            if (!cancelled) {
+              fileImage = preview;
+              image = preview?.data ?? '';
+            }
           }
+          if (!cancelled) imageLoading = false;
         })
         .catch((e) => {
-          if (!cancelled) error = String(e);
+          if (!cancelled) {
+            imageLoading = false;
+            error = String(e);
+          }
         });
     return () => {
       cancelled = true;
@@ -53,18 +72,27 @@
 <DetailLayout label="Clipboard preview">
   {#if error}<p role="alert">{error}</p>
   {:else if clip}
-    {#if clip.kind === 'image'}
-      {#if showingText}
-        {#key clip.id}<RecognizedText
-            id={clip.id}
-            revision={textRevision}
-            {onshowimage}
-          />{/key}
-      {:else if image}<img
-          class="clipboard-image"
-          src={image}
-          alt={clip.title}
-        />{:else}<p class="muted">Loading image…</p>{/if}
+    {#if clip.kind === 'image' && showingText}
+      {#key clip.id}<RecognizedText
+          id={clip.id}
+          revision={textRevision}
+          {onshowimage}
+        />{/key}
+    {:else if image}<img
+        class="clipboard-image"
+        src={image}
+        alt={clip.title}
+        onerror={() => {
+          image = '';
+          fileImage = null;
+          if (clip?.kind === 'image')
+            error = 'The image preview is unavailable.';
+        }}
+      />
+    {:else if imageLoading}<p class="muted">Loading image…</p>
+    {:else if clip.kind === 'image'}<p class="muted">
+        The image preview is unavailable.
+      </p>
     {:else if clip.kind === 'file'}
       <div class="document-preview"><pre>{clip.files.join('\n')}</pre></div>
     {:else}
@@ -79,18 +107,18 @@
       </p>{/if}
   {:else}<EmptyState
       title={id ? 'Loading preview…' : 'No clip selected'}
-      description={id ? '' : 'Copy something to get started.'}
+      description={id ? '' : 'Choose an item to see its preview.'}
     />{/if}
   {#snippet information()}
     {#if clip}
       <InformationList
         entries={[
           { label: 'Type', value: clip.kind },
-          ...(clip.kind === 'image'
+          ...(clip.kind === 'image' || fileImage
             ? [
                 {
                   label: 'Dimensions',
-                  value: `${clip.width} × ${clip.height} px`,
+                  value: `${fileImage?.width ?? clip.width} × ${fileImage?.height ?? clip.height} px`,
                 },
               ]
             : []),

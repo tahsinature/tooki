@@ -155,6 +155,18 @@ fn request(app: &AppHandle, operation: &str, args: Value) -> Result<Value, Strin
             let _ = app.emit("clipboard-changed", ());
             Ok(Value::Null)
         }
+        "fileImage" => {
+            let clip = item(app, &args)?;
+            if clip.files.len() != 1 || !std::path::Path::new(&clip.files[0]).is_file() {
+                return Ok(Value::Null);
+            }
+            // ImageIO runs on this blocking worker. The managed/original file
+            // remains unchanged and is still used for Copy, Paste, and Drag.
+            #[cfg(target_os = "macos")]
+            return native::call("imagePreview", json!({"path":clip.files[0]}));
+            #[cfg(not(target_os = "macos"))]
+            Ok(Value::Null)
+        }
         "image" => {
             let clip = item(app, &args)?;
             if clip.image.is_empty() {

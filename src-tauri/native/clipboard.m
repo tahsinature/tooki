@@ -16,6 +16,7 @@ static pid_t pasteTarget = 0;
 static id activationObserver = nil;
 
 extern NSDictionary *tooki_preview(NSString *operation, NSDictionary *args);
+extern id tooki_image_preview(NSString *path);
 
 static NSDictionary *failure(NSString *message) { return @{ @"error": message ?: @"Native operation failed" }; }
 static NSString *str(id value) { return [value isKindOfClass:NSString.class] ? value : @""; }
@@ -99,6 +100,7 @@ static NSArray<NSURL *> *fileURLs(NSArray *paths) {
     NSMutableArray *urls=[NSMutableArray array]; for (NSString *path in paths) [urls addObject:[NSURL fileURLWithPath:path]]; return urls;
 }
 static id perform(NSString *op, NSDictionary *args) {
+    if ([op isEqual:@"imagePreview"]) return tooki_image_preview(str(args[@"path"]));
     if ([op isEqual:@"capture"]) return capture(args);
     if ([op isEqual:@"rememberTarget"]) { rememberTarget(); return @YES; }
     if ([op isEqual:@"paste"]) return paste(args[@"targetPid"] ? [args[@"targetPid"] intValue] : pasteTarget);

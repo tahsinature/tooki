@@ -25,6 +25,7 @@ fn main() {
             .file("native/instance_guard.m")
             .file("native/permissions.m")
             .file("native/clipboard.m")
+            .file("native/image_preview.m")
             .file("native/emoji.m")
             .file("native/system_monitor.m")
             .file("native/settings_chrome.m")

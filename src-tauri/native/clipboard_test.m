@@ -1,5 +1,6 @@
 #define TOOKI_CLIPBOARD_TEST 1
 #import "clipboard.m"
+#import <ImageIO/ImageIO.h>
 #define CHECK(test) if (!(test)) { fprintf(stderr,"Failed at line %d: %s\n",__LINE__,#test); return 1; }
 int main(void) {
  @autoreleasepool {
@@ -38,6 +39,32 @@ int main(void) {
   NSData *convertedPNG=[NSData dataWithContentsOfFile:converted[@"image"]];
   CHECK([convertedPNG isEqualToData:[rep representationUsingType:NSBitmapImageFileTypePNG properties:@{}]]);
   CHECK([converted[@"bytes"] unsignedLongLongValue]==convertedPNG.length);
+  // File previews must honor orientation and bound decoding without changing
+  // the source JPEG or advertising preview PNG bytes when copying the file.
+  NSBitmapImageRep *large=[[NSBitmapImageRep alloc] initWithBitmapDataPlanes:NULL pixelsWide:2400 pixelsHigh:1800 bitsPerSample:8 samplesPerPixel:3 hasAlpha:NO isPlanar:NO colorSpaceName:NSDeviceRGBColorSpace bytesPerRow:0 bitsPerPixel:0];
+  memset(large.bitmapData, 180, large.bytesPerRow*large.pixelsHigh);
+  NSMutableData *jpeg=[NSMutableData data];
+  CGImageDestinationRef writer=CGImageDestinationCreateWithData((__bridge CFMutableDataRef)jpeg,CFSTR("public.jpeg"),1,NULL);
+  CHECK(writer != NULL);
+  CGImageDestinationAddImage(writer,large.CGImage,(__bridge CFDictionaryRef)@{(__bridge NSString *)kCGImagePropertyOrientation:@6});
+  CHECK(CGImageDestinationFinalize(writer));CFRelease(writer);
+  NSString *jpegPath=[directory stringByAppendingPathComponent:@"photo.jpg"];
+  CHECK([jpeg writeToFile:jpegPath atomically:YES]);
+  NSDictionary *filePreview=perform(@"imagePreview",@{@"path":jpegPath});
+  CHECK([filePreview[@"width"] intValue]==1800 && [filePreview[@"height"] intValue]==2400);
+  NSString *previewData=filePreview[@"data"];
+  CHECK([previewData hasPrefix:@"data:image/png;base64,"]);
+  NSData *previewPNG=[[NSData alloc] initWithBase64EncodedString:[previewData substringFromIndex:22] options:0];
+  NSBitmapImageRep *previewBitmap=[NSBitmapImageRep imageRepWithData:previewPNG];
+  CHECK(previewBitmap.pixelsWide==1200 && previewBitmap.pixelsHigh==1600);
+  CHECK([[NSData dataWithContentsOfFile:jpegPath] isEqualToData:jpeg]);
+  perform(@"copy",@{@"item":@{@"files":@[jpegPath]},@"mode":@"original"});
+  CHECK(![pb.types containsObject:NSPasteboardTypePNG]);
+  CHECK([[[pb readObjectsForClasses:@[NSURL.class] options:@{NSPasteboardURLReadingFileURLsOnlyKey:@YES}] firstObject] isEqual:[NSURL fileURLWithPath:jpegPath]]);
+  NSString *invalidPath=[directory stringByAppendingPathComponent:@"not-an-image.jpg"];
+  CHECK([[@"ordinary text" dataUsingEncoding:NSUTF8StringEncoding] writeToFile:invalidPath atomically:YES]);
+  CHECK(perform(@"imagePreview",@{@"path":invalidPath})==NSNull.null);
+  CHECK(perform(@"imagePreview",@{@"path":[directory stringByAppendingPathComponent:@"missing.jpg"]})==NSNull.null);
   NSString *recognized=perform(@"ocr",@{@"path":captured[@"image"]});
   CHECK([recognized isKindOfClass:NSString.class]);CHECK([recognized containsString:@"12345"]);
   NSArray *apps=perform(@"apps",@{@"path":captured[@"image"]});CHECK(apps.count>0);
